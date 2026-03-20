@@ -49,7 +49,7 @@ class MongoDBClient:
 
     def get_db(self):
         """Gebe Database-Instanz zurück"""
-        if not self.db:
+        if self.db is None:
             self.connect()
         return self.db
 

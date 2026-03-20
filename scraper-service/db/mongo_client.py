@@ -64,7 +64,7 @@ class MongoDBClient:
         Returns:
             MongoDB database instance
         """
-        if not self.db:
+        if self.db is None:
             self.connect()
         return self.db
 
