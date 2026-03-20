@@ -1,0 +1,47 @@
+[flake8]
+# Line length
+max-line-length = 100
+
+# Exclude patterns
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    .eggs,
+    *.egg,
+    dist,
+    build,
+    .pytest_cache,
+    .ruff_cache,
+    *.egg-info,
+    node_modules,
+    .github,
+    .mypy_cache,
+
+# Ignore codes
+ignore =
+    E203,
+    E501,
+    W503,
+    W605
+
+# Extensions
+enable-extensions = G
+
+# Complexity
+max-complexity = 15
+
+# Count errors
+count = True
+
+# Show source
+show-source = True
+
+# Show pep8 codes
+statistics = True
+
+# Per-file-ignores
+per-file-ignores =
+    __init__.py:F401
+    tests/*:F841,F401

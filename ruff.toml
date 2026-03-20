@@ -1,0 +1,51 @@
+# Ruff configuration
+# https://docs.astral.sh/ruff/configuration/
+
+# Target Python 3.11+
+target-version = "py311"
+line-length = 100
+include = ["*.py", "*.pyi"]
+exclude = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv",
+    ".eggs",
+    "*.egg",
+    "dist",
+    "build",
+    ".pytest_cache",
+    ".ruff_cache",
+    "*.egg-info",
+    "node_modules",
+    ".github",
+    ".mypy_cache",
+]
+
+[lint]
+select = [
+    "E",
+    "W",
+    "F",
+    "I",
+    "B",
+    "C4",
+    "UP",
+    "ARG",
+    "SIM",
+    "RUF",
+]
+ignore = [
+    "E501",
+    "W605",
+]
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[lint.isort]
+known-first-party = ["app", "scraper", "db", "scheduler"]
+known-third-party = ["fastapi", "pymongo", "requests", "pydantic"]
+
+[format]
+preview = true
