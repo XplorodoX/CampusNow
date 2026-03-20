@@ -1,0 +1,42 @@
+name: Tag & Version Validation
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  validate-tag:
+    name: Validate Release Tag Format
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Validate semantic versioning
+        run: |
+          TAG="${{ github.ref }}"
+          TAG_NAME="${TAG#refs/tags/}"
+          
+          echo "🏷️  Validating tag: $TAG_NAME"
+          
+          # Regex for semantic versioning
+          if [[ $TAG_NAME =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta|rc)[0-9]+)?$ ]]; then
+            echo "✅ Valid semantic version: $TAG_NAME"
+            echo "VALID=true" >> $GITHUB_ENV
+          else
+            echo "❌ Invalid tag format!"
+            echo "Expected format: v1.0.0 or v1.0.0-rc1"
+            echo "Got: $TAG_NAME"
+            exit 1
+          fi
+          
+      - name: Fail if invalid
+        if: env.VALID != 'true'
+        run: exit 1
+        
+      - name: Success message
+        run: |
+          TAG_NAME="${{ github.ref }}"
+          TAG_NAME="${TAG_NAME#refs/tags/}"
+          echo "✅ Tag validation passed for: $TAG_NAME"
+          echo "🚀 Release workflow will be triggered automatically"

@@ -1,0 +1,54 @@
+# Empfohlene GitHub Branch Protection Einstellungen
+#
+# Diese Datei dokumentiert die empfohlenen Schutzmaßnahmen für die main-Branch.
+# Konfigurieren Sie diese manuell unter: Settings → Branches → Branch Protection Rules
+#
+# HINWEIS: Die GitHub API für Branch Protection ist derzeit bei Reno API nur eingeschränkt
+# verfügbar. Die folgenden Einstellungen sollten manuell in der GitHub UI konfiguriert werden.
+
+main:
+  protection:
+    required_status_checks:
+      strict: true
+      contexts:
+        - "ci / lint-and-test (3.9)"
+        - "ci / lint-and-test (3.10)"
+        - "ci / lint-and-test (3.11)"
+        - "ci / security-scan"
+        - "ci / docker-build"
+
+    required_pull_request_reviews:
+      required_approving_review_count: 1
+      dismiss_stale_reviews: true
+      require_code_owner_reviews: false
+
+    enforce_admins: true
+    allow_force_pushes: false
+    allow_deletions: false
+    require_linear_history: true
+
+develop:
+  protection:
+    required_status_checks:
+      strict: false
+      contexts:
+        - "ci / lint-and-test (3.9)"
+        - "ci / lint-and-test (3.10)"
+        - "ci / lint-and-test (3.11)"
+        - "ci / security-scan"
+        - "ci / docker-build"
+
+    required_pull_request_reviews:
+      required_approving_review_count: 1
+      dismiss_stale_reviews: false
+
+# Manual Setup Instructions:
+# 1. Gehen Sie zu: https://github.com/YOUR_REPO/settings/branches
+# 2. Klicken Sie "Add rule" für main Branch
+# 3. Aktivieren Sie folgende Optionen:
+#    - ✅ Require a pull request before merging
+#    - ✅ Require status checks to pass before merging
+#    - ✅ Require branches to be up to date before merging
+#    - ✅ Require code reviews before merging (1 review)
+#    - ✅ Include administrators
+#    - ✅ Require conversation resolution before merging (optional)

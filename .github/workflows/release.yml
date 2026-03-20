@@ -1,0 +1,149 @@
+name: Release & Deployment
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'          # Release: v1.0.0
+      - 'v[0-9]+.[0-9]+.[0-9]+-rc*'      # Release Candidate: v1.0.0-rc1
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version zum Releasen (optional)'
+        required: false
+        type: string
+
+jobs:
+  validate-release:
+    name: Validate Release Tag
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.extract.outputs.version }}
+      is-valid: ${{ steps.extract.outputs.is-valid }}
+    
+    steps:
+      - name: Extract version from tag
+        id: extract
+        run: |
+          if [[ "${{ github.ref }}" =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+            echo "is-valid=true" >> $GITHUB_OUTPUT
+            echo "✅ Valid release tag: $VERSION"
+          else
+            echo "is-valid=false" >> $GITHUB_OUTPUT
+            echo "⚠️  Invalid tag format. Use: v1.0.0 or v1.0.0-rc1"
+          fi
+
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: validate-release
+    if: needs.validate-release.outputs.is-valid == 'true'
+    
+    permissions:
+      contents: write
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history für Release Notes
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-release-${{ hashFiles('**/requirements.txt') }}
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          cd scraper-service && pip install -r requirements.txt
+          cd ../api-service && pip install -r requirements.txt
+          cd ..
+          pip install ruff flake8 black pytest pytest-cov
+          
+      - name: Run final tests
+        run: |
+          echo "🧪 Running final tests before release..."
+          cd scraper-service && python -m pytest test_scraper.py -v --tb=short
+          cd ../api-service && python -m pytest -v --tb=short
+          
+      - name: Run lint checks
+        run: |
+          echo "🔍 Final lint check..."
+          ruff check scraper-service api-service
+          python -m flake8 scraper-service api-service
+          
+      - name: Verify CHANGELOG
+        run: |
+          echo "📋 Verifying CHANGELOG.md exists..."
+          if [ ! -f CHANGELOG.md ]; then
+            echo "⚠️  CHANGELOG.md not found"
+            exit 1
+          fi
+          echo "✅ CHANGELOG.md found"
+          
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.validate-release.outputs.version }}
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(needs.validate-release.outputs.version, '-rc') }}
+          files: |
+            CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-docker-images:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: [validate-release, create-release]
+    if: needs.validate-release.outputs.is-valid == 'true'
+    
+    permissions:
+      contents: read
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        
+      - name: Build Scraper Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./scraper-service
+          file: ./scraper-service/Dockerfile
+          push: false
+          tags: |
+            campusnow:scraper-${{ needs.validate-release.outputs.version }}
+            campusnow:scraper-latest
+          outputs: type=docker
+          
+      - name: Build API Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./api-service
+          file: ./api-service/Dockerfile
+          push: false
+          tags: |
+            campusnow:api-${{ needs.validate-release.outputs.version }}
+            campusnow:api-latest
+          outputs: type=docker
+            
+      - name: Print deployment info
+        run: |
+          echo "🐳 Docker images built successfully:"
+          echo "  Scraper: campusnow:scraper-${{ needs.validate-release.outputs.version }}"
+          echo "  API:     campusnow:api-${{ needs.validate-release.outputs.version }}"
+          echo ""
+          echo "📦 To deploy (locally):"
+          echo "  docker-compose up -d"

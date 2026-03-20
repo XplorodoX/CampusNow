@@ -1,11 +1,16 @@
 # CampusNow - Setup Guide
 
+[![CI Pipeline](https://github.com/YOUR_USERNAME/CampusNow/workflows/CI%20Pipeline/badge.svg)](https://github.com/YOUR_USERNAME/CampusNow/actions)
+[![Code Quality](https://github.com/YOUR_USERNAME/CampusNow/workflows/Code%20Quality%20Analysis/badge.svg)](https://github.com/YOUR_USERNAME/CampusNow/actions)
+[![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 ## 🚀 Schnellstart
 
 ### Vorrausetzungen
 - Docker & Docker Compose
 - Git
-- (Optional) Python 3.11+ für lokale Entwicklung
+- (Optional) Python 3.9+ für lokale Entwicklung
 
 ### Installation
 
@@ -47,6 +52,52 @@ Alle API-Endpoints sind dort dokumentiert mit:
 - Try-it-out Funktionalität
 
 ---
+
+## 🔄 CI/CD Pipeline
+
+Dieses Projekt nutzt **GitHub Actions** für automatisierte Code-Qualitätssicherung mit intelligenten Triggern.
+
+**Verfügbare Pipelines:**
+- ✅ **CI Pipeline** - Lint, Tests, Security Scan (nur bei Code-Änderungen)
+- ✅ **Code Quality** - Complexity Analysis, Coverage (nach erfolgreicher CI)
+- ✅ **Security Audit** - Dependency Checks (wöchentlich oder manual)
+- ✅ **Release** - Vollautomatisch bei Tag Push (Semantic Versioning)
+- ✅ **Tag Validation** - Prüft Tag-Format vor Release
+
+📚 **Dokumentation:**
+- [CI_CD_SETUP.md](CI_CD_SETUP.md) - Ausführliches Setup
+- [TAG_AND_RELEASE.md](TAG_AND_RELEASE.md) - Release Workflow
+- [RELEASE_QUICK_REFERENCE.md](RELEASE_QUICK_REFERENCE.md) - Quick Start
+- [WORKFLOW_OPTIMIZATION.md](WORKFLOW_OPTIMIZATION.md) - Optimierungsdetails
+
+### Lokal testen
+```bash
+# Schnelle Checks
+make lint
+make test
+
+# Vollständige CI Pipeline lokal
+make ci-local
+
+# Code Qualität prüfen
+make quality
+```
+
+### Release erstellen
+```bash
+# Release vorbereiten
+make release-check
+
+# Release durchführen (GitHub Actions kümmert sich um Rest!)
+make release VERSION=1.0.0
+
+# Oder Release Candidate
+make release-rc VERSION=1.0.0
+```
+
+---
+
+## 🛠️ Entwicklung
 
 ## 🗂️ Projektstruktur
 

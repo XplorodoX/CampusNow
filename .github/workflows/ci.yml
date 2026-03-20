@@ -1,0 +1,143 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+    # Ignoriere reine Dokumentations-Änderungen
+    paths-ignore:
+      - '**.md'
+      - '.editorconfig'
+      - '.gitignore'
+      - 'LICENSE'
+      - 'docs/**'
+  pull_request:
+    branches: [main, develop]
+    # Ignoriere reine Dokumentations-Änderungen
+    paths-ignore:
+      - '**.md'
+      - '.editorconfig'
+      - '.gitignore'
+      - 'LICENSE'
+      - 'docs/**'
+  # Erlaube manuelles Triggern
+  workflow_dispatch:
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+            
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          cd scraper-service && pip install -r requirements.txt
+          cd ../api-service && pip install -r requirements.txt
+          cd ..
+          pip install ruff flake8 black pytest pytest-asyncio pytest-cov
+          
+      - name: Lint with Ruff
+        run: |
+          echo "🔍 Running Ruff linter..."
+          ruff check scraper-service api-service
+          
+      - name: Lint with Flake8
+        run: |
+          echo "🔍 Running Flake8 linter..."
+          python -m flake8 scraper-service api-service
+          
+      - name: Format check with Black
+        run: |
+          echo "🎨 Checking code format..."
+          black --check scraper-service api-service --line-length=100
+          
+      - name: Run Scraper Tests
+        run: |
+          cd scraper-service
+          python -m pytest test_scraper.py -v --tb=short
+          
+      - name: Run API Tests
+        run: |
+          cd api-service
+          python -m pytest --cov=app --cov-report=xml -v
+          
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./api-service/coverage.xml
+          fail_ci_if_error: false
+          verbose: true
+
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit safety
+          
+      - name: Run Bandit security scan
+        run: |
+          echo "🔒 Running Bandit security scan..."
+          bandit -r scraper-service api-service -f json -o bandit-report.json || true
+          
+      - name: Check dependencies with Safety
+        run: |
+          echo "🔒 Checking dependencies with Safety..."
+          safety check --json || true
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: [lint-and-test]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        
+      - name: Build Scraper Service Image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./scraper-service
+          file: ./scraper-service/Dockerfile
+          push: false
+          tags: campusnow:scraper-latest
+          
+      - name: Build API Service Image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./api-service
+          file: ./api-service/Dockerfile
+          push: false
+          tags: campusnow:api-latest

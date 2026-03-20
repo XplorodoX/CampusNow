@@ -1,0 +1,28 @@
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+
+comment:
+  layout: "reach,diff,files,footer"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+  
+ignore:
+  - "tests"
+  - "*/test*.py"
+  - "setup.py"
+  - "*/__pycache__/*"
+
+flags:
+  unittests:
+    paths:
+      - scraper-service/scraper/
+      - api-service/app/
+    carryforward: true
+
+github:
+  checks:
+    annotations: true

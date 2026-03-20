@@ -61,21 +61,26 @@ skip_gitignore = true
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "-ra -q --strict-markers --tb=short"
-testpaths = ["tests"]
+addopts = "-ra -q --strict-markers --tb=short --cov=scraper-service --cov=api-service --cov-report=term-missing"
+testpaths = ["scraper-service", "api-service"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 asyncio_mode = "auto"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
 
 [tool.coverage.run]
 branch = true
-source = ["scraper-service", "api-service"]
+source = ["scraper-service/scraper", "scraper-service/db", "scraper-service/scheduler", "api-service/app"]
 omit = [
     "*/__init__.py",
     "*/tests/*",
+    "*/test_*.py",
     "setup.py",
 ]
+parallel = true
 
 [tool.coverage.report]
 exclude_lines = [
@@ -85,7 +90,16 @@ exclude_lines = [
     "raise NotImplementedError",
     "if __name__ == .__main__.:",
     "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
 ]
+precision = 2
+skip_covered = false
+skip_empty = true
+sort = "Cover"
+
+[tool.coverage.html]
+directory = "htmlcov"
 
 [tool.mypy]
 python_version = "3.11"

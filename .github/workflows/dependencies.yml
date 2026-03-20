@@ -1,0 +1,59 @@
+name: Dependency & Security Audit
+
+on:
+  # Wöchentliche Sicherheitschecks (Montag 2 AM UTC)
+  schedule:
+    - cron: '0 2 * * MON'
+  # Manuelle Auslösung ermöglichen
+  workflow_dispatch:
+  # Nach erfolgreicher Release
+  workflow_run:
+    workflows: ["Release & Deployment"]
+    types: [completed]
+
+jobs:
+  dependabot-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Update pip
+        run: python -m pip install --upgrade pip
+        
+      - name: Check for outdated packages
+        continue-on-error: true
+        run: |
+          echo "📦 Checking for outdated packages..."
+          pip list --outdated
+          
+  update-dependencies:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      pull-requests: write
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Create dependency update PR
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const { execSync } = require('child_process');
+            
+            console.log('🔄 Checking for dependency updates...');
+            
+            // This is a placeholder - in production, you'd use dependabot
+            // or pip-audit tools to generate actual update PRs
+            console.log('💡 Use GitHub Dependabot for automatic dependency updates');
+            console.log('   Enable it in: Settings > Code security > Dependabot');
