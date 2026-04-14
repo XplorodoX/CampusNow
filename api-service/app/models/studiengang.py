@@ -6,7 +6,9 @@ from pydantic import BaseModel, Field
 class Studiengang(BaseModel):
     name: str
     code: str
-    semester: str
+    semester: str = ""
+    program_code: str | None = None
+    program_name: str | None = None
     lecture_count: int = 0
 
     class Config:

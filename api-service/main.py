@@ -25,11 +25,55 @@ logger = logging.getLogger(__name__)
 # Create FastAPI app
 app = FastAPI(
     title=os.getenv("API_TITLE", "CampusNow API"),
-    description="Microservice für Stundenplan-Management der HS Aalen",
+    description="""
+## CampusNow REST API
+
+Stundenplan- und Raumverwaltungs-API für die **Hochschule Aalen**.
+
+### Funktionen
+
+- **Vorlesungen** – Stundenplan-Daten filtern nach Raum, Studiengang und Datum
+- **Räume** – Raumdaten inkl. Ausstattung und Belegungspläne
+- **Studiengänge** – Alle Studiengänge und ihre Vorlesungen
+- **360°-Bilder** – Panorama-Bilder von Räumen verwalten und abrufen
+- **Scheduler** – Status und manuelle Auslösung des Scrapers
+
+### Datenquelle
+
+Die Daten werden automatisch täglich um **06:00 Uhr** aus dem STARplan-System der HS Aalen gescrapt.
+""",
     version=os.getenv("API_VERSION", "1.0.0"),
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
+    contact={
+        "name": "CampusNow Team",
+    },
+    license_info={
+        "name": "MIT",
+    },
+    openapi_tags=[
+        {
+            "name": "lectures",
+            "description": "Vorlesungspläne abrufen und verwalten.",
+        },
+        {
+            "name": "rooms",
+            "description": "Räume und Raumbelegungen der HS Aalen.",
+        },
+        {
+            "name": "studiengaenge",
+            "description": "Studiengänge und ihre zugehörigen Vorlesungen.",
+        },
+        {
+            "name": "images",
+            "description": "360°-Panoramabilder für Räume hochladen und abrufen.",
+        },
+        {
+            "name": "scheduler",
+            "description": "Scraper-Scheduler Status und manuelle Steuerung.",
+        },
+    ],
 )
 
 # Add CORS middleware
@@ -50,9 +94,9 @@ app.include_router(images.router)
 app.include_router(scheduler.router)
 
 
-@app.get("/")
+@app.get("/", tags=["status"], summary="API Info", response_description="Basisinformationen zur API")
 async def root() -> dict[str, Any]:
-    """Root endpoint returning API information."""
+    """Gibt grundlegende Informationen zur API zurück."""
     return {
         "message": "CampusNow API",
         "version": os.getenv("API_VERSION", "1.0.0"),
@@ -61,9 +105,33 @@ async def root() -> dict[str, Any]:
     }
 
 
-@app.get("/health")
+@app.get(
+    "/health",
+    tags=["status"],
+    summary="Health Check",
+    response_description="Aktueller Gesundheitsstatus des Services und der Datenbankverbindung",
+    responses={
+        200: {
+            "description": "Service ist erreichbar (kann dennoch `unhealthy` sein wenn DB nicht verbunden)",
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "healthy": {
+                            "summary": "Alles OK",
+                            "value": {"status": "healthy", "database": "connected"},
+                        },
+                        "unhealthy": {
+                            "summary": "Datenbank nicht verbunden",
+                            "value": {"status": "unhealthy", "database": "disconnected"},
+                        },
+                    }
+                }
+            },
+        }
+    },
+)
 async def health_check() -> dict[str, Any]:
-    """Health check endpoint."""
+    """Prüft ob der Service und die MongoDB-Verbindung erreichbar sind."""
     try:
         if mongo_client.connect():
             return {

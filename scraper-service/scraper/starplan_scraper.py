@@ -11,6 +11,8 @@ from urllib.parse import urlencode
 import requests
 from bs4 import BeautifulSoup
 
+from scraper.study_program_mapping import STUDY_PROGRAM_NAME_BY_CODE
+
 logger = logging.getLogger(__name__)
 
 
@@ -187,12 +189,19 @@ class StarplanScraper:
 
                 shortname = str(pg.get("shortname") or pgid)
                 name = str(pg.get("name") or shortname)
+                program_code = str(og.get("shortname") or "").strip() or shortname.split(" ")[0]
+                program_name = self._resolve_program_name(program_code, str(og.get("name") or ""))
+                semester = self._extract_semester_label(shortname, name)
 
                 courses.append(
                     {
                         "course_id": pgid,
                         "name": name,
                         "code": shortname,
+                        "semester": semester,
+                        "program_id": str(og_id),
+                        "program_code": program_code,
+                        "program_name": program_name,
                         "og_id": str(og_id),
                         "og_code": str(og.get("shortname") or ""),
                         "og_name": str(og.get("name") or ""),
@@ -203,6 +212,33 @@ class StarplanScraper:
                 )
 
         return courses
+
+    @staticmethod
+    def _extract_semester_label(group_code: str, group_name: str) -> str:
+        """Extract a semester label from StarPlan planning-group metadata."""
+        code_match = re.search(r"\bS[0-9][0-9+_/-]*\b", group_code)
+        if code_match:
+            return code_match.group(0)
+
+        name_match = re.search(r"Sem\.?\s*([0-9][0-9+_/-]*)", group_name, flags=re.IGNORECASE)
+        if name_match:
+            return f"S{name_match.group(1)}"
+
+        return ""
+
+    @staticmethod
+    def _normalize_program_code(program_code: str) -> str:
+        """Normalize program code for robust dictionary lookups."""
+        normalized = re.sub(r"\s+", " ", program_code.strip().upper())
+        return normalized.replace("–", "-").replace("—", "-")
+
+    def _resolve_program_name(self, program_code: str, starplan_name: str) -> str:
+        """Resolve full program name from static mapping with StarPlan fallback."""
+        normalized_code = self._normalize_program_code(program_code)
+        mapped_name = STUDY_PROGRAM_NAME_BY_CODE.get(normalized_code)
+        if mapped_name:
+            return mapped_name
+        return starplan_name
 
     def _scrape_rooms_from_html_fallback(self) -> list[dict[str, Any]]:
         response = self.session.get(f"{self.mobile_url}&sel=ro", timeout=20)

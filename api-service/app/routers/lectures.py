@@ -13,30 +13,47 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/lectures", tags=["lectures"])
 
 
-@router.get("", response_model=list[LectureResponse])
+@router.get(
+    "",
+    response_model=list[LectureResponse],
+    summary="Alle Vorlesungen abrufen",
+    response_description="Liste der gefilterten Vorlesungen",
+    responses={
+        200: {
+            "content": {
+                "application/json": {
+                    "example": [
+                        {
+                            "_id": "6623a1f2e4b0a1c2d3e4f5a6",
+                            "lecture_id": "INF-2024-001",
+                            "room_id": "Z106",
+                            "studiengang_id": "INF",
+                            "professor": "Prof. Dr. Müller",
+                            "module_name": "Algorithmen und Datenstrukturen",
+                            "start_time": "2024-04-15T08:00:00",
+                            "end_time": "2024-04-15T09:30:00",
+                            "day_of_week": "Monday",
+                            "duration_minutes": 90,
+                            "semester": "SS2024",
+                        }
+                    ]
+                }
+            }
+        },
+        500: {"description": "Datenbankfehler"},
+    },
+)
 async def get_lectures(
-    room_id: str | None = Query(None),
-    studiengang_id: str | None = Query(None),
-    date_from: str | None = Query(None),
-    date_to: str | None = Query(None),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
+    room_id: str | None = Query(None, description="Filtert nach Raum-ID (z. B. `Z106`)"),
+    studiengang_id: str | None = Query(None, description="Filtert nach Studiengangs-ID (z. B. `INF`)"),
+    date_from: str | None = Query(None, description="Startdatum des Zeitraums im ISO-8601-Format (z. B. `2024-04-15T00:00:00`)"),
+    date_to: str | None = Query(None, description="Enddatum des Zeitraums im ISO-8601-Format (z. B. `2024-04-19T23:59:59`)"),
+    skip: int = Query(0, ge=0, description="Anzahl der zu überspringenden Einträge (Pagination)"),
+    limit: int = Query(100, ge=1, le=1000, description="Maximale Anzahl der zurückgegebenen Einträge (max. 1000)"),
 ) -> list[LectureResponse]:
-    """Fetch all lectures with optional filters.
+    """Gibt alle Vorlesungen zurück, optional gefiltert nach Raum, Studiengang und Zeitraum.
 
-    Args:
-        room_id: Filter by room ID
-        studiengang_id: Filter by course/program ID
-        date_from: Filter start date (ISO 8601)
-        date_to: Filter end date (ISO 8601)
-        skip: Number of records to skip (default: 0)
-        limit: Maximum records to return (default: 100, max: 1000)
-
-    Returns:
-        List of matching lectures
-
-    Raises:
-        HTTPException: 500 if database error occurs
+    Unterstützt Pagination über `skip` und `limit`.
     """
     try:
         db = mongo_client.get_db()
@@ -65,21 +82,20 @@ async def get_lectures(
         ) from e
 
 
-@router.get("/{lecture_id}", response_model=LectureResponse)
+@router.get(
+    "/{lecture_id}",
+    response_model=LectureResponse,
+    summary="Einzelne Vorlesung abrufen",
+    response_description="Die gefundene Vorlesung",
+    responses={
+        404: {"description": "Vorlesung nicht gefunden"},
+        500: {"description": "Datenbankfehler"},
+    },
+)
 async def get_lecture(
     lecture_id: str,
 ) -> LectureResponse:
-    """Fetch a single lecture by ID.
-
-    Args:
-        lecture_id: The lecture ID to fetch
-
-    Returns:
-        The matching lecture
-
-    Raises:
-        HTTPException: 404 if lecture not found, 500 if error
-    """
+    """Gibt eine einzelne Vorlesung anhand ihrer `lecture_id` zurück."""
     try:
         db = mongo_client.get_db()
         lecture = db.lectures.find_one({"lecture_id": lecture_id})
@@ -102,20 +118,25 @@ async def get_lecture(
         ) from e
 
 
-@router.post("", response_model=dict[str, str])
+@router.post(
+    "",
+    response_model=dict[str, str],
+    summary="Vorlesung anlegen (Admin)",
+    response_description="ID der neu erstellten Vorlesung",
+    responses={
+        200: {
+            "content": {"application/json": {"example": {"id": "6623a1f2e4b0a1c2d3e4f5a6"}}}
+        },
+        500: {"description": "Datenbankfehler"},
+    },
+)
 async def create_lecture(
     lecture: LectureResponse,
 ) -> dict[str, str]:
-    """Create a new lecture (admin only).
+    """Legt eine neue Vorlesung in der Datenbank an.
 
-    Args:
-        lecture: The lecture data to create
-
-    Returns:
-        Dict with the created lecture ID
-
-    Raises:
-        HTTPException: 500 if database error occurs
+    > **Hinweis:** Dieser Endpunkt ist für den internen Admin-Gebrauch vorgesehen.
+    > Vorlesungsdaten werden in der Regel automatisch durch den Scraper befüllt.
     """
     try:
         db = mongo_client.get_db()

@@ -13,27 +13,46 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/rooms", tags=["rooms"])
 
 
-@router.get("", response_model=list[RoomResponse])
+@router.get(
+    "",
+    response_model=list[RoomResponse],
+    summary="Alle Räume abrufen",
+    response_description="Liste der gefilterten Räume",
+    responses={
+        200: {
+            "content": {
+                "application/json": {
+                    "example": [
+                        {
+                            "_id": "Z106",
+                            "room_number": "Z106",
+                            "floor": 1,
+                            "capacity": 40,
+                            "building": "Z",
+                            "has_video": True,
+                            "has_projector": True,
+                            "street_view_enabled": True,
+                            "room_image_360": {
+                                "image_paths": ["2024-04-15-083000-panorama.jpg"],
+                                "latest_update": "2024-04-15T08:30:00",
+                                "url_prefix": "/api/v1/images/rooms/Z106/",
+                            },
+                            "created_at": "2024-01-01T00:00:00",
+                        }
+                    ]
+                }
+            }
+        },
+        500: {"description": "Datenbankfehler"},
+    },
+)
 async def get_rooms(
-    floor: int | None = Query(None),
-    search: str | None = Query(None),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
+    floor: int | None = Query(None, description="Filtert nach Stockwerk (z. B. `1` für erstes OG)"),
+    search: str | None = Query(None, description="Suche im Raumnamen (Groß-/Kleinschreibung egal, z. B. `Z1`)"),
+    skip: int = Query(0, ge=0, description="Anzahl der zu überspringenden Einträge (Pagination)"),
+    limit: int = Query(100, ge=1, le=1000, description="Maximale Anzahl der zurückgegebenen Einträge (max. 1000)"),
 ) -> list[RoomResponse]:
-    """Fetch all rooms with optional filters.
-
-    Args:
-        floor: Filter by floor number
-        search: Search room number (case-insensitive)
-        skip: Number of records to skip (default: 0)
-        limit: Maximum records to return (default: 100, max: 1000)
-
-    Returns:
-        List of matching rooms
-
-    Raises:
-        HTTPException: 500 if database error occurs
-    """
+    """Gibt alle Räume der HS Aalen zurück, optional gefiltert nach Stockwerk oder Raumnummer."""
     try:
         db = mongo_client.get_db()
         query: dict[str, Any] = {}
@@ -57,19 +76,18 @@ async def get_rooms(
         ) from e
 
 
-@router.get("/{room_id}", response_model=RoomResponse)
+@router.get(
+    "/{room_id}",
+    response_model=RoomResponse,
+    summary="Einzelnen Raum abrufen",
+    response_description="Der gefundene Raum mit allen Details",
+    responses={
+        404: {"description": "Raum nicht gefunden"},
+        500: {"description": "Datenbankfehler"},
+    },
+)
 async def get_room(room_id: str) -> RoomResponse:
-    """Fetch room details by ID.
-
-    Args:
-        room_id: The room ID to fetch
-
-    Returns:
-        The matching room
-
-    Raises:
-        HTTPException: 404 if room not found, 500 if error
-    """
+    """Gibt einen einzelnen Raum anhand seiner ID zurück (z. B. `Z106`)."""
     try:
         db = mongo_client.get_db()
         room = db.rooms.find_one({"_id": room_id})
@@ -92,21 +110,20 @@ async def get_room(room_id: str) -> RoomResponse:
         ) from e
 
 
-@router.get("/{room_id}/schedule", response_model=list[dict[str, Any]])
+@router.get(
+    "/{room_id}/schedule",
+    response_model=list[dict[str, Any]],
+    summary="Belegungsplan eines Raums",
+    response_description="Liste aller Vorlesungen die in diesem Raum stattfinden",
+    responses={
+        404: {"description": "Keine Vorlesungen für diesen Raum gefunden"},
+        500: {"description": "Datenbankfehler"},
+    },
+)
 async def get_room_schedule(
     room_id: str,
 ) -> list[dict[str, Any]]:
-    """Fetch schedule for a specific room.
-
-    Args:
-        room_id: The room ID to fetch schedule for
-
-    Returns:
-        List of lectures for the room
-
-    Raises:
-        HTTPException: 404 if no lectures found, 500 if error
-    """
+    """Gibt alle Vorlesungen zurück, die in einem bestimmten Raum stattfinden."""
     try:
         db = mongo_client.get_db()
         lectures = list(db.lectures.find({"room_id": room_id}))

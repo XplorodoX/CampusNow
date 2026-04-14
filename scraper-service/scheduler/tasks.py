@@ -117,6 +117,10 @@ class ScraperTasks:
                     course_id = course.get("course_id")
                     course_name = course.get("name")
                     course_code = course.get("code")
+                    semester = course.get("semester")
+                    program_id = course.get("program_id")
+                    program_code = course.get("program_code")
+                    program_name = course.get("program_name")
                     ical_url = course.get("ical_url")
 
                     logger.debug(f"Processing course: {course_name} ({course_code})")
@@ -143,6 +147,11 @@ class ScraperTasks:
                             "$set": {
                                 "course_id": course_id,
                                 "name": course_name,
+                                "code": course_code,
+                                "semester": semester,
+                                "program_id": program_id,
+                                "program_code": program_code,
+                                "program_name": program_name,
                                 "ical_url": ical_url,
                                 "last_scraped": datetime.now(),
                                 "lecture_count": len(lectures),
