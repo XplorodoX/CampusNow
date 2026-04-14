@@ -28,11 +28,16 @@ _EVENT_GROUPS = [
 
 def _lecture_to_frontend(lec: dict) -> dict:
     """Mappt ein DB-Lecture-Dokument auf das timetable.json-Format."""
+    def _to_iso(value: Any) -> str | None:
+        if value is None:
+            return None
+        return value.isoformat() if hasattr(value, "isoformat") else str(value)
+
     start = lec.get("startTime") or (
-        lec["start_time"].isoformat() if lec.get("start_time") else None
+        _to_iso(lec.get("start_time"))
     )
     end = lec.get("endTime") or (
-        lec["end_time"].isoformat() if lec.get("end_time") else None
+        _to_iso(lec.get("end_time"))
     )
     return {
         "id": str(lec.get("_id") or lec.get("lecture_id", "")),
@@ -52,11 +57,16 @@ def _lecture_to_frontend(lec: dict) -> dict:
 
 def _event_to_frontend(evt: dict) -> dict:
     """Mappt ein DB-Event-Dokument auf das timetable.json-Format."""
+    def _to_iso(value: Any) -> str | None:
+        if value is None:
+            return None
+        return value.isoformat() if hasattr(value, "isoformat") else str(value)
+
     start = evt.get("startTime") or (
-        evt["start_time"].isoformat() if evt.get("start_time") else None
+        _to_iso(evt.get("start_time"))
     )
     end = evt.get("endTime") or (
-        evt["end_time"].isoformat() if evt.get("end_time") else None
+        _to_iso(evt.get("end_time"))
     )
     return {
         "id": str(evt.get("_id", "")),

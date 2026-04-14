@@ -39,11 +39,22 @@ def _validate_filename(filename: str) -> None:
 
 
 def _safe_filename(original: str) -> str:
-    """Fügt einen Zeitstempel-Prefix hinzu und entfernt ggf. einen bereits vorhandenen."""
+    """Fügt einen Zeitstempel-Prefix hinzu und normalisiert den Namen auf URL-sichere Zeichen."""
     basename = os.path.basename(original or "upload")
     # Bereits vorhandenen Timestamp-Prefix entfernen (verhindert Doppel-Timestamps)
     basename = _TIMESTAMP_PREFIX.sub("", basename)
-    return f"{datetime.now().strftime('%Y-%m-%d-%H%M%S')}-{basename}"
+
+    stem, ext = os.path.splitext(basename)
+    ext = ext.lower()
+    if ext not in (".jpg", ".jpeg", ".png", ".webp"):
+        ext = ".jpg"
+
+    # Nur Zeichen erlauben, die auch bei _validate_filename akzeptiert werden.
+    safe_stem = re.sub(r"[^A-Za-z0-9_-]+", "-", stem).strip("-")
+    if not safe_stem:
+        safe_stem = "upload"
+
+    return f"{datetime.now().strftime('%Y-%m-%d-%H%M%S')}-{safe_stem}{ext}"
 
 
 def _detect_mime(filepath: str, content: bytes) -> str:

@@ -7,6 +7,10 @@ import urllib.request
 
 BASE = "http://localhost:8080"
 LOG_DIR = "logs/api-smoke"
+SEEDED_ROOM_ID = "SMOKE-ROOM"
+SEEDED_BUILDING_ID = "AH"
+SEEDED_STUDIENGANG_ID = "SMOKE-SG"
+SEEDED_LECTURE_ID = "SMOKE-LECTURE-1"
 
 
 def req(method, path, data=None, headers=None):
@@ -143,33 +147,10 @@ for method, path in [
 ]:
     test(method, path, tag="baseline")
 
-_, rooms_content, _ = req("GET", "/api/v1/rooms")
-rooms_obj = parse_json(rooms_content)
-room_id = first_from(rooms_obj, ["room_id", "_id", "id"]) if isinstance(rooms_obj, (dict, list)) else None
-
-_, buildings_content, _ = req("GET", "/api/v1/buildings")
-buildings_obj = parse_json(buildings_content)
-building_id = (
-    first_from(buildings_obj, ["building_id", "_id", "id", "name"])
-    if isinstance(buildings_obj, (dict, list))
-    else None
-)
-
-_, studiengaenge_content, _ = req("GET", "/api/v1/studiengaenge")
-studiengaenge_obj = parse_json(studiengaenge_content)
-studiengang_id = (
-    first_from(studiengaenge_obj, ["program_id", "studiengang_id", "_id", "id"])
-    if isinstance(studiengaenge_obj, (dict, list))
-    else None
-)
-
-_, lectures_content, _ = req("GET", "/api/v1/lectures")
-lectures_obj = parse_json(lectures_content)
-lecture_id = first_from(lectures_obj, ["lecture_id", "_id", "id"]) if isinstance(lectures_obj, (dict, list)) else None
-
-_, events_content, _ = req("GET", "/api/v1/events")
-events_obj = parse_json(events_content)
-event_id = first_from(events_obj, ["event_id", "_id", "id"]) if isinstance(events_obj, (dict, list)) else None
+room_id = SEEDED_ROOM_ID
+building_id = SEEDED_BUILDING_ID
+studiengang_id = SEEDED_STUDIENGANG_ID
+lecture_id = SEEDED_LECTURE_ID
 
 if room_id:
     rid = urllib.parse.quote(room_id, safe="")
@@ -200,9 +181,7 @@ if lecture_id:
     lid = urllib.parse.quote(lecture_id, safe="")
     test("GET", f"/api/v1/lectures/{lid}")
 
-if event_id:
-    eid = urllib.parse.quote(event_id, safe="")
-    test("GET", f"/api/v1/events/{eid}")
+new_event_id = None
 
 image_path = "api-service/data/images/360/WhatsApp Image 2026-04-14 at 16.39.51.jpeg"
 if os.path.exists(image_path):
@@ -226,19 +205,100 @@ if os.path.exists(image_path):
     )
     results.append(("POST", "/api/v1/images/rooms/SMOKE-ROOM/upload", status, shorten(content), "write"))
 
-for method, path, payload in [
-    ("POST", "/api/v1/events", {}),
-    ("PUT", "/api/v1/settings", {}),
-    ("PATCH", "/api/v1/settings", {}),
-    ("POST", "/api/v1/schedule/sync", None),
-    ("POST", "/api/v1/scheduler/trigger", None),
-    ("POST", "/api/v1/streetview/graph", None),
-    ("PUT", "/api/v1/events/nonexistent-id", {}),
-    ("DELETE", "/api/v1/events/nonexistent-id", None),
-    ("DELETE", "/api/v1/images/rooms/SMOKE-ROOM/nonexistent.jpg", None),
-]:
-    status, content, _ = req(method, path, payload)
-    results.append((method, path, status, shorten(content), "write"))
+status, event_create_body, _ = req(
+    "POST",
+    "/api/v1/events",
+    {
+        "title": "Smoke API Event",
+        "description": "Created by smoke test",
+        "category": "Sonstiges",
+        "startTime": "2026-04-15T10:00:00",
+        "endTime": "2026-04-15T11:00:00",
+        "building_id": SEEDED_BUILDING_ID,
+        "room_id": SEEDED_ROOM_ID,
+        "location": SEEDED_ROOM_ID,
+        "organizer": "Smoke Test",
+        "is_public": True,
+    },
+)
+results.append(("POST", "/api/v1/events", status, shorten(event_create_body), "write"))
+event_create_obj = parse_json(event_create_body)
+if isinstance(event_create_obj, dict):
+    new_event_id = event_create_obj.get("id")
+
+status, content, _ = req(
+    "PUT",
+    "/api/v1/settings",
+    {
+        "notificationLeadMinutes": 15,
+        "defaultCourseOfStudyIds": [SEEDED_STUDIENGANG_ID],
+        "defaultSemesterIds": ["sem_1"],
+        "defaultEventGroupIds": ["sonstiges"],
+        "savedLectureIds": [SEEDED_LECTURE_ID],
+        "savedEventIds": [],
+        "theme": "system",
+    },
+)
+results.append(("PUT", "/api/v1/settings", status, shorten(content), "write"))
+
+status, content, _ = req(
+    "PATCH",
+    "/api/v1/settings",
+    {"theme": "light"},
+)
+results.append(("PATCH", "/api/v1/settings", status, shorten(content), "write"))
+
+status, content, _ = req("POST", "/api/v1/scheduler/trigger", None)
+results.append(("POST", "/api/v1/scheduler/trigger", status, shorten(content), "write"))
+
+status, content, _ = req(
+    "POST",
+    "/api/v1/streetview/graph",
+    {
+        "room_id": SEEDED_ROOM_ID,
+        "graph": {
+            "startNode": "smoke-node-1",
+            "nodes": [
+                {
+                    "id": "smoke-node-1",
+                    "image": "assets/images/360/smoke-room.jpg",
+                    "building": SEEDED_BUILDING_ID,
+                    "room": SEEDED_ROOM_ID,
+                    "heading": 0,
+                    "exits": {},
+                    "spots": [],
+                }
+            ],
+        },
+    },
+)
+results.append(("POST", "/api/v1/streetview/graph", status, shorten(content), "write"))
+
+if new_event_id:
+    eid = urllib.parse.quote(str(new_event_id), safe="")
+    test("GET", f"/api/v1/events/{eid}")
+    status, content, _ = req(
+        "PUT",
+        f"/api/v1/events/{eid}",
+        {
+            "title": "Smoke API Event Updated",
+            "description": "Updated by smoke test",
+            "category": "Sonstiges",
+            "startTime": "2026-04-15T12:00:00",
+            "endTime": "2026-04-15T13:00:00",
+            "building_id": SEEDED_BUILDING_ID,
+            "room_id": SEEDED_ROOM_ID,
+            "location": SEEDED_ROOM_ID,
+            "organizer": "Smoke Test",
+            "is_public": True,
+        },
+    )
+    results.append(("PUT", f"/api/v1/events/{eid}", status, shorten(content), "write"))
+    status, content, _ = req("DELETE", f"/api/v1/events/{eid}", None)
+    results.append(("DELETE", f"/api/v1/events/{eid}", status, shorten(content), "write"))
+
+status, content, _ = req("DELETE", "/api/v1/images/rooms/SMOKE-ROOM/nonexistent.jpg", None)
+results.append(("DELETE", "/api/v1/images/rooms/SMOKE-ROOM/nonexistent.jpg", status, shorten(content), "write"))
 
 ok = [r for r in results if 200 <= r[2] < 300]
 warn = [r for r in results if r[2] in (400, 401, 403, 404, 405, 422)]

@@ -31,6 +31,25 @@ def _serialize(doc: dict) -> dict:
     return doc
 
 
+def _resolve_event_times(doc: dict[str, Any]) -> tuple[str, str]:
+    """Löst Start/Ende aus camelCase oder datetime-Feldern auf und validiert Pflichtangaben."""
+    start_iso = doc.get("startTime")
+    if not start_iso and doc.get("start_time") is not None:
+        start_iso = doc["start_time"].isoformat()
+
+    end_iso = doc.get("endTime")
+    if not end_iso and doc.get("end_time") is not None:
+        end_iso = doc["end_time"].isoformat()
+
+    if not start_iso or not end_iso:
+        raise HTTPException(
+            status_code=422,
+            detail="Both start time and end time are required (startTime/endTime or start_time/end_time).",
+        )
+
+    return start_iso, end_iso
+
+
 @router.get(
     "",
     response_model=list[EventResponse],
@@ -209,12 +228,13 @@ async def create_event(event: EventCreate) -> dict[str, str]:
     try:
         db = mongo_client.get_db()
         doc = event.model_dump()
+        start_iso, end_iso = _resolve_event_times(doc)
         doc["created_at"] = datetime.now()
         doc["updated_at"] = None
 
         # Datetimes zu ISO-Strings für konsistente Abfragen
-        doc["start_time"] = doc["start_time"].isoformat()
-        doc["end_time"] = doc["end_time"].isoformat()
+        doc["start_time"] = start_iso
+        doc["end_time"] = end_iso
 
         result = db.events.insert_one(doc)
         return {"id": str(result.inserted_id)}
@@ -244,9 +264,10 @@ async def update_event(event_id: str, event: EventCreate) -> dict[str, str]:
     try:
         db = mongo_client.get_db()
         doc = event.model_dump()
+        start_iso, end_iso = _resolve_event_times(doc)
         doc["updated_at"] = datetime.now()
-        doc["start_time"] = doc["start_time"].isoformat()
-        doc["end_time"] = doc["end_time"].isoformat()
+        doc["start_time"] = start_iso
+        doc["end_time"] = end_iso
 
         result = db.events.update_one(
             {"_id": _parse_object_id(event_id)},
