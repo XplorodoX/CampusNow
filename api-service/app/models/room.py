@@ -1,13 +1,14 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class Room(BaseModel):
     room_number: str
     floor: int
     capacity: int
-    building: str
+    building: str = Field(..., description="Gebäude-Kürzel (z. B. 'G2', 'H')")
+    building_id: str | None = Field(None, description="Referenz auf das Building-Dokument")
     has_video: bool = False
     has_projector: bool = False
     street_view_enabled: bool = False

@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 
 from app.db.mongo_client import mongo_client
@@ -18,24 +18,54 @@ router = APIRouter(prefix="/api/v1/images", tags=["images"])
 IMAGE_DIR = "/app/data/images/360"
 
 
-@router.get("/rooms/{room_id}", response_model=ImageListResponse)
+def _serialize_image_document(document: dict) -> dict:
+    """Convert MongoDB-specific values into API-friendly primitives."""
+    if "_id" in document:
+        document["_id"] = str(document["_id"])
+    return document
+
+
+@router.get(
+    "/rooms/{room_id}",
+    response_model=ImageListResponse,
+    summary="Alle Bilder eines Raums abrufen",
+    response_description="Liste aller 360°-Panoramabilder für den angegebenen Raum",
+    responses={
+        200: {
+            "content": {
+                "application/json": {
+                    "example": {
+                        "room_id": "Z106",
+                        "images": [
+                            {
+                                "_id": "6623a1f2e4b0a1c2d3e4f5a6",
+                                "room_id": "Z106",
+                                "image_filename": "2024-04-15-083000-panorama.jpg",
+                                "file_size_mb": 4.2,
+                                "image_type": "360_panoramic",
+                                "image_path": "/app/data/images/360/Z106/2024-04-15-083000-panorama.jpg",
+                                "uploaded_at": "2024-04-15T08:30:00",
+                                "image_url_api": "/api/v1/images/rooms/Z106/2024-04-15-083000-panorama.jpg",
+                            }
+                        ],
+                        "total_count": 1,
+                    }
+                }
+            }
+        },
+        500: {"description": "Datenbankfehler"},
+    },
+)
 async def get_room_images(
     room_id: str,
 ) -> ImageListResponse:
-    """Fetch all images for a room.
-
-    Args:
-        room_id: The room ID to fetch images for
-
-    Returns:
-        ImageListResponse with list of images for room
-
-    Raises:
-        HTTPException: 500 if database error occurs
-    """
+    """Gibt alle gespeicherten 360°-Panoramabilder für einen Raum zurück."""
     try:
         db = mongo_client.get_db()
-        images = list(db.image_metadata.find({"room_id": room_id}))
+        images = [
+            _serialize_image_document(image)
+            for image in db.image_metadata.find({"room_id": room_id})
+        ]
 
         return ImageListResponse(
             room_id=room_id,
@@ -51,21 +81,20 @@ async def get_room_images(
         ) from e
 
 
-@router.get("/rooms/{room_id}/latest", response_model=ImageResponse)
+@router.get(
+    "/rooms/{room_id}/latest",
+    response_model=ImageResponse,
+    summary="Aktuellstes Bild eines Raums",
+    response_description="Das zuletzt hochgeladene Bild des Raums",
+    responses={
+        404: {"description": "Keine Bilder für diesen Raum vorhanden"},
+        500: {"description": "Datenbankfehler"},
+    },
+)
 async def get_latest_room_image(
     room_id: str,
 ) -> ImageResponse:
-    """Fetch latest image for a room.
-
-    Args:
-        room_id: The room ID to fetch latest image for
-
-    Returns:
-        The latest image for the room
-
-    Raises:
-        HTTPException: 404 if no images found, 500 if error
-    """
+    """Gibt das neueste 360°-Bild für einen Raum zurück (sortiert nach Upload-Datum)."""
     try:
         db = mongo_client.get_db()
         image = db.image_metadata.find_one(
@@ -79,7 +108,7 @@ async def get_latest_room_image(
                 detail="No images found for this room",
             )
 
-        return image
+        return _serialize_image_document(image)
 
     except HTTPException:
         raise
@@ -91,25 +120,23 @@ async def get_latest_room_image(
         ) from e
 
 
-@router.get("/rooms/{room_id}/{filename}")
+@router.get(
+    "/rooms/{room_id}/{filename}",
+    summary="Bild herunterladen",
+    response_description="Das angeforderte Bild als JPEG",
+    responses={
+        200: {"content": {"image/jpeg": {}}, "description": "JPEG-Bilddatei"},
+        400: {"description": "Ungültige Größenangabe – erlaubt: `original`, `medium`, `thumbnail`"},
+        404: {"description": "Bild nicht gefunden"},
+        500: {"description": "Fehler beim Lesen der Bilddatei"},
+    },
+)
 async def get_image(
     room_id: str,
     filename: str,
-    size: str = "original",
+    size: str = Query("original", description="Bildgröße: `original`, `medium` oder `thumbnail`"),
 ) -> FileResponse:
-    """Download a specific image.
-
-    Args:
-        room_id: The room ID
-        filename: The image filename to download
-        size: Image size (original, medium, thumbnail)
-
-    Returns:
-        The image file as JPEG
-
-    Raises:
-        HTTPException: 404 if image not found, 500 if error
-    """
+    """Liefert eine konkrete Bilddatei für einen Raum als JPEG zurück."""
     try:
         if size not in {"original", "medium", "thumbnail"}:
             raise HTTPException(
@@ -140,22 +167,31 @@ async def get_image(
         ) from e
 
 
-@router.post("/rooms/{room_id}/upload")
+@router.post(
+    "/rooms/{room_id}/upload",
+    summary="Bild hochladen (Admin)",
+    response_description="Erfolgs-Meldung und Dateiname des gespeicherten Bilds",
+    responses={
+        200: {
+            "content": {
+                "application/json": {
+                    "example": {
+                        "message": "Image uploaded successfully",
+                        "filename": "2024-04-15-083000-panorama.jpg",
+                    }
+                }
+            }
+        },
+        500: {"description": "Fehler beim Speichern der Datei"},
+    },
+)
 async def upload_image(
     room_id: str,
-    file: Annotated[UploadFile, File(...)],
+    file: Annotated[UploadFile, File(description="JPEG-Bilddatei (idealerweise 360°-Panorama)")],
 ) -> dict[str, str]:
-    """Upload a new image for a room (admin only).
+    """Lädt ein neues 360°-Panoramabild für einen Raum hoch und speichert die Metadaten in der Datenbank.
 
-    Args:
-        room_id: The room ID
-        file: The image file to upload
-
-    Returns:
-        Dict with success message and filename
-
-    Raises:
-        HTTPException: 500 if error occurs
+    Der Dateiname wird automatisch mit einem Zeitstempel versehen.
     """
     try:
         # Save file
@@ -194,23 +230,24 @@ async def upload_image(
         ) from e
 
 
-@router.delete("/rooms/{room_id}/{filename}")
+@router.delete(
+    "/rooms/{room_id}/{filename}",
+    summary="Bild löschen (Admin)",
+    response_description="Bestätigung der Löschung",
+    responses={
+        200: {
+            "content": {
+                "application/json": {"example": {"message": "Image deleted successfully"}}
+            }
+        },
+        500: {"description": "Fehler beim Löschen der Datei"},
+    },
+)
 async def delete_image(
     room_id: str,
     filename: str,
 ) -> dict[str, str]:
-    """Delete an image (admin only).
-
-    Args:
-        room_id: The room ID
-        filename: The image filename to delete
-
-    Returns:
-        Dict with success message
-
-    Raises:
-        HTTPException: 500 if error occurs
-    """
+    """Löscht eine Bilddatei vom Dateisystem und entfernt den Metadaten-Eintrag aus der Datenbank."""
     try:
         filepath = os.path.join(IMAGE_DIR, room_id, filename)
 

@@ -13,19 +13,49 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/studiengaenge", tags=["studiengaenge"])
 
 
-@router.get("", response_model=list[StuDiengangResponse])
+def _serialize_studiengang_document(document: dict[str, Any]) -> dict[str, Any]:
+    """Convert MongoDB-specific values into API-friendly primitives."""
+    if "_id" in document:
+        document["_id"] = str(document["_id"])
+    return document
+
+
+@router.get(
+    "",
+    response_model=list[StuDiengangResponse],
+    summary="Alle Studiengänge abrufen",
+    response_description="Liste aller verfügbaren Studiengänge",
+    responses={
+        200: {
+            "content": {
+                "application/json": {
+                    "example": [
+                        {
+                            "_id": "INF-B-6",
+                            "name": "Informatik",
+                            "code": "INF",
+                            "semester": "6",
+                            "program_code": "INF-B",
+                            "program_name": "Bachelor Informatik",
+                            "lecture_count": 12,
+                            "last_scraped": "2024-04-15T06:00:00",
+                            "created_at": "2024-01-01T00:00:00",
+                        }
+                    ]
+                }
+            }
+        },
+        500: {"description": "Datenbankfehler"},
+    },
+)
 async def get_studiengaenge() -> list[StuDiengangResponse]:
-    """Fetch all courses/study programs.
-
-    Returns:
-        List of all available courses
-
-    Raises:
-        HTTPException: 500 if database error occurs
-    """
+    """Gibt alle Studiengänge zurück, die im STARplan-System der HS Aalen hinterlegt sind."""
     try:
         db = mongo_client.get_db()
-        studiengaenge = list(db.studiengaenge.find())
+        studiengaenge = [
+            _serialize_studiengang_document(studiengang)
+            for studiengang in db.studiengaenge.find()
+        ]
         return studiengaenge
 
     except Exception as e:
@@ -36,21 +66,20 @@ async def get_studiengaenge() -> list[StuDiengangResponse]:
         ) from e
 
 
-@router.get("/{studiengang_id}", response_model=StuDiengangResponse)
+@router.get(
+    "/{studiengang_id}",
+    response_model=StuDiengangResponse,
+    summary="Einzelnen Studiengang abrufen",
+    response_description="Der gefundene Studiengang",
+    responses={
+        404: {"description": "Studiengang nicht gefunden"},
+        500: {"description": "Datenbankfehler"},
+    },
+)
 async def get_studiengang(
     studiengang_id: str,
 ) -> StuDiengangResponse:
-    """Fetch a single course/study program by ID.
-
-    Args:
-        studiengang_id: The course ID to fetch
-
-    Returns:
-        The matching course
-
-    Raises:
-        HTTPException: 404 if not found, 500 if error
-    """
+    """Gibt einen einzelnen Studiengang anhand seiner ID zurück (z. B. `INF-B-6`)."""
     try:
         db = mongo_client.get_db()
         studiengang = db.studiengaenge.find_one({"_id": studiengang_id})
@@ -61,7 +90,7 @@ async def get_studiengang(
                 detail="Studiengang not found",
             )
 
-        return studiengang
+        return _serialize_studiengang_document(studiengang)
 
     except HTTPException:
         raise
@@ -73,21 +102,20 @@ async def get_studiengang(
         ) from e
 
 
-@router.get("/{studiengang_id}/lectures", response_model=list[dict[str, Any]])
+@router.get(
+    "/{studiengang_id}/lectures",
+    response_model=list[dict[str, Any]],
+    summary="Vorlesungen eines Studiengangs abrufen",
+    response_description="Liste aller Vorlesungen für diesen Studiengang",
+    responses={
+        404: {"description": "Keine Vorlesungen für diesen Studiengang gefunden"},
+        500: {"description": "Datenbankfehler"},
+    },
+)
 async def get_studiengang_lectures(
     studiengang_id: str,
 ) -> list[dict[str, Any]]:
-    """Fetch all lectures for a course/study program.
-
-    Args:
-        studiengang_id: The course ID to fetch lectures for
-
-    Returns:
-        List of lectures for the course
-
-    Raises:
-        HTTPException: 404 if no lectures found, 500 if error
-    """
+    """Gibt alle Vorlesungen zurück, die einem bestimmten Studiengang zugeordnet sind."""
     try:
         db = mongo_client.get_db()
         lectures = list(db.lectures.find({"studiengang_id": studiengang_id}))

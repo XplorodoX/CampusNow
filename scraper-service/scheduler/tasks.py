@@ -1,11 +1,53 @@
 """Scraper tasks for scheduled execution."""
 
 import logging
+import re
 from datetime import datetime
 
 from db.mongo_client import MongoDBClient
 from scraper.ical_parser import IcalParser
 from scraper.starplan_scraper import StarplanScraper
+
+
+def _extract_building_code(room_number: str) -> str | None:
+    """Extrahiert das Gebäudekürzel aus der Raumnummer.
+
+    Beispiele:
+        'G2 0.21'  -> 'G2'
+        'H1.02'    -> 'H'
+        'Z106'     -> 'Z'
+        'Aula'     -> None
+    """
+    if not room_number:
+        return None
+    # Muster: Buchstaben + optionale Zahl am Anfang (vor Leerzeichen oder Punkt/Zahl)
+    match = re.match(r"^([A-Za-z]+\d*)\s", room_number)
+    if match:
+        return match.group(1).upper()
+    # Fallback: nur führende Buchstaben
+    match = re.match(r"^([A-Za-z]+)", room_number)
+    if match:
+        return match.group(1).upper()
+    return None
+
+
+def _extract_floor(room_number: str) -> int | None:
+    """Extrahiert das Stockwerk aus der Raumnummer.
+
+    Beispiele:
+        'G2 0.21' -> 0
+        'G2 1.01' -> 1
+        'Z106'    -> 1  (erste Ziffer nach Gebäudekürzel)
+    """
+    # Format: 'GEBÄUDE STOCK.RAUM'
+    match = re.search(r"\s(\d+)\.", room_number)
+    if match:
+        return int(match.group(1))
+    # Format: 'BUCHSTABENZIFFER' z.B. Z106 -> Stockwerk 1
+    match = re.search(r"[A-Za-z]\d*(\d)", room_number)
+    if match:
+        return int(match.group(1))
+    return None
 
 logger = logging.getLogger(__name__)
 
@@ -23,10 +65,13 @@ class ScraperTasks:
         logger.info("=" * 70)
         logger.info("🚀 STARTING FULL SCRAPE JOB")
         logger.info("=" * 70)
-        logger.info(f"Timestamp: {datetime.now().isoformat()}")
+
+        started_at = datetime.now()
+        logger.info(f"Timestamp: {started_at.isoformat()}")
 
         mongo = None
         scraper = None
+        log_id = None
 
         try:
             # 1. Connect to MongoDB
@@ -37,6 +82,19 @@ class ScraperTasks:
 
             db = mongo.get_db()
             logger.info("✓ MongoDB connected")
+
+            # Job-Start in DB festhalten
+            log_doc = {
+                "started_at": started_at,
+                "completed_at": None,
+                "status": "running",
+                "rooms_processed": 0,
+                "courses_processed": 0,
+                "lectures_total": 0,
+                "buildings_upserted": 0,
+                "error": None,
+            }
+            log_id = db.scheduler_logs.insert_one(log_doc).inserted_id
 
             # 2. Fetch StarPlan data
             scraper = StarplanScraper()
@@ -56,6 +114,7 @@ class ScraperTasks:
             logger.info("📍 Processing rooms...")
             room_count = 0
             lecture_count = 0
+            building_room_counts: dict[str, int] = {}
 
             for room in rooms:
                 try:
@@ -65,33 +124,45 @@ class ScraperTasks:
 
                     logger.debug(f"Processing room: {room_number} (ID: {room_id})")
 
+                    # Gebäude und Stockwerk aus Raumnummer extrahieren
+                    building_code = _extract_building_code(room_number or "")
+                    floor = _extract_floor(room_number or "")
+
                     # Parse iCal
-                    lectures = IcalParser.parse_ical_from_url(
+                    room_lectures = IcalParser.parse_ical_from_url(
                         ical_url, source_type="room", source_id=room_id
                     )
 
-                    if lectures:
-                        # Store in DB
-                        for lecture in lectures:
-                            lecture["room_id"] = room_id
-                            lecture["room_number"] = room_number
+                    if room_lectures:
+                        for lec in room_lectures:
+                            lec["room_id"] = room_id
+                            lec["room_number"] = room_number
 
-                        # Delete old and insert new
                         db.lectures.delete_many({"room_id": room_id})
-                        db.lectures.insert_many(lectures)
-                        lecture_count += len(lectures)
-                        logger.debug(f"Inserted {len(lectures)} lectures for room {room_number}")
+                        db.lectures.insert_many(room_lectures)
+                        lecture_count += len(room_lectures)
+                        logger.debug(f"Inserted {len(room_lectures)} lectures for room {room_number}")
 
-                    # Update room metadata
+                    # Raum-Metadaten updaten (inkl. building_id)
+                    room_set: dict = {
+                        "room_id": room_id,
+                        "ical_url": ical_url,
+                        "last_scraped": datetime.now(),
+                        "lecture_count": len(room_lectures) if room_lectures else 0,
+                    }
+                    if building_code:
+                        room_set["building_id"] = building_code
+                        room_set["building"] = building_code
+                        building_room_counts[building_code] = (
+                            building_room_counts.get(building_code, 0) + 1
+                        )
+                    if floor is not None:
+                        room_set["floor"] = floor
+
                     db.rooms.update_one(
                         {"room_number": room_number},
                         {
-                            "$set": {
-                                "room_id": room_id,
-                                "ical_url": ical_url,
-                                "last_scraped": datetime.now(),
-                                "lecture_count": len(lectures),
-                            },
+                            "$set": room_set,
                             "$setOnInsert": {"created_at": datetime.now()},
                         },
                         upsert=True,
@@ -104,6 +175,31 @@ class ScraperTasks:
                         f"Error processing room {room_number}: {e}",
                         exc_info=True,
                     )
+
+            # Gebäude-Dokumente anlegen / updaten
+            logger.info(f"🏢 Upserting {len(building_room_counts)} buildings...")
+            for b_code, r_count in building_room_counts.items():
+                # Alle belegten Stockwerke für dieses Gebäude ermitteln
+                floors_in_db = db.rooms.distinct("floor", {"building_id": b_code, "floor": {"$ne": None}})
+                db.buildings.update_one(
+                    {"_id": b_code},
+                    {
+                        "$set": {
+                            "code": b_code,
+                            "name": f"Gebäude {b_code}",
+                            "room_count": r_count,
+                            "floors": sorted(floors_in_db),
+                            "last_scraped": datetime.now(),
+                        },
+                        "$setOnInsert": {
+                            "campus": "Main",
+                            "address": None,
+                            "street_view_enabled": False,
+                            "created_at": datetime.now(),
+                        },
+                    },
+                    upsert=True,
+                )
 
             logger.info(f"✓ Processed {room_count} rooms with {lecture_count} lectures")
 
@@ -126,19 +222,18 @@ class ScraperTasks:
                     logger.debug(f"Processing course: {course_name} ({course_code})")
 
                     # Parse iCal
-                    lectures = IcalParser.parse_ical_from_url(
+                    course_lectures = IcalParser.parse_ical_from_url(
                         ical_url, source_type="course", source_id=course_id
                     )
 
-                    if lectures:
-                        # Store in DB
-                        for lecture in lectures:
+                    if course_lectures:
+                        for lecture in course_lectures:
                             lecture["course_id"] = course_id
                             lecture["course_code"] = course_code
 
-                        db.lectures.insert_many(lectures)
-                        course_lecture_count += len(lectures)
-                        logger.debug(f"Inserted {len(lectures)} lectures for course {course_code}")
+                        db.lectures.insert_many(course_lectures)
+                        course_lecture_count += len(course_lectures)
+                        logger.debug(f"Inserted {len(course_lectures)} lectures for course {course_code}")
 
                     # Store course metadata
                     db.studiengaenge.update_one(
@@ -154,7 +249,7 @@ class ScraperTasks:
                                 "program_name": program_name,
                                 "ical_url": ical_url,
                                 "last_scraped": datetime.now(),
-                                "lecture_count": len(lectures),
+                                "lecture_count": len(course_lectures) if course_lectures else 0,
                             },
                             "$setOnInsert": {"created_at": datetime.now()},
                         },
@@ -172,29 +267,54 @@ class ScraperTasks:
             logger.info(f"✓ Processed {course_count} courses with {course_lecture_count} lectures")
 
             # 5. Summary
+            total_lectures = lecture_count + course_lecture_count
+            completed_at = datetime.now()
+
             logger.info("=" * 70)
             logger.info("✅ SCRAPE JOB COMPLETED SUCCESSFULLY")
             logger.info("=" * 70)
-            logger.info("📊 Summary:")
             logger.info(f"  - Rooms: {room_count}")
-            logger.info(f"  - Room Lectures: {lecture_count}")
             logger.info(f"  - Courses: {course_count}")
-            logger.info(f"  - Course Lectures: {course_lecture_count}")
-            logger.info(f"  - Total Lectures: {lecture_count + course_lecture_count}")
-            logger.info(f"  - Completed at: {datetime.now().isoformat()}")
+            logger.info(f"  - Total Lectures: {total_lectures}")
+            logger.info(f"  - Completed at: {completed_at.isoformat()}")
             logger.info("=" * 70)
+
+            # Erfolg in DB schreiben
+            if log_id is not None:
+                db.scheduler_logs.update_one(
+                    {"_id": log_id},
+                    {"$set": {
+                        "status": "success",
+                        "completed_at": completed_at,
+                        "rooms_processed": room_count,
+                        "courses_processed": course_count,
+                        "lectures_total": total_lectures,
+                        "buildings_upserted": len(building_room_counts),
+                    }},
+                )
 
             return True
 
         except Exception as e:
-            logger.error(
-                f"❌ CRITICAL ERROR in full_scrape_job: {e}",
-                exc_info=True,
-            )
+            logger.error(f"❌ CRITICAL ERROR in full_scrape_job: {e}", exc_info=True)
+
+            # Fehler in DB schreiben
+            if log_id is not None and mongo and mongo.get_db() is not None:
+                try:
+                    mongo.get_db().scheduler_logs.update_one(
+                        {"_id": log_id},
+                        {"$set": {
+                            "status": "failed",
+                            "completed_at": datetime.now(),
+                            "error": str(e),
+                        }},
+                    )
+                except Exception:
+                    pass  # Logging-Fehler nicht weiter propagieren
+
             return False
 
         finally:
-            # Cleanup
             if scraper:
                 scraper.close()
             if mongo:

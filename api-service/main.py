@@ -10,7 +10,19 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.db.mongo_client import mongo_client
-from app.routers import images, lectures, rooms, scheduler, studiengaenge
+from app.routers import (
+    buildings,
+    events,
+    images,
+    lectures,
+    rooms,
+    schedule,
+    scheduler,
+    settings,
+    streetview,
+    studiengaenge,
+    timetable,
+)
 
 # Load environment variables
 load_dotenv()
@@ -28,19 +40,29 @@ app = FastAPI(
     description="""
 ## CampusNow REST API
 
-Stundenplan- und Raumverwaltungs-API für die **Hochschule Aalen**.
+Interaktive Campus-Navigations- und Stundenplan-API für die **Hochschule Aalen**.
 
-### Funktionen
+### Frontend-Endpunkte (direkt konsumierbar)
 
-- **Vorlesungen** – Stundenplan-Daten filtern nach Raum, Studiengang und Datum
-- **Räume** – Raumdaten inkl. Ausstattung und Belegungspläne
-- **Studiengänge** – Alle Studiengänge und ihre Vorlesungen
-- **360°-Bilder** – Panorama-Bilder von Räumen verwalten und abrufen
-- **Scheduler** – Status und manuelle Auslösung des Scrapers
+| Endpunkt | Beschreibung | Entspricht |
+|---|---|---|
+| `GET /api/v1/timetable` | Stundenplan komplett | `timetable.json` |
+| `GET /api/v1/streetview/graph` | 360°-Navigationsgraph | `street_view_graph.json` |
+| `GET /api/v1/settings` | Nutzereinstellungen | `settings.json` |
+
+### Weitere Funktionen
+
+- **Gebäude** – Alle Gebäude der HS Aalen mit Räumen und Stockwerken
+- **Räume** – Raumdaten inkl. Ausstattung, 360°-Bilder und Belegungspläne
+- **Studiengänge** – Alle Studiengänge aus STARplan
+- **Events** – Campus-Events mit Gäste-Modus (`public_only=true`)
+- **iCal-Import** – Persönlichen StarPlan-Link einfügen → Stundenplan sofort verfügbar
+- **Scheduler** – Scraper-Status und Logs aus der Datenbank
 
 ### Datenquelle
 
-Die Daten werden automatisch täglich um **06:00 Uhr** aus dem STARplan-System der HS Aalen gescrapt.
+Vorlesungsdaten werden täglich um **06:00 Uhr** automatisch aus dem
+[STARplan-System](https://vorlesungen.htw-aalen.de) der HS Aalen gescrapt.
 """,
     version=os.getenv("API_VERSION", "1.0.0"),
     docs_url="/docs",
@@ -53,25 +75,92 @@ Die Daten werden automatisch täglich um **06:00 Uhr** aus dem STARplan-System d
         "name": "MIT",
     },
     openapi_tags=[
+        # ── Frontend-direkte Endpunkte ──────────────────────────────────
         {
-            "name": "lectures",
-            "description": "Vorlesungspläne abrufen und verwalten.",
+            "name": "timetable",
+            "description": (
+                "**Frontend-Endpunkt.** Liefert Vorlesungen, Events, Studiengänge, Semester und "
+                "Event-Gruppen in einem einzigen Call – entspricht exakt `timetable.json`."
+            ),
+        },
+        {
+            "name": "streetview",
+            "description": (
+                "**Frontend-Endpunkt.** 360°-Navigationsgraphen abrufen und speichern. "
+                "Entspricht dem Format von `street_view_graph.json` mit Knoten, Ausgängen und Spots."
+            ),
+        },
+        {
+            "name": "settings",
+            "description": (
+                "**Frontend-Endpunkt.** Nutzer-Einstellungen lesen (`GET`), vollständig überschreiben (`PUT`) "
+                "oder teilweise aktualisieren (`PATCH`). Entspricht `settings.json`."
+            ),
+        },
+        # ── Kern-Daten ──────────────────────────────────────────────────
+        {
+            "name": "buildings",
+            "description": (
+                "Gebäude der HS Aalen. Wird automatisch beim Scraper-Lauf befüllt. "
+                "Enthält Stockwerk-Liste, Raum-Anzahl und Campus-Zuordnung (Main / Burren)."
+            ),
         },
         {
             "name": "rooms",
-            "description": "Räume und Raumbelegungen der HS Aalen.",
+            "description": (
+                "Räume der HS Aalen mit Ausstattungsmerkmalen (Beamer, Video, 360°). "
+                "Über `/{room_id}/schedule` den Belegungsplan eines Raums abrufen."
+            ),
+        },
+        {
+            "name": "lectures",
+            "description": (
+                "Einzelne Vorlesungen aus der Datenbank. Filterbar nach Raum, Studiengang und Zeitraum. "
+                "Für die vollständige Timetable-Ansicht `GET /api/v1/timetable` verwenden."
+            ),
         },
         {
             "name": "studiengaenge",
-            "description": "Studiengänge und ihre zugehörigen Vorlesungen.",
+            "description": (
+                "Alle Studiengänge aus dem STARplan-System. "
+                "Über `/{id}/lectures` alle Vorlesungen eines Studiengangs abrufen."
+            ),
+        },
+        {
+            "name": "events",
+            "description": (
+                "Campus-Events anlegen, bearbeiten und löschen. "
+                "`GET /upcoming` liefert Events der nächsten N Tage. "
+                "Mit `public_only=true` für den Gäste-Modus (ohne Login) filtern."
+            ),
         },
         {
             "name": "images",
-            "description": "360°-Panoramabilder für Räume hochladen und abrufen.",
+            "description": (
+                "360°-Panoramabilder für Räume hochladen, abrufen und löschen. "
+                "Bilder werden unter `/app/data/images/360/{room_id}/` gespeichert."
+            ),
+        },
+        # ── Import & Automatisierung ────────────────────────────────────
+        {
+            "name": "schedule",
+            "description": (
+                "Persönlichen Stundenplan per StarPlan-iCal-URL importieren (`POST /sync`). "
+                "Parst die `.ics`-Datei und reichert Einträge mit Raum- und Gebäude-IDs aus der DB an."
+            ),
         },
         {
             "name": "scheduler",
-            "description": "Scraper-Scheduler Status und manuelle Steuerung.",
+            "description": (
+                "Scraper-Scheduler Steuerung. `GET /status` zeigt den letzten Job-Lauf aus der DB. "
+                "`GET /logs` liefert die letzten N Läufe mit Statistiken. "
+                "`POST /trigger` startet den Scraper manuell."
+            ),
+        },
+        # ── System ──────────────────────────────────────────────────────
+        {
+            "name": "status",
+            "description": "API-Info (`GET /`) und Health-Check (`GET /health`) mit DB-Verbindungsstatus.",
         },
     ],
 )
@@ -87,10 +176,16 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(buildings.router)
+app.include_router(events.router)
 app.include_router(lectures.router)
 app.include_router(rooms.router)
 app.include_router(studiengaenge.router)
+app.include_router(timetable.router)
+app.include_router(streetview.router)
+app.include_router(settings.router)
 app.include_router(images.router)
+app.include_router(schedule.router)
 app.include_router(scheduler.router)
 
 
