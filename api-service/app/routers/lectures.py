@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from app.db.mongo_client import mongo_client
 from app.models.lecture import LectureResponse
-from app.utils import serialize_docs
+from app.utils import serialize_doc, serialize_docs
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +107,7 @@ async def get_lecture(
                 detail="Lecture not found",
             )
 
-        return lecture
+        return serialize_doc(lecture)
 
     except HTTPException:
         raise

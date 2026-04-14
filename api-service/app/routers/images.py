@@ -21,6 +21,21 @@ IMAGE_DIR = "/app/data/images/360"
 
 _ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
 _TIMESTAMP_PREFIX = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{6}-")
+_SAFE_ID = re.compile(r"^[A-Za-z0-9_\-]{1,64}$")
+_MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20 MB
+
+
+def _validate_room_id(room_id: str) -> None:
+    """Verhindert Path-Traversal über room_id."""
+    if not _SAFE_ID.match(room_id):
+        raise HTTPException(status_code=400, detail="Ungültige Raum-ID")
+
+
+def _validate_filename(filename: str) -> None:
+    """Verhindert Path-Traversal über filename."""
+    if not _SAFE_ID.match(os.path.splitext(filename)[0]) or \
+            os.path.splitext(filename)[1] not in (".jpg", ".jpeg", ".png", ".webp"):
+        raise HTTPException(status_code=400, detail="Ungültiger Dateiname")
 
 
 def _safe_filename(original: str) -> str:
@@ -89,6 +104,7 @@ async def get_room_images(
     room_id: str,
 ) -> ImageListResponse:
     """Gibt alle gespeicherten 360°-Panoramabilder für einen Raum zurück."""
+    _validate_room_id(room_id)
     try:
         db = mongo_client.get_db()
         images = [
@@ -124,6 +140,7 @@ async def get_latest_room_image(
     room_id: str,
 ) -> ImageResponse:
     """Gibt das neueste 360°-Bild für einen Raum zurück (sortiert nach Upload-Datum)."""
+    _validate_room_id(room_id)
     try:
         db = mongo_client.get_db()
         image = db.image_metadata.find_one(
@@ -166,6 +183,8 @@ async def get_image(
     size: str = Query("original", description="Bildgröße: `original`, `medium` oder `thumbnail`"),
 ) -> FileResponse:
     """Liefert eine konkrete Bilddatei für einen Raum als JPEG zurück."""
+    _validate_room_id(room_id)
+    _validate_filename(filename)
     try:
         if size not in {"original", "medium", "thumbnail"}:
             raise HTTPException(
@@ -213,6 +232,8 @@ async def head_image(
     filename: str,
 ) -> Response:
     """HEAD endpoint for clients that probe image URLs before GET."""
+    _validate_room_id(room_id)
+    _validate_filename(filename)
     try:
         filepath = os.path.join(IMAGE_DIR, room_id, filename)
         if not os.path.exists(filepath):
@@ -259,8 +280,16 @@ async def upload_image(
 
     Der Dateiname wird automatisch mit einem Zeitstempel versehen.
     """
+    _validate_room_id(room_id)
     try:
         contents = await file.read()
+
+        # Dateigröße prüfen (max. 20 MB)
+        if len(contents) > _MAX_UPLOAD_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Datei zu groß. Maximale Größe: {_MAX_UPLOAD_BYTES // (1024 * 1024)} MB.",
+            )
 
         # MIME-Type anhand Magic-Bytes prüfen
         mime_type = _detect_mime(file.filename or "", contents)
@@ -324,6 +353,8 @@ async def delete_image(
     filename: str,
 ) -> dict[str, str]:
     """Löscht eine Bilddatei vom Dateisystem und entfernt den Metadaten-Eintrag aus der Datenbank."""
+    _validate_room_id(room_id)
+    _validate_filename(filename)
     try:
         filepath = os.path.join(IMAGE_DIR, room_id, filename)
 

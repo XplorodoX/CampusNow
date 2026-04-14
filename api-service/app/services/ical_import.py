@@ -6,6 +6,7 @@ import logging
 import re
 from datetime import datetime
 from typing import Any
+from urllib.parse import urlparse
 
 import icalendar
 import requests
@@ -14,9 +15,42 @@ logger = logging.getLogger(__name__)
 
 _TIMEOUT = 15
 
+# Erlaubte Hosts für iCal-URLs (SSRF-Schutz)
+_ALLOWED_HOSTS = {
+    "vorlesungen.htw-aalen.de",
+    "stundenplan.hs-aalen.de",
+    "www.hs-aalen.de",
+}
+
+
+def _validate_ical_url(url: str) -> None:
+    """Prüft ob die iCal-URL erlaubt ist (verhindert SSRF-Angriffe)."""
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        raise ValueError("Ungültige URL")
+
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError("Nur HTTP/HTTPS erlaubt")
+
+    host = (parsed.hostname or "").lower()
+    if not host:
+        raise ValueError("Kein Hostname in der URL")
+
+    # Interne/lokale Adressen blockieren
+    blocked_prefixes = ("localhost", "127.", "10.", "192.168.", "172.16.", "169.254.")
+    if any(host == b or host.startswith(b) for b in blocked_prefixes):
+        raise ValueError("Interne Adressen sind nicht erlaubt")
+
+    if host not in _ALLOWED_HOSTS:
+        raise ValueError(
+            f"Host '{host}' ist nicht erlaubt. Erlaubte Hosts: {', '.join(sorted(_ALLOWED_HOSTS))}"
+        )
+
 
 def fetch_and_parse(url: str) -> list[dict[str, Any]]:
     """Lädt eine iCal-URL herunter und gibt eine Liste geparster Vorlesungen zurück."""
+    _validate_ical_url(url)
     response = requests.get(url, timeout=_TIMEOUT, headers={"User-Agent": "CampusNow/1.0"})
     response.raise_for_status()
     cal = icalendar.Calendar.from_ical(response.content)
