@@ -1,10 +1,12 @@
 import json
 import os
+from datetime import datetime
 import urllib.error
 import urllib.parse
 import urllib.request
 
 BASE = "http://localhost:8080"
+LOG_DIR = "logs/api-smoke"
 
 
 def req(method, path, data=None, headers=None):
@@ -75,6 +77,48 @@ def first_from(obj, keys):
 
 
 results = []
+
+
+def write_logs(ok_rows, warn_rows, bad_rows):
+    os.makedirs(LOG_DIR, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+
+    full_log_path = os.path.join(LOG_DIR, f"run-{timestamp}.log")
+    error_log_path = os.path.join(LOG_DIR, f"run-{timestamp}-errors.log")
+    latest_full_path = os.path.join(LOG_DIR, "latest.log")
+    latest_error_path = os.path.join(LOG_DIR, "latest-errors.log")
+
+    summary_lines = [
+        "===SUMMARY===",
+        f"timestamp={timestamp}",
+        f"total={len(results)} ok={len(ok_rows)} warn={len(warn_rows)} bad={len(bad_rows)}",
+        "",
+    ]
+
+    full_lines = summary_lines + ["===BAD==="]
+    full_lines.extend("\t".join(map(str, row)) for row in bad_rows)
+    full_lines.append("===WARN===")
+    full_lines.extend("\t".join(map(str, row)) for row in warn_rows)
+    full_lines.append("===OK===")
+    full_lines.extend("\t".join(map(str, row)) for row in ok_rows)
+
+    error_lines = summary_lines + ["===BAD==="]
+    error_lines.extend("\t".join(map(str, row)) for row in bad_rows)
+    error_lines.append("===WARN===")
+    error_lines.extend("\t".join(map(str, row)) for row in warn_rows)
+
+    full_text = "\n".join(full_lines) + "\n"
+    error_text = "\n".join(error_lines) + "\n"
+
+    for target in (full_log_path, latest_full_path):
+        with open(target, "w", encoding="utf-8") as f:
+            f.write(full_text)
+
+    for target in (error_log_path, latest_error_path):
+        with open(target, "w", encoding="utf-8") as f:
+            f.write(error_text)
+
+    return full_log_path, error_log_path
 
 
 def test(method, path, data=None, tag=""):
@@ -200,8 +244,12 @@ ok = [r for r in results if 200 <= r[2] < 300]
 warn = [r for r in results if r[2] in (400, 401, 403, 404, 405, 422)]
 bad = [r for r in results if r[2] == -1 or r[2] >= 500]
 
+full_log, error_log = write_logs(ok, warn, bad)
+
 print("===SUMMARY===")
 print(f"total={len(results)} ok={len(ok)} warn={len(warn)} bad={len(bad)}")
+print(f"full_log={full_log}")
+print(f"error_log={error_log}")
 print("===BAD===")
 for row in bad:
     print("\t".join(map(str, row)))

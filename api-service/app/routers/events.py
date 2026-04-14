@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from bson import ObjectId
+from bson.errors import InvalidId
 from fastapi import APIRouter, HTTPException, Query
 
 from app.db.mongo_client import mongo_client
@@ -13,6 +14,14 @@ from app.models.event import EventCreate, EventResponse
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/events", tags=["events"])
+
+
+def _parse_object_id(event_id: str) -> ObjectId:
+    """Parst eine ObjectId – gibt 404 zurück statt 500 bei ungültigem Format."""
+    try:
+        return ObjectId(event_id)
+    except (InvalidId, Exception):
+        raise HTTPException(status_code=404, detail="Event not found")
 
 
 def _serialize(doc: dict) -> dict:
@@ -163,7 +172,7 @@ async def get_event(event_id: str) -> EventResponse:
     """Gibt ein einzelnes Event anhand seiner ID zurück."""
     try:
         db = mongo_client.get_db()
-        event = db.events.find_one({"_id": ObjectId(event_id)})
+        event = db.events.find_one({"_id": _parse_object_id(event_id)})
 
         if not event:
             raise HTTPException(status_code=404, detail="Event not found")
@@ -240,7 +249,7 @@ async def update_event(event_id: str, event: EventCreate) -> dict[str, str]:
         doc["end_time"] = doc["end_time"].isoformat()
 
         result = db.events.update_one(
-            {"_id": ObjectId(event_id)},
+            {"_id": _parse_object_id(event_id)},
             {"$set": doc},
         )
 
@@ -275,7 +284,7 @@ async def delete_event(event_id: str) -> dict[str, str]:
     """Löscht ein Event anhand seiner ID."""
     try:
         db = mongo_client.get_db()
-        result = db.events.delete_one({"_id": ObjectId(event_id)})
+        result = db.events.delete_one({"_id": _parse_object_id(event_id)})
 
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Event not found")
