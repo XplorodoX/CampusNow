@@ -1,7 +1,9 @@
 """Images router for CampusNow REST API."""
 
 import logging
+import mimetypes
 import os
+import re
 from datetime import datetime
 from typing import Annotated
 
@@ -16,6 +18,33 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/images", tags=["images"])
 
 IMAGE_DIR = "/app/data/images/360"
+
+_ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
+_TIMESTAMP_PREFIX = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{6}-")
+
+
+def _safe_filename(original: str) -> str:
+    """Fügt einen Zeitstempel-Prefix hinzu und entfernt ggf. einen bereits vorhandenen."""
+    basename = os.path.basename(original or "upload")
+    # Bereits vorhandenen Timestamp-Prefix entfernen (verhindert Doppel-Timestamps)
+    basename = _TIMESTAMP_PREFIX.sub("", basename)
+    return f"{datetime.now().strftime('%Y-%m-%d-%H%M%S')}-{basename}"
+
+
+def _detect_mime(filepath: str, content: bytes) -> str:
+    """Erkennt den MIME-Type anhand der Magic-Bytes, fällt auf Extension zurück."""
+    # JPEG: FF D8 FF
+    if content[:3] == b"\xff\xd8\xff":
+        return "image/jpeg"
+    # PNG: 89 50 4E 47
+    if content[:4] == b"\x89PNG":
+        return "image/png"
+    # WEBP: RIFF....WEBP
+    if content[:4] == b"RIFF" and content[8:12] == b"WEBP":
+        return "image/webp"
+    # Extension-Fallback
+    guessed, _ = mimetypes.guess_type(filepath)
+    return guessed or "application/octet-stream"
 
 
 def _serialize_image_document(document: dict) -> dict:
@@ -152,10 +181,12 @@ async def get_image(
                 detail="Image not found",
             )
 
-        return FileResponse(
-            filepath,
-            media_type="image/jpeg",
-        )
+        # MIME-Type aus Magic-Bytes lesen statt hardcoded
+        with open(filepath, "rb") as f:
+            header = f.read(12)
+        mime_type = _detect_mime(filepath, header)
+
+        return FileResponse(filepath, media_type=mime_type)
 
     except HTTPException:
         raise
@@ -229,14 +260,23 @@ async def upload_image(
     Der Dateiname wird automatisch mit einem Zeitstempel versehen.
     """
     try:
-        # Save file
+        contents = await file.read()
+
+        # MIME-Type anhand Magic-Bytes prüfen
+        mime_type = _detect_mime(file.filename or "", contents)
+        if mime_type not in _ALLOWED_MIME_TYPES:
+            raise HTTPException(
+                status_code=415,
+                detail=f"Nicht unterstützter Dateityp: {mime_type}. Erlaubt: JPEG, PNG, WEBP.",
+            )
+
+        # Sicherer Dateiname ohne Doppel-Timestamp
         room_dir = os.path.join(IMAGE_DIR, room_id)
         os.makedirs(room_dir, exist_ok=True)
 
-        filename = f"{datetime.now().strftime('%Y-%m-%d-%H%M%S')}-{file.filename}"
+        filename = _safe_filename(file.filename or "upload.jpg")
         filepath = os.path.join(room_dir, filename)
 
-        contents = await file.read()
         with open(filepath, "wb") as f:
             f.write(contents)
 
@@ -246,6 +286,7 @@ async def upload_image(
             "room_id": room_id,
             "image_filename": filename,
             "image_path": filepath,
+            "mime_type": mime_type,
             "file_size_mb": (len(contents) / (1024 * 1024)),
             "image_type": "360_panoramic",
             "uploaded_at": datetime.now(),
