@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from app.db.mongo_client import mongo_client
 from app.models.building import BuildingResponse
+from app.utils import serialize_doc, serialize_docs
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,7 @@ async def get_buildings(
         if campus:
             query["campus"] = campus
 
-        buildings = list(db.buildings.find(query).skip(skip).limit(limit))
+        buildings = serialize_docs(list(db.buildings.find(query).skip(skip).limit(limit)))
         return buildings
 
     except Exception as e:
@@ -121,7 +122,7 @@ async def get_building_rooms(
         if floor is not None:
             query["floor"] = floor
 
-        rooms = list(db.rooms.find(query))
+        rooms = serialize_docs(list(db.rooms.find(query)))
 
         if not rooms:
             raise HTTPException(
@@ -170,7 +171,7 @@ async def get_building_schedule(building_id: str) -> list[dict[str, Any]]:
                 detail="No rooms found for this building",
             )
 
-        lectures = list(db.lectures.find({"room_id": {"$in": room_ids}}))
+        lectures = serialize_docs(list(db.lectures.find({"room_id": {"$in": room_ids}})))
 
         if not lectures:
             raise HTTPException(

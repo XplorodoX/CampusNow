@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 
 from app.db.mongo_client import mongo_client
 from app.models.studiengang import StuDiengangResponse
+from app.utils import serialize_doc, serialize_docs
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +119,7 @@ async def get_studiengang_lectures(
     """Gibt alle Vorlesungen zurück, die einem bestimmten Studiengang zugeordnet sind."""
     try:
         db = mongo_client.get_db()
-        lectures = list(db.lectures.find({"studiengang_id": studiengang_id}))
+        lectures = serialize_docs(list(db.lectures.find({"studiengang_id": studiengang_id})))
 
         if not lectures:
             raise HTTPException(

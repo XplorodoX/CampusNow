@@ -5,9 +5,9 @@ from pydantic import BaseModel, Field, model_validator
 
 class Room(BaseModel):
     room_number: str
-    floor: int
-    capacity: int
-    building: str = Field(..., description="Gebäude-Kürzel (z. B. 'G2', 'H')")
+    floor: int | None = Field(None, description="Stockwerk (wird vom Scraper aus dem Raumnamen extrahiert)")
+    capacity: int | None = Field(None, description="Kapazität – manuell pflegbar")
+    building: str | None = Field(None, description="Gebäude-Kürzel (z. B. 'G2', 'H')")
     building_id: str | None = Field(None, description="Referenz auf das Building-Dokument")
     has_video: bool = False
     has_projector: bool = False

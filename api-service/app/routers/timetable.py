@@ -6,6 +6,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 
 from app.db.mongo_client import mongo_client
+from app.utils import serialize_docs
 
 logger = logging.getLogger(__name__)
 
@@ -135,11 +136,11 @@ async def get_timetable(
                 {"semester": semesterId},
             ]
 
-        raw_lectures = list(db.lectures.find(lec_query).limit(limit_lectures))
+        raw_lectures = serialize_docs(list(db.lectures.find(lec_query).limit(limit_lectures)))
         lectures = [_lecture_to_frontend(l) for l in raw_lectures]
 
         # Events
-        raw_events = list(db.events.find({}).limit(limit_events))
+        raw_events = serialize_docs(list(db.events.find({}).limit(limit_events)))
         events = [_event_to_frontend(e) for e in raw_events]
 
         return {

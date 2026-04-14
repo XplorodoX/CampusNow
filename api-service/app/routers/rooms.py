@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from app.db.mongo_client import mongo_client
 from app.models.room import RoomResponse
+from app.utils import serialize_doc, serialize_docs
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +66,7 @@ async def get_rooms(
                 "$options": "i",
             }
 
-        rooms = list(db.rooms.find(query).skip(skip).limit(limit))
+        rooms = serialize_docs(list(db.rooms.find(query).skip(skip).limit(limit)))
         return rooms
 
     except Exception as e:
@@ -126,7 +127,7 @@ async def get_room_schedule(
     """Gibt alle Vorlesungen zurück, die in einem bestimmten Raum stattfinden."""
     try:
         db = mongo_client.get_db()
-        lectures = list(db.lectures.find({"room_id": room_id}))
+        lectures = serialize_docs(list(db.lectures.find({"room_id": room_id})))
 
         if not lectures:
             raise HTTPException(

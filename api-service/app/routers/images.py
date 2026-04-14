@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 
 from app.db.mongo_client import mongo_client
 from app.models.image import ImageListResponse, ImageResponse
@@ -165,6 +165,41 @@ async def get_image(
             status_code=500,
             detail=str(e),
         ) from e
+
+
+@router.head(
+    "/rooms/{room_id}/{filename}",
+    summary="Bild-Metadaten abrufen (HEAD)",
+    response_description="HTTP-Metadaten der Bilddatei ohne Body",
+    responses={
+        200: {"description": "Bild vorhanden"},
+        404: {"description": "Bild nicht gefunden"},
+        500: {"description": "Fehler beim Lesen der Bilddatei"},
+    },
+)
+async def head_image(
+    room_id: str,
+    filename: str,
+) -> Response:
+    """HEAD endpoint for clients that probe image URLs before GET."""
+    try:
+        filepath = os.path.join(IMAGE_DIR, room_id, filename)
+        if not os.path.exists(filepath):
+            raise HTTPException(status_code=404, detail="Image not found")
+
+        file_size = os.path.getsize(filepath)
+        return Response(
+            status_code=200,
+            headers={
+                "Content-Type": "image/jpeg",
+                "Content-Length": str(file_size),
+            },
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching image head metadata: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post(

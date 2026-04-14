@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from app.db.mongo_client import mongo_client
 from app.models.lecture import LectureResponse
+from app.utils import serialize_docs
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +72,7 @@ async def get_lectures(
                 time_query["$lte"] = date_to
             query["start_time"] = time_query
 
-        lectures = list(db.lectures.find(query).skip(skip).limit(limit))
+        lectures = serialize_docs(list(db.lectures.find(query).skip(skip).limit(limit)))
         return lectures
 
     except Exception as e:
