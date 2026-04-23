@@ -28,28 +28,70 @@ _MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20 MB
 _MAX_IMAGE_DIMENSION = 8192
 
 
-def _parse_crop(crop: str) -> tuple[int, int, int, int]:
-    """Parst crop-Parameter im Format x,y,width,height."""
+def _parse_crop_value(value: str, total: int) -> int:
+    """Parst Pixel-, Prozent- oder Relative-Werte in eine Pixelanzahl."""
+    raw = value.strip()
+    if raw.endswith("%"):
+        percent = float(raw[:-1])
+        return int(round((percent / 100.0) * total))
+
+    numeric = float(raw)
+    if 0.0 <= numeric <= 1.0:
+        return int(round(numeric * total))
+    return int(round(numeric))
+
+
+def _parse_crop(crop: str, image_width: int, image_height: int) -> tuple[int, int, int, int]:
+    """Parst crop flexibel als x,y,w,h oder center-crop w,h (Pixel/%/relativ)."""
     parts = crop.split(",")
-    if len(parts) != 4:
+    if len(parts) not in {2, 4}:
         raise HTTPException(
             status_code=400,
-            detail="Invalid crop format. Use x,y,width,height.",
+            detail="Invalid crop format. Use width,height or x,y,width,height.",
         )
 
     try:
-        x, y, w, h = (int(part.strip()) for part in parts)
+        if len(parts) == 2:
+            # Center crop by size, so callers do not need image origin/dimensions.
+            crop_w = _parse_crop_value(parts[0], image_width)
+            crop_h = _parse_crop_value(parts[1], image_height)
+            crop_w = max(1, min(crop_w, image_width))
+            crop_h = max(1, min(crop_h, image_height))
+            x = max(0, (image_width - crop_w) // 2)
+            y = max(0, (image_height - crop_h) // 2)
+            return x, y, crop_w, crop_h
+
+        x = _parse_crop_value(parts[0], image_width)
+        y = _parse_crop_value(parts[1], image_height)
+        w = _parse_crop_value(parts[2], image_width)
+        h = _parse_crop_value(parts[3], image_height)
     except ValueError as exc:
         raise HTTPException(
             status_code=400,
-            detail="Invalid crop format. Use integers: x,y,width,height.",
+            detail=(
+                "Invalid crop format. Use numeric values in pixels, percent (e.g. 25%), "
+                "or relative values (0..1)."
+            ),
         ) from exc
 
-    if x < 0 or y < 0 or w <= 0 or h <= 0:
+    if w <= 0 or h <= 0:
         raise HTTPException(
             status_code=400,
-            detail="Invalid crop values. x,y must be >= 0 and width,height must be > 0.",
+            detail="Invalid crop values. width,height must be > 0.",
         )
+
+    # Bounds automatisch begrenzen, damit kein Wissen über Originalgröße nötig ist.
+    x = max(0, x)
+    y = max(0, y)
+    if x >= image_width:
+        x = image_width - 1
+    if y >= image_height:
+        y = image_height - 1
+
+    max_w = image_width - x
+    max_h = image_height - y
+    w = max(1, min(w, max_w))
+    h = max(1, min(h, max_h))
 
     return x, y, w, h
 
@@ -215,7 +257,8 @@ async def get_latest_room_image(
         400: {
             "description": (
                 "Ungültige Transformations-Parameter. Erlaubt: "
-                "size=original|medium|thumbnail, width/height und crop=x,y,width,height"
+                "size=original|medium|thumbnail, width/height und "
+                "crop=width,height oder crop=x,y,width,height"
             )
         },
         404: {"description": "Bild nicht gefunden"},
@@ -228,7 +271,13 @@ async def get_image(
     size: str = Query("original", description="Bildgröße: `original`, `medium` oder `thumbnail`"),
     width: int | None = Query(None, ge=1, le=_MAX_IMAGE_DIMENSION, description="Zielbreite in Pixeln"),
     height: int | None = Query(None, ge=1, le=_MAX_IMAGE_DIMENSION, description="Zielhöhe in Pixeln"),
-    crop: str | None = Query(None, description="Crop-Ausschnitt: x,y,width,height (Pixel)"),
+    crop: str | None = Query(
+        None,
+        description=(
+            "Crop-Ausschnitt. Formate: width,height (zentriert) oder x,y,width,height. "
+            "Werte als Pixel, Prozent (z.B. 50%) oder relativ (0..1)."
+        ),
+    ),
 ) -> Response:
     """Liefert eine konkrete Bilddatei für einen Raum als JPEG zurück."""
     _validate_room_id(room_id)
@@ -265,15 +314,7 @@ async def get_image(
 
         with Image.open(filepath) as image:
             if crop is not None:
-                x, y, crop_w, crop_h = _parse_crop(crop)
-                if x + crop_w > image.width or y + crop_h > image.height:
-                    raise HTTPException(
-                        status_code=400,
-                        detail=(
-                            "Invalid crop bounds. "
-                            f"Image size is {image.width}x{image.height}."
-                        ),
-                    )
+                x, y, crop_w, crop_h = _parse_crop(crop, image.width, image.height)
                 image = image.crop((x, y, x + crop_w, y + crop_h))
 
             if width is not None or height is not None:

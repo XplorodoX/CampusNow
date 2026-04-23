@@ -550,7 +550,25 @@ def test_get_image_with_crop(client, tmp_path):
     assert transformed.size == (120, 80)
 
 
-def test_get_image_with_invalid_crop(client, tmp_path):
+def test_get_image_with_center_crop_percent(client, tmp_path):
+    room_id = "Z106"
+    filename = "sample.jpg"
+    room_dir = tmp_path / room_id
+    room_dir.mkdir(parents=True)
+    file_path = room_dir / filename
+
+    image = Image.new("RGB", (400, 200), color=(0, 0, 255))
+    image.save(file_path, format="JPEG")
+
+    with patch("app.routers.images.IMAGE_DIR", str(tmp_path)):
+        r = client.get(f"/api/v1/images/rooms/{room_id}/{filename}?crop=50%,50%")
+
+    assert r.status_code == 200
+    transformed = Image.open(io.BytesIO(r.content))
+    assert transformed.size == (200, 100)
+
+
+def test_get_image_crop_out_of_bounds_is_clamped(client, tmp_path):
     room_id = "Z106"
     filename = "sample.jpg"
     room_dir = tmp_path / room_id
@@ -563,8 +581,9 @@ def test_get_image_with_invalid_crop(client, tmp_path):
     with patch("app.routers.images.IMAGE_DIR", str(tmp_path)):
         r = client.get(f"/api/v1/images/rooms/{room_id}/{filename}?crop=0,0,200,200")
 
-    assert r.status_code == 400
-    assert "Invalid crop bounds" in r.json()["detail"]
+    assert r.status_code == 200
+    transformed = Image.open(io.BytesIO(r.content))
+    assert transformed.size == (100, 100)
 
 
 # ---------------------------------------------------------------------------
