@@ -193,10 +193,16 @@ def fake_db():
     return _make_fake_db()
 
 
+_TEST_API_KEY = "test-secret-key"
+
+AUTH = {"X-API-Key": _TEST_API_KEY}
+
+
 @pytest.fixture()
 def client(fake_db):
     """TestClient with MongoDB replaced by the fake DB."""
-    with patch("app.db.mongo_client.mongo_client.get_db", return_value=fake_db):
+    with patch("app.db.mongo_client.mongo_client.get_db", return_value=fake_db), \
+         patch("app.auth._API_KEY", _TEST_API_KEY):
         from main import app
         with TestClient(app, raise_server_exceptions=True) as c:
             yield c

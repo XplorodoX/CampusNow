@@ -2,8 +2,9 @@
 
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.auth import require_api_key
 from app.db.mongo_client import mongo_client
 from app.models.settings import UserSettings, UserSettingsPatch
 
@@ -60,6 +61,7 @@ async def get_settings() -> UserSettings:
 
 @router.put(
     "",
+    dependencies=[Depends(require_api_key)],
     response_model=UserSettings,
     summary="Einstellungen speichern",
     response_description="Die gespeicherten Einstellungen",
@@ -86,6 +88,7 @@ async def save_settings(settings: UserSettings) -> UserSettings:
 
 @router.patch(
     "",
+    dependencies=[Depends(require_api_key)],
     response_model=UserSettings,
     summary="Einstellungen teilweise aktualisieren",
     response_description="Die vollständigen Einstellungen nach dem Update",

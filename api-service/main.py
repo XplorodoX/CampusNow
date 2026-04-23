@@ -6,8 +6,9 @@ import os
 from typing import Any
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.db.mongo_client import mongo_client
 from app.routers import (
@@ -174,6 +175,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    logger.error(f"Unhandled exception on {request.method} {request.url}: {exc}", exc_info=True)
+    return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
 
 # Include routers
 app.include_router(buildings.router)

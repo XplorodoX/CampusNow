@@ -50,3 +50,4 @@ data/images/360/*
 
 # Docker
 docker-compose.override.yml
+.claude/claude.md

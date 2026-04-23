@@ -4,8 +4,9 @@ import logging
 from typing import Any
 
 from bson import ObjectId
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
+from app.auth import require_api_key
 from app.db.mongo_client import mongo_client
 
 logger = logging.getLogger(__name__)
@@ -170,6 +171,7 @@ async def get_scheduler_logs(
 
 @router.post(
     "/trigger",
+    dependencies=[Depends(require_api_key)],
     summary="Scraper manuell starten (Admin)",
     response_description="Bestätigung, dass der Scraper gestartet wurde",
     responses={

@@ -12,6 +12,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from PIL import Image
 
+from tests.conftest import AUTH
+
 # ---------------------------------------------------------------------------
 # Status / Health
 # ---------------------------------------------------------------------------
@@ -284,9 +286,15 @@ def test_create_event(client):
         "end_time": "2024-05-01T12:00:00",
         "is_public": True,
     }
-    r = client.post("/api/v1/events", json=payload)
+    r = client.post("/api/v1/events", json=payload, headers=AUTH)
     assert r.status_code == 200
     assert "id" in r.json()
+
+
+def test_create_event_unauthorized(client):
+    payload = {"title": "x", "start_time": "2024-05-01T10:00:00", "end_time": "2024-05-01T12:00:00", "is_public": True}
+    r = client.post("/api/v1/events", json=payload)
+    assert r.status_code == 401
 
 
 def test_delete_event(client, fake_db):
@@ -294,7 +302,7 @@ def test_delete_event(client, fake_db):
 
     oid = ObjectId()
     fake_db.events.find_one.return_value = {"_id": oid, "title": "Test"}
-    r = client.delete(f"/api/v1/events/{oid}")
+    r = client.delete(f"/api/v1/events/{oid}", headers=AUTH)
     assert r.status_code == 200
 
 
@@ -397,7 +405,7 @@ def test_post_streetview_graph(client):
             }
         ],
     }
-    r = client.post("/api/v1/streetview/graph", json=payload)
+    r = client.post("/api/v1/streetview/graph", json=payload, headers=AUTH)
     assert r.status_code == 200
 
 
@@ -431,12 +439,12 @@ def test_put_settings(client):
         "savedEventIds": [],
         "theme": "dark",
     }
-    r = client.put("/api/v1/settings", json=payload)
+    r = client.put("/api/v1/settings", json=payload, headers=AUTH)
     assert r.status_code == 200
 
 
 def test_patch_settings(client):
-    r = client.patch("/api/v1/settings", json={"theme": "light"})
+    r = client.patch("/api/v1/settings", json={"theme": "light"}, headers=AUTH)
     assert r.status_code == 200
 
 
@@ -494,6 +502,7 @@ def test_upload_image_jpeg(client, fake_db, tmp_path):
             r = client.post(
                 "/api/v1/images/rooms/Z106/upload",
                 files={"file": ("test.jpg", jpeg_content, "image/jpeg")},
+                headers=AUTH,
             )
     assert r.status_code == 200
     assert "filename" in r.json()
@@ -504,13 +513,26 @@ def test_upload_image_invalid_type(client):
     r = client.post(
         "/api/v1/images/rooms/Z106/upload",
         files={"file": ("test.txt", b"Hello World", "text/plain")},
+        headers=AUTH,
     )
     assert r.status_code == 415
 
 
+def test_upload_image_unauthorized(client):
+    """Upload without key – should return 401."""
+    r = client.post(
+        "/api/v1/images/rooms/Z106/upload",
+        files={"file": ("test.jpg", b"\xff\xd8\xff" + b"\x00" * 100, "image/jpeg")},
+    )
+    assert r.status_code == 401
+
+
 def test_delete_image(client, fake_db):
     with patch("os.path.exists", return_value=False):
-        r = client.delete("/api/v1/images/rooms/Z106/2024-04-15-083000-panorama.jpg")
+        r = client.delete(
+            "/api/v1/images/rooms/Z106/2024-04-15-083000-panorama.jpg",
+            headers=AUTH,
+        )
     assert r.status_code == 200
 
 
@@ -636,7 +658,7 @@ def test_scheduler_logs(client, fake_db):
 
 
 def test_scheduler_trigger(client):
-    r = client.post("/scheduler/trigger")
+    r = client.post("/scheduler/trigger", headers=AUTH)
     assert r.status_code == 200
 
 

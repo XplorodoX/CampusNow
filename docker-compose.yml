@@ -54,14 +54,7 @@ services:
     container_name: campusnow-api
     ports:
       - "6058:8000"
-    environment:
-      MONGO_URI: mongodb://admin:campusnow_secret_2025@mongodb:27017/campusnow?authSource=admin
-      MONGO_DB: campusnow
-      API_TITLE: "CampusNow API"
-      API_VERSION: "1.0.0"
-      CORS_ORIGINS: "*"
-      LOG_LEVEL: INFO
-      TZ: Europe/Berlin
+    env_file: .env
     depends_on:
       - mongodb
     volumes:

@@ -4,8 +4,9 @@ import logging
 from typing import Any
 
 from bson import ObjectId
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.auth import require_api_key
 from app.db.mongo_client import mongo_client
 from app.models.streetview import StreetViewGraph, StreetViewGraphCreate
 
@@ -135,6 +136,7 @@ async def get_building_graph(building_id: str) -> StreetViewGraph:
 
 @router.post(
     "/graph",
+    dependencies=[Depends(require_api_key)],
     response_model=dict[str, str],
     summary="Navigationsgraph speichern (Admin)",
     response_description="ID des gespeicherten Graphen",

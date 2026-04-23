@@ -6,8 +6,9 @@ from typing import Any
 
 from bson import ObjectId
 from bson.errors import InvalidId
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.auth import require_api_key
 from app.db.mongo_client import mongo_client
 from app.models.event import EventCreate, EventResponse
 
@@ -207,6 +208,7 @@ async def get_event(event_id: str) -> EventResponse:
 
 @router.post(
     "",
+    dependencies=[Depends(require_api_key)],
     response_model=dict[str, str],
     summary="Event anlegen",
     response_description="ID des neu erstellten Events",
@@ -246,6 +248,7 @@ async def create_event(event: EventCreate) -> dict[str, str]:
 
 @router.put(
     "/{event_id}",
+    dependencies=[Depends(require_api_key)],
     response_model=dict[str, str],
     summary="Event aktualisieren",
     response_description="Bestätigung der Aktualisierung",
@@ -288,6 +291,7 @@ async def update_event(event_id: str, event: EventCreate) -> dict[str, str]:
 
 @router.delete(
     "/{event_id}",
+    dependencies=[Depends(require_api_key)],
     response_model=dict[str, str],
     summary="Event löschen",
     response_description="Bestätigung der Löschung",

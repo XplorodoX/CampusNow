@@ -8,10 +8,11 @@ import re
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, Response
 from PIL import Image
 
+from app.auth import require_api_key
 from app.db.mongo_client import mongo_client
 from app.models.image import ImageListResponse, ImageResponse
 
@@ -387,6 +388,7 @@ async def head_image(
 
 @router.post(
     "/rooms/{room_id}/upload",
+    dependencies=[Depends(require_api_key)],
     summary="Bild hochladen (Admin)",
     response_description="Erfolgs-Meldung und Dateiname des gespeicherten Bilds",
     responses={
@@ -458,6 +460,8 @@ async def upload_image(
             "filename": filename,
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error uploading image: {e}")
         raise HTTPException(
@@ -468,6 +472,7 @@ async def upload_image(
 
 @router.delete(
     "/rooms/{room_id}/{filename}",
+    dependencies=[Depends(require_api_key)],
     summary="Bild löschen (Admin)",
     response_description="Bestätigung der Löschung",
     responses={

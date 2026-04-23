@@ -3,8 +3,9 @@
 import logging
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.auth import require_api_key
 from app.db.mongo_client import mongo_client
 from app.models.lecture import LectureResponse
 from app.utils import serialize_doc, serialize_docs
@@ -121,6 +122,7 @@ async def get_lecture(
 
 @router.post(
     "",
+    dependencies=[Depends(require_api_key)],
     response_model=dict[str, str],
     summary="Vorlesung anlegen (Admin)",
     response_description="ID der neu erstellten Vorlesung",
