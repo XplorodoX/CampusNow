@@ -192,6 +192,9 @@ docker-compose down
 # Logs anschauen (real-time)
 docker-compose logs -f api
 
+# Mock-Daten einspielen (ohne Timetable-Collections lectures/studiengaenge)
+docker-compose --profile seed run --rm mock-seeder
+
 # In Container reinschauen
 docker-compose exec scraper bash
 docker-compose exec api bash

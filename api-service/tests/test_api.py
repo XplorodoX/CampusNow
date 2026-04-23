@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
+from PIL import Image
 
 # ---------------------------------------------------------------------------
 # Status / Health
@@ -511,6 +512,59 @@ def test_delete_image(client, fake_db):
     with patch("os.path.exists", return_value=False):
         r = client.delete("/api/v1/images/rooms/Z106/2024-04-15-083000-panorama.jpg")
     assert r.status_code == 200
+
+
+def test_get_image_with_resize(client, tmp_path):
+    room_id = "Z106"
+    filename = "sample.jpg"
+    room_dir = tmp_path / room_id
+    room_dir.mkdir(parents=True)
+    file_path = room_dir / filename
+
+    image = Image.new("RGB", (400, 200), color=(255, 0, 0))
+    image.save(file_path, format="JPEG")
+
+    with patch("app.routers.images.IMAGE_DIR", str(tmp_path)):
+        r = client.get(f"/api/v1/images/rooms/{room_id}/{filename}?width=100&height=50")
+
+    assert r.status_code == 200
+    transformed = Image.open(io.BytesIO(r.content))
+    assert transformed.size == (100, 50)
+
+
+def test_get_image_with_crop(client, tmp_path):
+    room_id = "Z106"
+    filename = "sample.jpg"
+    room_dir = tmp_path / room_id
+    room_dir.mkdir(parents=True)
+    file_path = room_dir / filename
+
+    image = Image.new("RGB", (400, 200), color=(0, 255, 0))
+    image.save(file_path, format="JPEG")
+
+    with patch("app.routers.images.IMAGE_DIR", str(tmp_path)):
+        r = client.get(f"/api/v1/images/rooms/{room_id}/{filename}?crop=10,20,120,80")
+
+    assert r.status_code == 200
+    transformed = Image.open(io.BytesIO(r.content))
+    assert transformed.size == (120, 80)
+
+
+def test_get_image_with_invalid_crop(client, tmp_path):
+    room_id = "Z106"
+    filename = "sample.jpg"
+    room_dir = tmp_path / room_id
+    room_dir.mkdir(parents=True)
+    file_path = room_dir / filename
+
+    image = Image.new("RGB", (100, 100), color=(0, 0, 255))
+    image.save(file_path, format="JPEG")
+
+    with patch("app.routers.images.IMAGE_DIR", str(tmp_path)):
+        r = client.get(f"/api/v1/images/rooms/{room_id}/{filename}?crop=0,0,200,200")
+
+    assert r.status_code == 400
+    assert "Invalid crop bounds" in r.json()["detail"]
 
 
 # ---------------------------------------------------------------------------

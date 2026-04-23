@@ -1,6 +1,7 @@
 """Images router for CampusNow REST API."""
 
 import logging
+import io
 import mimetypes
 import os
 import re
@@ -9,6 +10,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse, Response
+from PIL import Image
 
 from app.db.mongo_client import mongo_client
 from app.models.image import ImageListResponse, ImageResponse
@@ -23,6 +25,33 @@ _ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
 _TIMESTAMP_PREFIX = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{6}-")
 _SAFE_ID = re.compile(r"^[A-Za-z0-9_\-]{1,64}$")
 _MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20 MB
+_MAX_IMAGE_DIMENSION = 8192
+
+
+def _parse_crop(crop: str) -> tuple[int, int, int, int]:
+    """Parst crop-Parameter im Format x,y,width,height."""
+    parts = crop.split(",")
+    if len(parts) != 4:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid crop format. Use x,y,width,height.",
+        )
+
+    try:
+        x, y, w, h = (int(part.strip()) for part in parts)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid crop format. Use integers: x,y,width,height.",
+        ) from exc
+
+    if x < 0 or y < 0 or w <= 0 or h <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid crop values. x,y must be >= 0 and width,height must be > 0.",
+        )
+
+    return x, y, w, h
 
 
 def _validate_room_id(room_id: str) -> None:
@@ -183,7 +212,12 @@ async def get_latest_room_image(
     response_description="Das angeforderte Bild als JPEG",
     responses={
         200: {"content": {"image/jpeg": {}}, "description": "JPEG-Bilddatei"},
-        400: {"description": "Ungültige Größenangabe – erlaubt: `original`, `medium`, `thumbnail`"},
+        400: {
+            "description": (
+                "Ungültige Transformations-Parameter. Erlaubt: "
+                "size=original|medium|thumbnail, width/height und crop=x,y,width,height"
+            )
+        },
         404: {"description": "Bild nicht gefunden"},
         500: {"description": "Fehler beim Lesen der Bilddatei"},
     },
@@ -192,7 +226,10 @@ async def get_image(
     room_id: str,
     filename: str,
     size: str = Query("original", description="Bildgröße: `original`, `medium` oder `thumbnail`"),
-) -> FileResponse:
+    width: int | None = Query(None, ge=1, le=_MAX_IMAGE_DIMENSION, description="Zielbreite in Pixeln"),
+    height: int | None = Query(None, ge=1, le=_MAX_IMAGE_DIMENSION, description="Zielhöhe in Pixeln"),
+    crop: str | None = Query(None, description="Crop-Ausschnitt: x,y,width,height (Pixel)"),
+) -> Response:
     """Liefert eine konkrete Bilddatei für einen Raum als JPEG zurück."""
     _validate_room_id(room_id)
     _validate_filename(filename)
@@ -216,7 +253,49 @@ async def get_image(
             header = f.read(12)
         mime_type = _detect_mime(filepath, header)
 
-        return FileResponse(filepath, media_type=mime_type)
+        # Legacy size-Parameter in konkrete Zielauflösung übersetzen.
+        if size == "thumbnail" and width is None and height is None:
+            width = 640
+        if size == "medium" and width is None and height is None:
+            width = 1600
+
+        has_transform = crop is not None or width is not None or height is not None
+        if not has_transform:
+            return FileResponse(filepath, media_type=mime_type)
+
+        with Image.open(filepath) as image:
+            if crop is not None:
+                x, y, crop_w, crop_h = _parse_crop(crop)
+                if x + crop_w > image.width or y + crop_h > image.height:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=(
+                            "Invalid crop bounds. "
+                            f"Image size is {image.width}x{image.height}."
+                        ),
+                    )
+                image = image.crop((x, y, x + crop_w, y + crop_h))
+
+            if width is not None or height is not None:
+                if width is None:
+                    width = max(1, int(image.width * (height / image.height)))
+                if height is None:
+                    height = max(1, int(image.height * (width / image.width)))
+                image = image.resize((width, height), Image.Resampling.LANCZOS)
+
+            output = io.BytesIO()
+            save_format = "JPEG"
+            if mime_type == "image/png":
+                save_format = "PNG"
+            elif mime_type == "image/webp":
+                save_format = "WEBP"
+
+            if save_format == "JPEG" and image.mode in {"RGBA", "LA", "P"}:
+                image = image.convert("RGB")
+
+            image.save(output, format=save_format)
+            output.seek(0)
+            return Response(content=output.getvalue(), media_type=mime_type)
 
     except HTTPException:
         raise

@@ -1,4 +1,4 @@
-.PHONY: help install install-dev lint format test coverage clean docker-up docker-down docker-logs security pre-commit ci-local quality complexity release release-check release-rc all
+.PHONY: help install install-dev lint format test coverage clean docker-up docker-down docker-logs docker-seed-mock security pre-commit ci-local quality complexity release release-check release-rc all
 
 help:
 	@echo "CampusNow - Development Commands"
@@ -34,6 +34,7 @@ help:
 	@echo "  make docker-down   - Stop all services (docker-compose down)"
 	@echo "  make docker-logs   - Show service logs (docker-compose logs -f)"
 	@echo "  make docker-build  - Build Docker images"
+	@echo "  make docker-seed-mock - Run one-shot mock seeder (without timetable data)"
 	@echo ""
 	@echo "Cleanup:"
 	@echo "  make clean         - Remove cache and build files"
@@ -110,6 +111,11 @@ docker-build:
 	@echo "🔨 Building Docker images..."
 	docker-compose build
 	@echo "✅ Images built!"
+
+docker-seed-mock:
+	@echo "🌱 Running mock seeder (excluding timetable collections)..."
+	docker-compose --profile seed run --rm mock-seeder
+	@echo "✅ Mock data seed complete!"
 
 # Security scanning targets
 security:

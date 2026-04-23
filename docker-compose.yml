@@ -71,6 +71,32 @@ services:
       - campusnow-net
     restart: unless-stopped
 
+  # One-shot Mock Seeder (keine Timetable-Daten)
+  mock-seeder:
+    build:
+      context: ./api-service
+      dockerfile: Dockerfile
+    container_name: campusnow-mock-seeder
+    command: ["python", "seed_mock_data.py"]
+    environment:
+      MONGO_URI: mongodb://admin:campusnow_secret_2025@mongodb:27017/campusnow?authSource=admin
+      MONGO_DB: campusnow
+      MOCK_ROOM_ID: MOCK-R1
+      MOCK_BUILDING_ID: AH
+      MOCK_EVENT_TITLE: Mock Campus Event
+      TZ: Europe/Berlin
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - ./data/images/360:/app/data/images/360
+      - ./api-service:/app
+    networks:
+      - campusnow-net
+    profiles:
+      - seed
+    restart: "no"
+
 networks:
   campusnow-net:
     driver: bridge
