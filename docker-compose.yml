@@ -63,8 +63,7 @@ services:
       LOG_LEVEL: INFO
       TZ: Europe/Berlin
     depends_on:
-      mongodb:
-        condition: service_healthy
+      - mongodb
     volumes:
       - ./data/images/360:/app/data/images/360
       - ./api-service:/app
