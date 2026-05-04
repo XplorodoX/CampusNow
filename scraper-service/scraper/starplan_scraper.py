@@ -191,14 +191,14 @@ class StarplanScraper:
                 name = str(pg.get("name") or shortname)
                 program_code = str(og.get("shortname") or "").strip() or shortname.split(" ")[0]
                 program_name = self._resolve_program_name(program_code, str(og.get("name") or ""))
-                semester = self._extract_semester_label(shortname, name)
+                semesters = self._extract_semesters(shortname, name)
 
                 courses.append(
                     {
                         "course_id": pgid,
                         "name": name,
                         "code": shortname,
-                        "semester": semester,
+                        "semesters": semesters,
                         "program_id": str(og_id),
                         "program_code": program_code,
                         "program_name": program_name,
@@ -214,17 +214,29 @@ class StarplanScraper:
         return courses
 
     @staticmethod
-    def _extract_semester_label(group_code: str, group_name: str) -> str:
-        """Extract a semester label from StarPlan planning-group metadata."""
-        code_match = re.search(r"\bS[0-9][0-9+_/-]*\b", group_code)
+    def _extract_semesters(group_code: str, group_name: str) -> list[int]:
+        """Extract semester numbers from StarPlan planning-group metadata.
+
+        Examples: 'TMP S1+2' → [1, 2], 'INF S3' → [3], 'MBA S1+2+3' → [1, 2, 3]
+        """
+        raw = ""
+        code_match = re.search(r"\bS([0-9][0-9+_/-]*)\b", group_code)
         if code_match:
-            return code_match.group(0)
+            raw = code_match.group(1)
+        else:
+            name_match = re.search(r"Sem\.?\s*([0-9][0-9+_/-]*)", group_name, flags=re.IGNORECASE)
+            if name_match:
+                raw = name_match.group(1)
 
-        name_match = re.search(r"Sem\.?\s*([0-9][0-9+_/-]*)", group_name, flags=re.IGNORECASE)
-        if name_match:
-            return f"S{name_match.group(1)}"
+        if not raw:
+            return []
 
-        return ""
+        nums: list[int] = []
+        for part in re.split(r"[+_/\-]", raw):
+            part = part.strip()
+            if part.isdigit():
+                nums.append(int(part))
+        return sorted(set(nums))
 
     @staticmethod
     def _normalize_program_code(program_code: str) -> str:

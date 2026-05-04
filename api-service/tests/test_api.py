@@ -221,9 +221,9 @@ def test_get_studiengang_lectures_filtered_by_semester(client, fake_db):
     from bson import ObjectId
     from tests.conftest import _chainable
 
-    lec = {"_id": ObjectId(), "lecture_id": "L1", "studiengang_id": "INF-B-6", "semester": "sem_3"}
+    lec = {"_id": ObjectId(), "lecture_id": "L1", "studiengang_id": "INF-B-6", "semesterId": "sem_3"}
     fake_db.lectures.find.return_value = _chainable([lec])
-    r = client.get("/api/v1/studiengaenge/INF-B-6/lectures?semester=sem_3")
+    r = client.get("/api/v1/studiengaenge/INF-B-6/lectures?semester=3")
     assert r.status_code == 200
 
 
@@ -231,7 +231,7 @@ def test_get_studiengang_timetable(client, fake_db):
     from bson import ObjectId
     from tests.conftest import _chainable
 
-    lec = {"_id": ObjectId(), "studiengang_id": "INF-B-6", "semester": "sem_3", "module_name": "Algo"}
+    lec = {"_id": ObjectId(), "studiengang_id": "INF-B-6", "semesterId": "sem_3", "module_name": "Algo"}
     evt = {"_id": ObjectId(), "title": "Campus Run", "is_public": True}
     fake_db.lectures.find.return_value = _chainable([lec])
     fake_db.events.find.return_value = [evt]
@@ -352,7 +352,7 @@ def test_get_timetable(client, fake_db):
         "_id": ObjectId(),
         "module_name": "Algorithmen",
         "studiengang_id": "INF",
-        "semester": "sem_3",
+        "semesterId": "sem_3",
         "room_id": "Z106",
         "building_id": "Z",
         "start_time": datetime(2024, 4, 15, 8, tzinfo=timezone.utc),

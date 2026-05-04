@@ -4,11 +4,12 @@ import logging
 from typing import Any
 
 from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.auth import require_api_key
 from app.db.mongo_client import mongo_client
 from app.models.streetview import StreetViewGraph, StreetViewGraphCreate
+from app.pathfinding import find_route
 
 logger = logging.getLogger(__name__)
 
@@ -131,6 +132,81 @@ async def get_building_graph(building_id: str) -> StreetViewGraph:
         raise
     except Exception as e:
         logger.error(f"Error fetching street view graph for building {building_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.get(
+    "/route/building/{building_id}",
+    response_model=dict[str, Any],
+    summary="Kürzesten Weg zu einem Raum berechnen (Dijkstra)",
+    response_description="Geordnete Liste von Navigationsschritten zum Zielraum",
+    responses={
+        200: {
+            "content": {
+                "application/json": {
+                    "example": {
+                        "building_id": "G2",
+                        "from_node": "node0",
+                        "to_room": "G2 0.03",
+                        "total_steps": 3,
+                        "steps": [
+                            {"node_id": "node0", "image": "...", "building": "G2", "room": None, "heading": 0, "direction": "front"},
+                            {"node_id": "node1", "image": "...", "building": "G2", "room": None, "heading": 12, "direction": "left"},
+                            {"node_id": "node3", "image": "...", "building": "G2", "room": "G2 0.03", "heading": 0, "direction": None},
+                        ],
+                    }
+                }
+            }
+        },
+        404: {"description": "Kein Graph für dieses Gebäude gefunden oder kein Pfad zum Zielraum"},
+        500: {"description": "Datenbankfehler"},
+    },
+)
+async def get_route(
+    building_id: str,
+    to_room: str = Query(..., description="Ziel-Raum-ID (muss als 'room'-Feld auf einem Node gesetzt sein)"),
+    from_node: str | None = Query(None, description="Start-Node-ID (Standard: startNode des Graphen)"),
+) -> dict[str, Any]:
+    """Berechnet den kürzesten Weg durch den Gebäude-Graphen zu einem Zielraum.
+
+    Verwendet Dijkstra auf dem gespeicherten 360°-Navigationsgraphen des Gebäudes.
+    Jeder Schritt enthält die Node-ID, das Panoramabild und die Richtung (`direction`),
+    die man an diesem Punkt nehmen muss, um zum nächsten Schritt zu gelangen.
+    Am Zielknoten ist `direction` null.
+
+    Der Graph muss über `POST /api/v1/streetview/graph` mit `building_id` gespeichert worden sein
+    und die Nodes müssen das Feld `room` mit der entsprechenden Raum-ID gesetzt haben.
+    """
+    try:
+        db = mongo_client.get_db()
+        doc = db.streetview_graphs.find_one({"building_id": building_id})
+        if not doc:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No street view graph found for building {building_id}",
+            )
+
+        graph = doc["graph"]
+        steps = find_route(graph, target_room=to_room, start_node_id=from_node)
+
+        if steps is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No path found from '{from_node or graph.get('startNode')}' to room '{to_room}' in building {building_id}",
+            )
+
+        return {
+            "building_id": building_id,
+            "from_node": from_node or graph.get("startNode"),
+            "to_room": to_room,
+            "total_steps": len(steps),
+            "steps": steps,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error computing route in building {building_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 

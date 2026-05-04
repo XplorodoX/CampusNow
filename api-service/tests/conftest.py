@@ -72,12 +72,13 @@ def _make_fake_db():
         "_id": "INF-B-6",
         "name": "Informatik",
         "code": "INF",
-        "semester": "6",
+        "semesters": [6],
         "program_code": "INF-B",
         "program_name": "Bachelor Informatik",
         "lecture_count": 12,
         "last_scraped": datetime(2024, 4, 15, 6, 0, tzinfo=timezone.utc),
         "created_at": datetime(2024, 1, 1, tzinfo=timezone.utc),
+        "related_courses": [],
     }
     db.studiengaenge.find.return_value = [sg_doc]
     db.studiengaenge.find_one.return_value = sg_doc

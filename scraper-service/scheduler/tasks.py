@@ -226,7 +226,7 @@ class ScraperTasks:
                     course_id = course.get("course_id")
                     course_name = course.get("name")
                     course_code = course.get("code")
-                    semester = course.get("semester")
+                    semesters = course.get("semesters", [])
                     program_id = course.get("program_id")
                     program_code = course.get("program_code")
                     program_name = course.get("program_name")
@@ -256,7 +256,7 @@ class ScraperTasks:
                                 "course_id": course_id,
                                 "name": course_name,
                                 "code": course_code,
-                                "semester": semester,
+                                "semesters": semesters,
                                 "program_id": program_id,
                                 "program_code": program_code,
                                 "program_name": program_name,

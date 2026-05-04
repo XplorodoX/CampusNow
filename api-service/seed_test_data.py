@@ -38,7 +38,7 @@ def main() -> None:
             "$set": {
                 "name": "Smoke Test Studiengang",
                 "code": "SMOKE",
-                "semester": "S1",
+                "semesters": [1],
                 "program_code": "SMOKE",
                 "program_name": "Smoke Test Program",
                 "lecture_count": 1,
@@ -59,7 +59,6 @@ def main() -> None:
                 "courseOfStudyId": "SMOKE-SG",
                 "studiengang_id": "SMOKE-SG",
                 "semesterId": "sem_1",
-                "semester": "S1",
                 "room": "SMOKE-ROOM",
                 "room_id": "SMOKE-ROOM",
                 "building": "AH",
