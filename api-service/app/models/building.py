@@ -19,6 +19,10 @@ class Building(BaseModel):
         False,
         description="Ob 360°-Aufnahmen für dieses Gebäude verfügbar sind",
     )
+    description: str | None = Field(
+        None,
+        description="Kurzbeschreibung des Gebäudes (z. B. Fakultät, Nutzung)",
+    )
 
     class Config:
         from_attributes = True

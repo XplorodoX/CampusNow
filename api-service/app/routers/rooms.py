@@ -50,6 +50,7 @@ router = APIRouter(prefix="/api/v1/rooms", tags=["rooms"])
 async def get_rooms(
     floor: int | None = Query(None, description="Filtert nach Stockwerk (z. B. `1` für erstes OG)"),
     search: str | None = Query(None, description="Suche im Raumnamen (Groß-/Kleinschreibung egal, z. B. `Z1`)"),
+    building: str | None = Query(None, description="Filtert nach Gebäude-Kürzel oder Building-ID (z. B. `G2`)") ,
     skip: int = Query(0, ge=0, description="Anzahl der zu überspringenden Einträge (Pagination)"),
     limit: int = Query(100, ge=1, le=1000, description="Maximale Anzahl der zurückgegebenen Einträge (max. 1000)"),
 ) -> list[RoomResponse]:
@@ -65,6 +66,9 @@ async def get_rooms(
                 "$regex": search,
                 "$options": "i",
             }
+        if building:
+            # allow filtering by either building shorthand or the building_id field
+            query["$or"] = [{"building_id": building}, {"building": building}]
 
         rooms = serialize_docs(list(db.rooms.find(query).skip(skip).limit(limit)))
         return rooms

@@ -109,7 +109,13 @@ async def get_timetable(
         None, description="Filtert Vorlesungen nach Studiengangs-ID"
     ),
     semesterId: str | None = Query(
-        None, description="Filtert Vorlesungen nach Semester-ID"
+        None, description="Filtert Vorlesungen nach Semester-ID (z. B. `sem_3`)"
+    ),
+    eventGroupId: str | None = Query(
+        None, description="Filtert Events nach Gruppen-ID (z. B. `sports`, `career`)"
+    ),
+    public_only: bool = Query(
+        False, description="Nur öffentliche Events zurückgeben"
     ),
     limit_lectures: int = Query(200, ge=1, le=1000, description="Max. Vorlesungen"),
     limit_events: int = Query(50, ge=1, le=200, description="Max. Events"),
@@ -120,8 +126,8 @@ async def get_timetable(
     - `courses_of_study` – alle Studiengänge
     - `semesters` – feste Semester-Liste (1–7)
     - `event_groups` – feste Gruppen-Liste
-    - `lectures` – Vorlesungen (optional gefiltert)
-    - `events` – Campus-Events
+    - `lectures` – Vorlesungen (optional gefiltert nach Studiengang und/oder Semester)
+    - `events` – Campus-Events (optional gefiltert nach Gruppe oder public_only)
     """
     try:
         db = mongo_client.get_db()
@@ -133,24 +139,31 @@ async def get_timetable(
             for s in studiengaenge
         ]
 
-        # Vorlesungen mit optionalen Filtern
-        lec_query: dict[str, Any] = {}
+        # Vorlesungen: AND-Verknüpfung wenn beide Filter gesetzt
+        and_clauses: list[dict] = []
         if courseOfStudyId:
-            lec_query["$or"] = [
+            and_clauses.append({"$or": [
                 {"courseOfStudyId": courseOfStudyId},
                 {"studiengang_id": courseOfStudyId},
-            ]
+            ]})
         if semesterId:
-            lec_query["$or"] = lec_query.get("$or", []) + [
+            and_clauses.append({"$or": [
                 {"semesterId": semesterId},
                 {"semester": semesterId},
-            ]
+            ]})
 
+        lec_query: dict[str, Any] = {"$and": and_clauses} if and_clauses else {}
         raw_lectures = serialize_docs(list(db.lectures.find(lec_query).limit(limit_lectures)))
         lectures = [_lecture_to_frontend(l) for l in raw_lectures]
 
-        # Events
-        raw_events = serialize_docs(list(db.events.find({}).limit(limit_events)))
+        # Events: optional nach Gruppe und/oder public_only filtern
+        evt_query: dict[str, Any] = {}
+        if public_only or courseOfStudyId:
+            evt_query["is_public"] = True
+        if eventGroupId:
+            evt_query["$or"] = [{"groupId": eventGroupId}, {"category": eventGroupId}]
+
+        raw_events = serialize_docs(list(db.events.find(evt_query).limit(limit_events)))
         events = [_event_to_frontend(e) for e in raw_events]
 
         return {

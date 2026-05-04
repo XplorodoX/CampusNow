@@ -217,6 +217,39 @@ def test_get_studiengang_lectures(client, fake_db):
     assert r.status_code == 200
 
 
+def test_get_studiengang_lectures_filtered_by_semester(client, fake_db):
+    from bson import ObjectId
+    from tests.conftest import _chainable
+
+    lec = {"_id": ObjectId(), "lecture_id": "L1", "studiengang_id": "INF-B-6", "semester": "sem_3"}
+    fake_db.lectures.find.return_value = _chainable([lec])
+    r = client.get("/api/v1/studiengaenge/INF-B-6/lectures?semester=sem_3")
+    assert r.status_code == 200
+
+
+def test_get_studiengang_timetable(client, fake_db):
+    from bson import ObjectId
+    from tests.conftest import _chainable
+
+    lec = {"_id": ObjectId(), "studiengang_id": "INF-B-6", "semester": "sem_3", "module_name": "Algo"}
+    evt = {"_id": ObjectId(), "title": "Campus Run", "is_public": True}
+    fake_db.lectures.find.return_value = _chainable([lec])
+    fake_db.events.find.return_value = [evt]
+    r = client.get("/api/v1/studiengaenge/INF-B-6/timetable")
+    assert r.status_code == 200
+    data = r.json()
+    assert "studiengang" in data
+    assert "lectures" in data
+    assert "events" in data
+    assert "semesters" in data
+
+
+def test_get_studiengang_timetable_not_found(client, fake_db):
+    fake_db.studiengaenge.find_one.return_value = None
+    r = client.get("/api/v1/studiengaenge/NOPE/timetable")
+    assert r.status_code == 404
+
+
 def test_get_studiengang_lectures_empty(client, fake_db):
     from tests.conftest import _chainable
 
@@ -348,6 +381,17 @@ def test_get_timetable_filtered(client, fake_db):
     fake_db.events.find.return_value = []
 
     r = client.get("/api/v1/timetable?courseOfStudyId=INF&semesterId=sem_3")
+    assert r.status_code == 200
+
+
+def test_get_timetable_event_group_filter(client, fake_db):
+    from tests.conftest import _chainable
+
+    fake_db.studiengaenge.find.return_value = []
+    fake_db.lectures.find.return_value = _chainable([])
+    fake_db.events.find.return_value = []
+
+    r = client.get("/api/v1/timetable?eventGroupId=sports&public_only=true")
     assert r.status_code == 200
 
 

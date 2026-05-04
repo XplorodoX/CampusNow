@@ -60,9 +60,32 @@ def main() -> NoReturn:
         replace_existing=True,
     )
 
+    # Add job: Scrape HS Aalen public events once a week (Monday 06:30)
+    events_schedule_hour = int(os.getenv("EVENTS_SCRAPER_SCHEDULE_HOUR", "6"))
+    events_schedule_minute = int(os.getenv("EVENTS_SCRAPER_SCHEDULE_MINUTE", "30"))
+    scheduler.add_job(
+        ScraperTasks.events_scrape_job,
+        trigger=CronTrigger(
+            day_of_week="mon",
+            hour=events_schedule_hour,
+            minute=events_schedule_minute,
+        ),
+        id="events_scrape_weekly",
+        name="HS Aalen Events Scrape Job (Weekly)",
+        replace_existing=True,
+    )
+    logger.info(
+        "Events scheduler configured for: Monday %02d:%02d",
+        events_schedule_hour,
+        events_schedule_minute,
+    )
+
     # Optional: Run once on startup for initial data
     logger.info("Running initial scrape on startup...")
     ScraperTasks.full_scrape_job()
+
+    logger.info("Running initial HS Aalen events scrape on startup...")
+    ScraperTasks.events_scrape_job()
 
     # Start scheduler
     scheduler.start()

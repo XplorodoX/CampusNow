@@ -5,6 +5,7 @@ import re
 from datetime import datetime
 
 from db.mongo_client import MongoDBClient
+from scraper.hs_aalen_events_scraper import HsAalenEventsScraper
 from scraper.ical_parser import IcalParser
 from scraper.starplan_scraper import StarplanScraper
 
@@ -50,6 +51,18 @@ def _extract_floor(room_number: str) -> int | None:
     return None
 
 logger = logging.getLogger(__name__)
+
+
+def _course_code_matches_studiengang(course_code: str | None, studiengang_code: str | None) -> bool:
+    """Return True when a lecture course_code belongs to a studiengang code.
+
+    The scraped lecture data uses values like `B S1`, `BAN S4`, `ETI ET - EkA`.
+    For the seeded bachelor study programs we want to treat the leading code as
+    the identifier and count all matching lecture documents.
+    """
+    if not course_code or not studiengang_code:
+        return False
+    return bool(re.match(rf"^{re.escape(studiengang_code)}(?:\s|$)", course_code))
 
 
 class ScraperTasks:
@@ -265,6 +278,36 @@ class ScraperTasks:
                     )
 
             logger.info(f"✓ Processed {course_count} courses with {course_lecture_count} lectures")
+            # Update lecture_count for studiengaenge based on inserted lectures.
+            logger.info("🔢 Updating lecture_count for studiengaenge...")
+            try:
+                for sg in db.studiengaenge.find():
+                    sg_code = sg.get("code") or sg.get("_id")
+                    # Count lectures that reference this study program by course_code prefix or explicit IDs.
+                    count = db.lectures.count_documents(
+                        {
+                            "$or": [
+                                {"studiengang_id": sg.get("_id")},
+                                {"courseOfStudyId": sg.get("_id")},
+                            ]
+                        }
+                    )
+                    if count == 0:
+                        count = sum(
+                            1
+                            for lecture in db.lectures.find(
+                                {"course_code": {"$exists": True}},
+                                {"course_code": 1},
+                            )
+                            if _course_code_matches_studiengang(lecture.get("course_code"), sg_code)
+                        )
+                    db.studiengaenge.update_one(
+                        {"_id": sg.get("_id")},
+                        {"$set": {"lecture_count": count, "last_scraped": datetime.now()}},
+                    )
+                logger.info("✓ Updated lecture_count for studiengaenge")
+            except Exception:
+                logger.exception("Error while updating lecture_count for studiengaenge")
 
             # 5. Summary
             total_lectures = lecture_count + course_lecture_count
@@ -320,3 +363,118 @@ class ScraperTasks:
             if mongo:
                 mongo.disconnect()
             logger.info("Cleanup completed")
+
+    @staticmethod
+    def events_scrape_job() -> bool:
+        """Scrape public events from HS Aalen website (weekly).
+
+        Returns:
+            True if successful, False otherwise
+        """
+        logger.info("=" * 70)
+        logger.info("📅 STARTING HS AALEN EVENTS SCRAPE JOB")
+        logger.info("=" * 70)
+
+        started_at = datetime.now()
+        mongo = None
+        scraper = None
+
+        try:
+            mongo = MongoDBClient()
+            if not mongo.connect():
+                logger.error("❌ Failed to connect to MongoDB")
+                return False
+
+            db = mongo.get_db()
+            logger.info("✓ MongoDB connected")
+
+            scraper = HsAalenEventsScraper()
+            raw_events = scraper.scrape_events()
+
+            if not raw_events:
+                logger.warning("⚠️ No events returned from HS Aalen website")
+                return False
+
+            inserted = 0
+            updated = 0
+            for raw in raw_events:
+                slug = raw.get("slug")
+                if not slug:
+                    continue
+
+                # Combine date + time into ISO datetime strings the API expects
+                start_date: datetime | None = raw.get("start_date")
+                end_date: datetime | None = raw.get("end_date")
+                start_time_str: str | None = raw.get("start_time")
+                end_time_str: str | None = raw.get("end_time")
+
+                def _combine(date: datetime | None, time_str: str | None) -> str | None:
+                    if date is None:
+                        return None
+                    if time_str:
+                        try:
+                            h, m = map(int, time_str.split(":"))
+                            return date.replace(hour=h, minute=m, second=0, microsecond=0).isoformat()
+                        except (ValueError, AttributeError):
+                            pass
+                    return date.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+
+                start_iso = _combine(start_date, start_time_str)
+                # Only set end if there's an explicit end_date or end_time
+                if end_date is not None or end_time_str is not None:
+                    end_iso = _combine(end_date or start_date, end_time_str)
+                else:
+                    end_iso = None
+
+                doc = {
+                    "title": raw["title"],
+                    "description": None,
+                    "category": "Hochschule",
+                    "start_time": start_iso,
+                    "end_time": end_iso,
+                    "location_text": None,
+                    "location": None,
+                    "building_id": None,
+                    "building": None,
+                    "room_id": None,
+                    "organizer": None,
+                    "is_public": True,
+                    "color": None,
+                    "image_url": None,
+                    "imageUrl": None,
+                    "groupId": None,
+                    "detail_url": raw.get("detail_url"),
+                    "source": "hs-aalen-website",
+                    "source_slug": slug,
+                    "scraped_at": raw.get("scraped_at"),
+                    "updated_at": started_at,
+                }
+
+                result = db.events.update_one(
+                    {"source_slug": slug},
+                    {
+                        "$set": doc,
+                        "$setOnInsert": {"created_at": started_at},
+                    },
+                    upsert=True,
+                )
+                if result.upserted_id:
+                    inserted += 1
+                else:
+                    updated += 1
+
+            logger.info("=" * 70)
+            logger.info("✅ EVENTS SCRAPE JOB COMPLETED")
+            logger.info("  - Events total: %d (new: %d, updated: %d)", len(raw_events), inserted, updated)
+            logger.info("=" * 70)
+            return True
+
+        except Exception as e:
+            logger.error("❌ CRITICAL ERROR in events_scrape_job: %s", e, exc_info=True)
+            return False
+
+        finally:
+            if scraper:
+                scraper.close()
+            if mongo:
+                mongo.disconnect()

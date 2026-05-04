@@ -69,6 +69,171 @@ def main() -> None:
         upsert=True,
     )
 
+    # Ensure a set of default HS-Aalen buildings always exist (idempotent)
+    default_buildings_info = {
+        "G1": {
+            "name": "Gebäude G1",
+            "description": "In diesem Gebäude ist die Fakultät Optik und Mechatronik untergebracht.",
+            "campus": "Burren",
+            "address": "Anton-Huber-Straße 25",
+        },
+        "G2": {
+            "name": "Gebäude G2",
+            "description": "Hier befinden sich die Räumlichkeiten der Fakultät Elektronik und Informatik.",
+            "campus": "Burren",
+            "address": "Anton-Huber-Straße 25",
+            "floors": [0, 1, 2],
+            "room_count": 18,
+        },
+        "G3": {
+            "name": "Gebäude G3",
+            "description": "Dieses Gebäude beherbergt die zentrale Hochschulbibliothek für den Standort Burren.",
+            "campus": "Burren",
+        },
+        "G4": {
+            "name": "Gebäude G4",
+            "description": "In diesem Bereich sind die Studiengänge Augenoptik und Hörakustik angesiedelt.",
+            "campus": "Burren",
+        },
+        "IZ": {
+            "name": "Innovationszentrum (IZ)",
+            "description": "Das Innovationszentrum (INNO-Z) dient als Hub für Start-ups und den Technologietransfer.",
+            "campus": "Burren",
+        },
+        "M": {
+            "name": "Mensa (M)",
+            "description": "In der Mensa am Burren können Studierende ihre Mahlzeiten einnehmen.",
+            "campus": "Burren",
+        },
+        "E": {
+            "name": "Gebäude E",
+            "description": "Das Gebäude beherbergt das Physikzentrum sowie das Schülerlabor explorhino.",
+            "campus": "Burren",
+        },
+        "BS1": {
+            "name": "Beethovenstraße 1 (BS1)",
+            "description": "Das Hauptgebäude in der Beethovenstraße 1 beherbergt die zentrale Verwaltung, die Aula und den Gründungscampus.",
+            "campus": "Main",
+            "address": "Beethovenstraße 1",
+        },
+        "AH": {
+            "name": "AH",
+            "description": "Das Gebäude an der Anton-Huber-Straße umfasst unter anderem das große Aula- und Hörsaalgebäude.",
+            "campus": "Burren",
+            "address": "Anton-Huber-Straße 25",
+            "floors": [-1, 0, 1],
+            "room_count": 6,
+        },
+        "S46": {
+            "name": "S46",
+            "description": "Hierbei handelt es sich um ein Gebäude in der Stuttgarter Straße 46.",
+            "campus": "Main",
+            "address": "Stuttgarter Straße 46",
+        },
+        "WIN": {
+            "name": "WIN",
+            "description": "Gebäude der Fakultät Wirtschaftswissenschaften und Internationales sowie das Sprachenzentrum.",
+            "campus": "Main",
+        },
+        "DIS": {
+            "name": "DIS",
+            "description": "Der Digital Innovation Space bietet Räume für moderne digitale Arbeitsweisen.",
+            "campus": "Main",
+        },
+        "NM": {
+            "name": "Neue Mensa (NM)",
+            "description": "Die Neue Mensa am Campus Waldcampus versorgt Studierende in der Nähe der Forschungsgebäude.",
+            "campus": "Main",
+        },
+        "SW": {
+            "name": "Studentenwohnheim (SW)",
+            "description": "Das Studentenwohnheim ermöglicht studentisches Wohnen direkt am Campus.",
+            "campus": "Main",
+        },
+    }
+
+    for code, info in default_buildings_info.items():
+        db.buildings.update_one(
+            {"_id": code},
+            {
+                "$set": {
+                    "code": code,
+                    "name": info.get("name") or f"Gebäude {code}",
+                    "campus": info.get("campus", "Main"),
+                    "address": info.get("address"),
+                    "floors": info.get("floors", []),
+                    "street_view_enabled": info.get("street_view_enabled", False),
+                    "room_count": info.get("room_count", 0),
+                    "description": info.get("description"),
+                    "updated_at": now,
+                },
+                "$setOnInsert": {"created_at": now},
+            },
+            upsert=True,
+        )
+
+        # Insert common bachelor study programs
+        bachelor_programs = {
+            # Wirtschaftswissenschaften
+            "B": "Betriebswirtschaft für kleine und mittlere Unternehmen",
+            "BAN": "Business Analytics",
+            "GM": "Gesundheitsmanagement",
+            "I": "Internationale Betriebswirtschaft",
+            "W": "Wirtschaftsingenieurwesen",
+            "WI": "Wirtschaftsinformatik",
+            "WIP": "Wirtschaftspsychologie",
+            # Optik / Mechatronik
+            "A": "Augenoptik / Augenoptik und Hörakustik",
+            "AO": "Augenoptik / Optometrie",
+            "DHM": "Digital Health Management",
+            "F": "Mechatronik",
+            "FTC": "Technical Content Creation",
+            "FTK": "Technische Redaktion",
+            "FUX": "User Experience",
+            "GBA": "Ingenieurpädagogik",
+            "HA": "Hörakustik / Audiologie",
+            "OE": "Optical Engineering",
+            # Maschinenbau / Oberflächentechnologie
+            "K": "Kunststofftechnik",
+            "M": "Allgemeiner Maschinenbau",
+            "MBW": "Maschinenbau / Produktion und Management",
+            "MBP": "Maschinenbau / Produktion und Management",
+            "MP": "Maschinenbau Plus",
+            "P": "Maschinenbau / Produktentwicklung und Simulation",
+            "PE": "Maschinenbau / Entwicklung: Design & Simula",
+            "VI": "International Sales Management and Technology",
+            "VMG": "Oberflächentechnologie / Neue Materialien",
+            "VMM": "Oberflächentechnologie / Neue Materialien",
+            "VV": "Oberflächentechnologie / Neue Materialien",
+            # Chemie
+            "C": "Chemie",
+            "BPW": "Biopharmazeutische Wissenschaften",
+            # Elektronik / Informatik
+            "DS": "Data Science",
+            "ET": "Elektrotechnik",
+            "ETI": "Technische Informatik / Embedded Systems",
+            "IN": "Informatik",
+            "IOT": "Internet der Dinge",
+            "DPD": "Digital Product Design and Development",
+        }
+
+        for code, name in bachelor_programs.items():
+            db.studiengaenge.update_one(
+                {"_id": code},
+                {
+                    "$set": {
+                        "name": name,
+                        "code": code,
+                        "program_code": code,
+                        "program_name": f"Bachelor {name}",
+                        "lecture_count": 0,
+                        "last_scraped": now,
+                        "created_at": now,
+                    }
+                },
+                upsert=True,
+            )
+
     db.rooms.update_one(
         {"_id": ROOM_ID},
         {
@@ -94,7 +259,7 @@ def main() -> None:
         {
             "title": "Python Workshop",
             "description": "Praktischer Workshop zu Python Best Practices und modernen Frameworks",
-            "category": "Seminar",
+            "category": "Vortrag",
             "days_offset": 2,
             "duration_hours": 3,
             "organizer": "IT-Abteilung",
@@ -112,7 +277,7 @@ def main() -> None:
         {
             "title": "UX Design Seminar",
             "description": "Einführung in User Experience Design mit praktischen Übungen",
-            "category": "Seminar",
+            "category": "Vortrag",
             "days_offset": 10,
             "duration_hours": 4,
             "organizer": "Design Department",
@@ -121,7 +286,7 @@ def main() -> None:
         {
             "title": "Netzwerktreffen Alumni",
             "description": "Treffen mit Alumni der Hochschule Aalen zur Vernetzung und Erfahrungsaustausch",
-            "category": "Networking",
+            "category": "Hochschule",
             "days_offset": 14,
             "duration_hours": 2,
             "organizer": "Alumni-Verein",
@@ -130,7 +295,7 @@ def main() -> None:
         {
             "title": "Data Science Hackathon",
             "description": "24-Stunden Hackathon zum Thema Data Science und Machine Learning",
-            "category": "Wettbewerb",
+            "category": "Sport",
             "days_offset": 21,
             "duration_hours": 24,
             "organizer": "Data Science Lab",
@@ -148,7 +313,7 @@ def main() -> None:
         {
             "title": "Cloud Computing Masterclass",
             "description": "Tiefgehendes Seminar zu AWS, Azure und Google Cloud Platforms",
-            "category": "Seminar",
+            "category": "Vortrag",
             "days_offset": 35,
             "duration_hours": 5,
             "organizer": "IT-Abteilung",
@@ -157,7 +322,7 @@ def main() -> None:
         {
             "title": "Startup Pitching Event",
             "description": "Gründer pitchen ihre Startup-Ideen vor Investoren und der Community",
-            "category": "Networking",
+            "category": "Hochschule",
             "days_offset": 42,
             "duration_hours": 3,
             "organizer": "Entrepreneurship Center",
@@ -166,7 +331,7 @@ def main() -> None:
         {
             "title": "Sommerfest der Hochschule",
             "description": "Großes Sommerfest mit Musik, Food Trucks, Spielen und Unterhaltung",
-            "category": "Festival",
+            "category": "Kultur",
             "days_offset": 56,
             "duration_hours": 6,
             "organizer": "Hochschule Aalen",
@@ -175,7 +340,7 @@ def main() -> None:
         {
             "title": "Webentwicklung Workshop",
             "description": "Modern Web Development mit React, Vue und Node.js",
-            "category": "Seminar",
+            "category": "Vortrag",
             "days_offset": 65,
             "duration_hours": 4,
             "organizer": "IT-Abteilung",
@@ -184,7 +349,7 @@ def main() -> None:
         {
             "title": "Gleichstellungskonferenz",
             "description": "Konferenz zu Geschlechterparität und Chancengleichheit in der Tech-Branche",
-            "category": "Konferenz",
+            "category": "Vortrag",
             "days_offset": 73,
             "duration_hours": 4,
             "organizer": "Gleichstellungsbüro",
@@ -192,8 +357,8 @@ def main() -> None:
         },
         {
             "title": "Firmenkontaktbörse",
-            "description": "Große Messe mit über 50 Unternehmen für Networking und Bewerbungsgespräche",
-            "category": "Messe",
+            "description": "Große Messe mit über 50 Unternehmen für Networking und Bewerbungsgesprächen",
+            "category": "Hochschule",
             "days_offset": 85,
             "duration_hours": 5,
             "organizer": "Career Center",
