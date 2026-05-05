@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.db.mongo_client import mongo_client
 from app.routers import (
@@ -194,6 +195,11 @@ app.include_router(settings.router)
 app.include_router(images.router)
 app.include_router(schedule.router)
 app.include_router(scheduler.router)
+
+# Tools (static single-page utilities)
+_static_dir = os.path.join(os.path.dirname(__file__), "static")
+if os.path.isdir(_static_dir):
+    app.mount("/tools", StaticFiles(directory=_static_dir), name="tools")
 
 
 @app.get("/", tags=["status"], summary="API Info", response_description="Basisinformationen zur API")

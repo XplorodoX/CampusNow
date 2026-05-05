@@ -8,15 +8,27 @@ class StreetViewSpot(BaseModel):
     description: str | None = None
 
 
+class RoomAccess(BaseModel):
+    """Ein Raum der von dieser Gang-Position aus zugänglich ist."""
+    room_id: str = Field(..., description="Raum-ID, z. B. 'G2-0.01'")
+    direction: str | None = Field(
+        None,
+        description="Richtung zur Tür aus Sicht der Kamera, z. B. 'links', 'rechts', 'geradeaus', 'Tür'",
+    )
+
+
 class StreetViewNode(BaseModel):
     id: str
-    image: str = Field(..., description="Pfad oder URL zum 360°-Bild")
+    image: str = Field(..., description="Pfad oder URL zum 360°-Panoramabild")
     building: str | None = None
-    room: str | None = None
     heading: float = Field(0, description="Startausrichtung der Kamera in Grad")
     exits: dict[str, str] = Field(
         default_factory=dict,
         description="Navigierbare Ausgänge: Richtung → Node-ID (z. B. {'front': 'node1'})",
+    )
+    nearby_rooms: list[RoomAccess] = Field(
+        default_factory=list,
+        description="Räume die von dieser Position aus erreichbar sind, mit Richtungsangabe",
     )
     spots: list[StreetViewSpot] = Field(
         default_factory=list,

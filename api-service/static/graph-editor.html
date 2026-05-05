@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StreetView Graph Editor – CampusNow</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #22263a;
+  --border: #2e3452;
+  --accent: #4f6ef7;
+  --accent2: #7c3aed;
+  --danger: #ef4444;
+  --success: #22c55e;
+  --warn: #f59e0b;
+  --text: #e2e8f0;
+  --text2: #94a3b8;
+  --node-w: 148px;
+}
+
+body { background: var(--bg); color: var(--text); font: 13px/1.4 system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+/* ── TOOLBAR ─────────────────────────────────────────────── */
+#toolbar {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  flex-shrink: 0; flex-wrap: wrap;
+}
+#toolbar h1 { font-size: 14px; font-weight: 700; color: var(--accent); margin-right: 4px; white-space: nowrap; }
+.tb-sep { width: 1px; height: 24px; background: var(--border); margin: 0 2px; flex-shrink: 0; }
+.btn {
+  padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text); cursor: pointer; font-size: 12px;
+  transition: background .15s, border-color .15s; white-space: nowrap;
+}
+.btn:hover { background: var(--border); }
+.btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.danger { border-color: var(--danger); color: var(--danger); }
+.btn.danger:hover { background: var(--danger); color: #fff; }
+.btn.success { background: var(--success); border-color: var(--success); color: #fff; }
+.tb-input { padding: 5px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 12px; }
+#inp-api  { width: 200px; }
+#inp-key  { width: 150px; }
+
+/* ── MAIN ────────────────────────────────────────────────── */
+#main { display: flex; flex: 1; overflow: hidden; }
+
+/* ── SIDEBAR ─────────────────────────────────────────────── */
+#sidebar {
+  width: 248px; background: var(--surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0;
+}
+.panel { padding: 12px; border-bottom: 1px solid var(--border); }
+.panel h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--text2); margin-bottom: 10px; }
+.field { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; }
+.field label { font-size: 11px; color: var(--text2); }
+.field input, .field select {
+  padding: 5px 8px; border-radius: 5px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text); font-size: 12px; width: 100%;
+}
+.field input:focus { outline: none; border-color: var(--accent); }
+.field .hint { font-size: 10px; color: var(--text2); margin-top: 1px; }
+
+/* image upload area */
+#upload-area {
+  border: 2px dashed var(--border); border-radius: 8px; padding: 12px;
+  text-align: center; cursor: pointer; transition: border-color .15s, background .15s;
+  margin-top: 4px; position: relative;
+}
+#upload-area:hover, #upload-area.drag-over { border-color: var(--accent); background: rgba(79,110,247,.06); }
+#upload-area.uploading { border-color: var(--warn); background: rgba(245,158,11,.06); cursor: default; }
+#upload-area.done { border-color: var(--success); background: rgba(34,197,94,.06); }
+#upload-area.error { border-color: var(--danger); background: rgba(239,68,68,.06); }
+#upload-icon { font-size: 24px; margin-bottom: 4px; }
+#upload-label { font-size: 11px; color: var(--text2); }
+#upload-file { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+#upload-file.uploading { pointer-events: none; }
+
+#prop-preview {
+  width: 100%; aspect-ratio: 2/1; object-fit: cover; border-radius: 6px;
+  border: 1px solid var(--border); margin-top: 8px; display: none;
+}
+.upload-url {
+  font-size: 10px; color: var(--success); word-break: break-all;
+  margin-top: 4px; display: none;
+}
+
+#no-selection { padding: 20px 12px; color: var(--text2); font-size: 12px; text-align: center; padding-top: 48px; }
+
+/* edges list */
+.edge-item {
+  display: flex; align-items: center; gap: 4px;
+  padding: 5px 8px; border-radius: 5px; background: var(--surface2);
+  margin-bottom: 4px; font-size: 11px;
+}
+.edge-item .dir { color: var(--accent); font-weight: 700; min-width: 36px; }
+.edge-item .target { color: var(--text2); flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.edge-del { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 13px; padding: 0 2px; line-height: 1; }
+.edge-del:hover { color: var(--danger); }
+
+/* room list */
+.room-item {
+  display: flex; align-items: center; gap: 4px;
+  padding: 5px 8px; border-radius: 5px; background: var(--surface2);
+  margin-bottom: 4px; font-size: 11px;
+}
+.room-item .room-id { color: var(--text); font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.room-item .room-dir { color: var(--accent2); font-size: 10px; white-space: nowrap; }
+.room-del { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 13px; padding: 0 2px; line-height: 1; }
+.room-del:hover { color: var(--danger); }
+
+/* ── CANVAS ──────────────────────────────────────────────── */
+#canvas-wrap { flex: 1; position: relative; overflow: auto; cursor: default; }
+#canvas { position: relative; min-width: 1400px; min-height: 900px; }
+#svg-overlay {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none; overflow: visible;
+}
+
+/* ── NODE CARDS ──────────────────────────────────────────── */
+.node-card {
+  position: absolute; width: var(--node-w); border-radius: 10px;
+  border: 2px solid var(--border); background: var(--surface);
+  cursor: grab; user-select: none; transition: border-color .12s, box-shadow .12s;
+  overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.4);
+}
+.node-card:active { cursor: grabbing; }
+.node-card:hover { border-color: #4a5577; }
+.node-card.selected { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,110,247,.22); }
+.node-card.connect-src { border-color: var(--accent2); box-shadow: 0 0 0 3px rgba(124,58,237,.28); }
+.node-card.connect-tgt:not(.connect-src):hover { border-color: var(--success); }
+
+.node-thumb {
+  width: 100%; height: 76px; object-fit: cover; display: block;
+  background: var(--surface2); border-bottom: 1px solid var(--border);
+}
+.node-thumb-ph {
+  width: 100%; height: 76px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px;
+  background: var(--surface2); border-bottom: 1px solid var(--border);
+  color: var(--text2); font-size: 18px;
+}
+.node-thumb-ph span { font-size: 10px; }
+.node-info { padding: 5px 8px 6px; }
+.node-id { font-size: 10px; color: var(--accent); font-weight: 700; font-family: monospace; }
+.node-meta { font-size: 10px; color: var(--text2); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.node-upload-bar {
+  height: 3px; background: var(--warn); position: absolute; bottom: 0; left: 0;
+  transition: width .3s; border-radius: 0 0 0 8px;
+}
+
+.start-badge {
+  position: absolute; top: 4px; left: 4px; background: var(--accent);
+  color: #fff; font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: 700;
+}
+.img-badge {
+  position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,.55);
+  color: #fff; font-size: 9px; padding: 1px 4px; border-radius: 3px;
+}
+
+/* ── SVG EDGES ───────────────────────────────────────────── */
+.edge-line { stroke: #3a4060; stroke-width: 1.8; }
+.edge-arrow { fill: #3a4060; }
+.edge-label-bg { fill: var(--surface); }
+.edge-lbl { font-size: 10px; fill: var(--text2); font-family: system-ui, sans-serif; pointer-events: all; cursor: pointer; }
+.edge-lbl:hover { fill: var(--danger); }
+
+/* ── MODAL ───────────────────────────────────────────────── */
+#modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.65); display: none;
+  align-items: center; justify-content: center; z-index: 1000;
+}
+#modal-overlay.open { display: flex; }
+#modal {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 24px; min-width: 320px; box-shadow: 0 12px 40px rgba(0,0,0,.6);
+}
+#modal h3 { margin-bottom: 8px; font-size: 14px; }
+#modal p  { font-size: 11px; color: var(--text2); margin-bottom: 14px; }
+#modal input {
+  width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text); font-size: 13px; margin-bottom: 14px;
+}
+#modal input:focus { outline: none; border-color: var(--accent); }
+.modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ── STATUSBAR ───────────────────────────────────────────── */
+#statusbar {
+  padding: 4px 12px; background: var(--surface); border-top: 1px solid var(--border);
+  font-size: 11px; color: var(--text2); flex-shrink: 0; min-height: 24px;
+}
+#statusbar.ok  { color: var(--success); }
+#statusbar.err { color: var(--danger); }
+#statusbar.warn { color: var(--warn); }
+</style>
+</head>
+<body>
+
+<!-- TOOLBAR -->
+<div id="toolbar">
+  <h1>🗺 Streetview Editor</h1>
+  <div class="tb-sep"></div>
+  <button class="btn" id="btn-add">+ Position</button>
+  <button class="btn" id="btn-connect">Verbinden</button>
+  <button class="btn danger" id="btn-delete">✕ Löschen</button>
+  <div class="tb-sep"></div>
+  <button class="btn" id="btn-import">⬆ JSON laden</button>
+  <button class="btn" id="btn-export">⬇ JSON speichern</button>
+  <div class="tb-sep"></div>
+  <input class="tb-input" id="inp-api" placeholder="http://localhost:8000" title="API-Basis-URL">
+  <input class="tb-input" id="inp-key" placeholder="API-Key" type="password" title="X-API-Key für Upload & POST">
+  <button class="btn success" id="btn-post">→ Graph an API</button>
+  <input type="file" id="file-import" accept=".json" style="display:none">
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+
+    <div id="no-selection">
+      <div style="font-size:32px;margin-bottom:10px">📍</div>
+      <strong>Gangposition auswählen</strong><br><br>
+      <span style="font-size:11px">Jede Position = ein Standpunkt<br>im Korridor (~2 m Abstand).<br>Bilder werden direkt in die API hochgeladen.</span>
+    </div>
+
+    <div id="props-panel" style="display:none">
+
+      <!-- NODE PROPERTIES -->
+      <div class="panel">
+        <h2>Positions-Eigenschaften</h2>
+        <div class="field">
+          <label>Position-ID <span style="color:var(--text2)">(Ordner in API)</span></label>
+          <input id="prop-id" readonly style="opacity:.55;font-family:monospace">
+        </div>
+        <div class="field">
+          <label>Gebäude-ID</label>
+          <input id="prop-building" placeholder="z. B. G2">
+        </div>
+        <div class="field">
+          <label>Kamera-Heading (°)</label>
+          <input id="prop-heading" type="number" value="0" min="-360" max="360">
+          <span class="hint">Startausrichtung der 360°-Kamera.</span>
+        </div>
+      </div>
+
+      <!-- NEARBY ROOMS -->
+      <div class="panel">
+        <h2>Zugängliche Räume</h2>
+        <span class="hint" style="display:block;margin-bottom:8px">Welche Räume sind von dieser Position aus erreichbar, und in welche Richtung liegt die Tür?</span>
+        <ul id="room-list" style="list-style:none;margin-bottom:8px"></ul>
+        <div style="display:flex;gap:6px;margin-bottom:6px">
+          <input id="new-room-id" placeholder="Raum-ID, z. B. G2-0.01" style="flex:1;padding:5px 7px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px">
+        </div>
+        <div style="display:flex;gap:6px">
+          <select id="new-room-dir" style="flex:1;padding:5px 7px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px">
+            <option value="">Richtung wählen…</option>
+            <option value="geradeaus">⬆ geradeaus</option>
+            <option value="links">⬅ links</option>
+            <option value="rechts">➡ rechts</option>
+            <option value="hinten">⬇ hinten</option>
+            <option value="Tür links">🚪 Tür links</option>
+            <option value="Tür rechts">🚪 Tür rechts</option>
+            <option value="Tür geradeaus">🚪 Tür geradeaus</option>
+          </select>
+          <button class="btn active" id="btn-add-room" style="padding:5px 10px">+ Raum</button>
+        </div>
+      </div>
+
+      <!-- IMAGE UPLOAD -->
+      <div class="panel">
+        <h2>360°-Panoramabild</h2>
+        <div id="upload-area">
+          <div id="upload-icon">📷</div>
+          <div id="upload-label">Bild hier ablegen oder anklicken</div>
+          <input type="file" id="upload-file" accept="image/*">
+        </div>
+        <img id="prop-preview">
+        <div class="upload-url" id="upload-url-display"></div>
+        <div class="field" style="margin-top:10px">
+          <label>Bild-URL <span style="color:var(--text2)">(wird auto gesetzt)</span></label>
+          <input id="prop-image-url" placeholder="/api/v1/images/rooms/…/datei.jpg">
+        </div>
+      </div>
+
+      <!-- ACTIONS -->
+      <div class="panel">
+        <button class="btn" id="btn-startnode" style="width:100%">⭐ Als StartNode setzen</button>
+      </div>
+
+      <!-- EDGES -->
+      <div class="panel" style="flex:1;border-bottom:none">
+        <h2>Ausgänge von hier</h2>
+        <ul id="edge-list" style="list-style:none"></ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CANVAS -->
+  <div id="canvas-wrap">
+    <div id="canvas">
+      <svg id="svg-overlay">
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" class="edge-arrow"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
+  </div>
+
+</div>
+
+<!-- STATUSBAR -->
+<div id="statusbar">Bereit. „+ Position" anklicken oder vorhandene graph.json laden.</div>
+
+<!-- DIRECTION MODAL -->
+<div id="modal-overlay">
+  <div id="modal">
+    <h3 id="modal-title">Richtung eingeben</h3>
+    <p id="modal-hint"></p>
+    <input id="modal-input" placeholder="front · back · left · right · …">
+    <div class="modal-btns">
+      <button class="btn" id="modal-cancel">Abbrechen</button>
+      <button class="btn active" id="modal-ok">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+
+const S = {
+  nodes: [],        // {id, x, y, building, heading, imageUrl, dataUrl, nearby_rooms: [{room_id, direction}]}
+  edges: [],        // {id, from, to, direction}
+  startNode: null,
+  selected: null,
+  connectMode: false,
+  connectSrc: null,
+  nodeCounter: 0,
+  edgeCounter: 0,
+};
+
+// ── DOM ───────────────────────────────────────────────────────────────────────
+
+const $ = id => document.getElementById(id);
+const canvas     = $('canvas');
+const svg        = $('svg-overlay');
+const statusbar  = $('statusbar');
+const noSel      = $('no-selection');
+const propsPanel = $('props-panel');
+
+const propId       = $('prop-id');
+const propBuilding = $('prop-building');
+const propHeading  = $('prop-heading');
+const propImageUrl = $('prop-image-url');
+const propPreview  = $('prop-preview');
+const uploadArea   = $('upload-area');
+const uploadFile   = $('upload-file');
+const uploadIcon   = $('upload-icon');
+const uploadLabel  = $('upload-label');
+const uploadUrlDisp = $('upload-url-display');
+const edgeList     = $('edge-list');
+
+const btnAdd       = $('btn-add');
+const btnConnect   = $('btn-connect');
+const btnDelete    = $('btn-delete');
+const btnExport    = $('btn-export');
+const btnImport    = $('btn-import');
+const fileImport   = $('file-import');
+const btnPost      = $('btn-post');
+const btnStartNode = $('btn-startnode');
+const inpApi       = $('inp-api');
+const inpKey       = $('inp-key');
+
+// ── STATUS ────────────────────────────────────────────────────────────────────
+
+function setStatus(msg, type = '') {
+  statusbar.textContent = msg;
+  statusbar.className = type;
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────────────
+
+let _modalResolve = null;
+
+function openModal(title, hint, def = '') {
+  return new Promise(r => {
+    _modalResolve = r;
+    $('modal-title').textContent = title;
+    $('modal-hint').textContent  = hint;
+    $('modal-input').value = def;
+    $('modal-overlay').classList.add('open');
+    setTimeout(() => $('modal-input').focus(), 50);
+  });
+}
+function closeModal(v) {
+  $('modal-overlay').classList.remove('open');
+  if (_modalResolve) { _modalResolve(v); _modalResolve = null; }
+}
+$('modal-ok').addEventListener('click', () => closeModal($('modal-input').value.trim()));
+$('modal-cancel').addEventListener('click', () => closeModal(null));
+$('modal-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') closeModal($('modal-input').value.trim());
+  if (e.key === 'Escape') closeModal(null);
+});
+$('modal-overlay').addEventListener('click', e => { if (e.target.id === 'modal-overlay') closeModal(null); });
+
+// ── NODE UTILS ────────────────────────────────────────────────────────────────
+
+function findNode(id) { return S.nodes.find(n => n.id === id); }
+function findEdge(id) { return S.edges.find(e => e.id === id); }
+
+const NODE_W = 148, NODE_H = 118;
+function nodeCenter(n) { return { x: n.x + NODE_W / 2, y: n.y + NODE_H / 2 }; }
+
+// ── CREATE NODE ───────────────────────────────────────────────────────────────
+
+function createNode(x = 80 + Math.random() * 500, y = 60 + Math.random() * 320) {
+  const node = {
+    id: `pos${S.nodeCounter++}`, x, y,
+    building: '', heading: 0, imageUrl: '', dataUrl: '', nearby_rooms: [],
+  };
+  S.nodes.push(node);
+  if (!S.startNode) S.startNode = node.id;
+  renderNode(node);
+  selectNode(node.id);
+  setStatus(`Position "${node.id}" erstellt. Bild hochladen und Verbindungen setzen.`);
+}
+
+// ── RENDER NODE ───────────────────────────────────────────────────────────────
+
+function renderNode(node) {
+  let card = document.getElementById(`card-${node.id}`);
+  if (!card) {
+    card = document.createElement('div');
+    card.id = `card-${node.id}`;
+    card.className = 'node-card';
+    // Listener nur EINMAL beim Erstellen anhängen
+    card.addEventListener('mousedown', e => onNodeMouseDown(e, node.id));
+    canvas.appendChild(card);
+  }
+
+  card.style.left = node.x + 'px';
+  card.style.top  = node.y + 'px';
+
+  const isStart = S.startNode === node.id;
+  const isSrc   = S.connectSrc === node.id;
+  card.className = `node-card${S.selected === node.id ? ' selected' : ''}${isSrc ? ' connect-src' : ''}${S.connectMode ? ' connect-tgt' : ''}`;
+
+  const thumb = node.dataUrl || node.imageUrl;
+  const roomLabels = (node.nearby_rooms || []).map(r => r.room_id).join(', ');
+  const meta  = [node.building, roomLabels].filter(Boolean).join(' · ') || 'keine Metadaten';
+
+  card.innerHTML = `
+    ${isStart ? '<div class="start-badge">START</div>' : ''}
+    ${node.imageUrl ? `<div class="img-badge">📷</div>` : ''}
+    ${thumb
+      ? `<img class="node-thumb" src="${thumb}" draggable="false" onerror="this.style.display='none'">`
+      : `<div class="node-thumb-ph">📍<span>Kein Bild</span></div>`}
+    <div class="node-info">
+      <div class="node-id">${node.id}</div>
+      <div class="node-meta">${meta}</div>
+    </div>
+  `;
+}
+
+function renderAllNodes() { S.nodes.forEach(renderNode); }
+
+// ── DELETE NODE ───────────────────────────────────────────────────────────────
+
+function deleteNode(nodeId) {
+  S.nodes = S.nodes.filter(n => n.id !== nodeId);
+  S.edges = S.edges.filter(e => e.from !== nodeId && e.to !== nodeId);
+  document.getElementById(`card-${nodeId}`)?.remove();
+  if (S.startNode === nodeId) S.startNode = S.nodes[0]?.id ?? null;
+  if (S.selected === nodeId) selectNode(null);
+  renderSVG();
+  setStatus(`Position "${nodeId}" gelöscht.`);
+}
+
+// ── SELECTION ─────────────────────────────────────────────────────────────────
+
+function selectNode(id) {
+  S.selected = id;
+  S.nodes.forEach(n => {
+    const c = document.getElementById(`card-${n.id}`);
+    if (c) c.classList.toggle('selected', n.id === id);
+  });
+
+  if (!id) {
+    noSel.style.display = '';
+    propsPanel.style.display = 'none';
+    return;
+  }
+  noSel.style.display = 'none';
+  propsPanel.style.display = '';
+
+  const node = findNode(id);
+  if (!node) return;
+  propId.value       = node.id;
+  propBuilding.value = node.building;
+  propHeading.value  = node.heading;
+  propImageUrl.value = node.imageUrl;
+  renderRoomList(id);
+
+  if (node.dataUrl) {
+    propPreview.src = node.dataUrl;
+    propPreview.style.display = 'block';
+  } else if (node.imageUrl) {
+    const base = inpApi.value.trim().replace(/\/$/, '');
+    propPreview.src = base + node.imageUrl;
+    propPreview.style.display = 'block';
+  } else {
+    propPreview.style.display = 'none';
+  }
+
+  // Upload area state reset
+  setUploadAreaIdle();
+  if (node.imageUrl) {
+    uploadIcon.textContent  = '✅';
+    uploadLabel.textContent = node.imageUrl.split('/').pop();
+    uploadArea.className    = 'done';
+    uploadUrlDisp.style.display = 'block';
+    uploadUrlDisp.textContent   = node.imageUrl;
+  }
+
+  renderEdgeList(id);
+}
+
+// ── SIDEBAR PROP LISTENERS ────────────────────────────────────────────────────
+
+function withSel(fn) { const n = findNode(S.selected); if (n) fn(n); }
+
+propBuilding.addEventListener('input', () => withSel(n => { n.building = propBuilding.value; renderNode(n); }));
+propHeading.addEventListener('input',  () => withSel(n => { n.heading  = parseFloat(propHeading.value) || 0; }));
+propImageUrl.addEventListener('input', () => withSel(n => { n.imageUrl = propImageUrl.value; renderNode(n); renderSVG(); }));
+
+// ── NEARBY ROOMS ──────────────────────────────────────────────────────────────
+
+function renderRoomList(nodeId) {
+  const roomList = $('room-list');
+  roomList.innerHTML = '';
+  const node = findNode(nodeId);
+  if (!node) return;
+
+  if (!node.nearby_rooms.length) {
+    roomList.innerHTML = '<li style="font-size:11px;color:var(--text2)">Keine Räume definiert</li>';
+    return;
+  }
+
+  node.nearby_rooms.forEach((r, idx) => {
+    const li = document.createElement('li');
+    li.className = 'room-item';
+    li.innerHTML = `
+      <span class="room-id">${r.room_id}</span>
+      <span class="room-dir">${r.direction || '–'}</span>
+      <button class="room-del" data-idx="${idx}" title="Entfernen">✕</button>
+    `;
+    li.querySelector('.room-del').addEventListener('click', () => {
+      node.nearby_rooms.splice(idx, 1);
+      renderRoomList(nodeId);
+      renderNode(node);
+      setStatus(`Raum entfernt.`);
+    });
+    roomList.appendChild(li);
+  });
+}
+
+$('btn-add-room').addEventListener('click', () => {
+  const node = findNode(S.selected);
+  if (!node) { setStatus('Keine Position ausgewählt.', 'err'); return; }
+
+  const roomId  = $('new-room-id').value.trim();
+  const roomDir = $('new-room-dir').value;
+
+  if (!roomId) { setStatus('Bitte Raum-ID eingeben.', 'err'); return; }
+  if (node.nearby_rooms.some(r => r.room_id === roomId)) {
+    setStatus(`Raum "${roomId}" ist bereits eingetragen.`, 'err'); return;
+  }
+
+  node.nearby_rooms.push({ room_id: roomId, direction: roomDir || null });
+  $('new-room-id').value  = '';
+  $('new-room-dir').value = '';
+  renderRoomList(S.selected);
+  renderNode(node);
+  setStatus(`Raum "${roomId}" hinzugefügt.`, 'ok');
+});
+
+btnStartNode.addEventListener('click', () => {
+  if (!S.selected) return;
+  S.startNode = S.selected;
+  renderAllNodes();
+  setStatus(`"${S.selected}" ist jetzt der StartNode.`);
+});
+
+// ── IMAGE UPLOAD ──────────────────────────────────────────────────────────────
+
+function setUploadAreaIdle() {
+  uploadArea.className = '';
+  uploadIcon.textContent  = '📷';
+  uploadLabel.textContent = 'Bild hier ablegen oder anklicken';
+  uploadUrlDisp.style.display = 'none';
+}
+
+// Drag-over highlight
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+uploadArea.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadArea.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) handleImageFile(file);
+});
+
+uploadFile.addEventListener('change', () => {
+  const file = uploadFile.files[0];
+  if (file) handleImageFile(file);
+  uploadFile.value = '';
+});
+
+async function handleImageFile(file) {
+  const node = findNode(S.selected);
+  if (!node) { setStatus('Keine Position ausgewählt.', 'err'); return; }
+
+  // Show local preview immediately
+  const dataUrl = await readFileAsDataUrl(file);
+  node.dataUrl = dataUrl;
+  propPreview.src = dataUrl;
+  propPreview.style.display = 'block';
+  renderNode(node);
+
+  const base = inpApi.value.trim().replace(/\/$/, '');
+  const key  = inpKey.value.trim();
+
+  // Upload to API
+  uploadArea.className = 'uploading';
+  uploadIcon.textContent  = '⏳';
+  uploadLabel.textContent = 'Wird hochgeladen…';
+  uploadFile.classList.add('uploading');
+  setStatus(`Lade Bild für "${node.id}" hoch…`, 'warn');
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+
+    const res = await fetch(`${base}/api/v1/images/rooms/${node.id}/upload`, {
+      method: 'POST',
+      headers: key ? { 'X-API-Key': key } : {},
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(`HTTP ${res.status}: ${txt}`);
+    }
+
+    const data = await res.json();
+    const filename = data.filename;
+    const imageUrl = `/api/v1/images/rooms/${node.id}/${filename}`;
+
+    node.imageUrl = imageUrl;
+    propImageUrl.value = imageUrl;
+
+    uploadArea.className = 'done';
+    uploadIcon.textContent  = '✅';
+    uploadLabel.textContent = filename;
+    uploadUrlDisp.style.display = 'block';
+    uploadUrlDisp.textContent   = imageUrl;
+
+    renderNode(node);
+    setStatus(`Bild hochgeladen → ${imageUrl}`, 'ok');
+  } catch (err) {
+    uploadArea.className = 'error';
+    uploadIcon.textContent  = '❌';
+    uploadLabel.textContent = 'Upload fehlgeschlagen';
+    setStatus(`Upload-Fehler: ${err.message}`, 'err');
+  } finally {
+    uploadFile.classList.remove('uploading');
+  }
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+// ── DRAG NODES ────────────────────────────────────────────────────────────────
+
+let drag = null;
+
+function onNodeMouseDown(e, nodeId) {
+  e.stopPropagation();
+  if (e.button !== 0) return;
+
+  if (S.connectMode) { handleConnectClick(nodeId); return; }
+
+  selectNode(nodeId);
+  const n = findNode(nodeId);
+  drag = { nodeId, sx: e.clientX, sy: e.clientY, ox: n.x, oy: n.y };
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
+}
+
+function onMouseMove(e) {
+  if (!drag) return;
+  const n = findNode(drag.nodeId);
+  if (!n) return;
+  n.x = Math.max(0, drag.ox + e.clientX - drag.sx);
+  n.y = Math.max(0, drag.oy + e.clientY - drag.sy);
+  const c = document.getElementById(`card-${drag.nodeId}`);
+  if (c) { c.style.left = n.x + 'px'; c.style.top = n.y + 'px'; }
+  renderSVG();
+}
+
+function onMouseUp() {
+  drag = null;
+  document.removeEventListener('mousemove', onMouseMove);
+  document.removeEventListener('mouseup', onMouseUp);
+}
+
+// ── CONNECT MODE ──────────────────────────────────────────────────────────────
+
+btnConnect.addEventListener('click', toggleConnect);
+
+function toggleConnect() {
+  S.connectMode = !S.connectMode;
+  S.connectSrc  = null;
+  btnConnect.classList.toggle('active', S.connectMode);
+  renderAllNodes();
+  setStatus(S.connectMode ? 'Verbindungsmodus aktiv — Quell-Position anklicken…' : 'Verbindungsmodus deaktiviert.');
+}
+
+async function handleConnectClick(nodeId) {
+  if (!S.connectSrc) {
+    S.connectSrc = nodeId;
+    renderAllNodes();
+    setStatus(`Quelle: "${nodeId}" — jetzt Ziel-Position anklicken…`);
+    return;
+  }
+  if (S.connectSrc === nodeId) {
+    S.connectSrc = null; renderAllNodes();
+    setStatus('Verbindungsmodus — Quell-Position anklicken…');
+    return;
+  }
+
+  const from = S.connectSrc, to = nodeId;
+  S.connectSrc = null; renderAllNodes();
+
+  // Suggest direction from relative position
+  const fn = findNode(from), tn = findNode(to);
+  const dx = tn.x - fn.x, dy = tn.y - fn.y;
+  const sugg = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'front' : 'back');
+
+  const dir = await openModal('Richtung eingeben', `Von "${from}" → "${to}"`, sugg);
+  if (!dir) { setStatus('Verbindung abgebrochen.'); return; }
+
+  const dup = S.edges.find(e => e.from === from && e.direction === dir);
+  if (dup) { setStatus(`Richtung "${dir}" von "${from}" existiert bereits.`, 'err'); return; }
+
+  S.edges.push({ id: `e${S.edgeCounter++}`, from, to, direction: dir });
+  renderSVG();
+  if (S.selected === from) renderEdgeList(from);
+  setStatus(`Verbindung "${dir}": "${from}" → "${to}".`);
+}
+
+// ── SVG RENDERING ─────────────────────────────────────────────────────────────
+
+function edgePoints(fn, tn) {
+  const fc = nodeCenter(fn), tc = nodeCenter(tn);
+  const bi = S.edges.some(e => e.from === tn.id && e.to === fn.id);
+  let ox = 0, oy = 0;
+  if (bi) {
+    const dx = tc.x - fc.x, dy = tc.y - fc.y, len = Math.sqrt(dx*dx + dy*dy) || 1;
+    ox = (-dy / len) * 11; oy = (dx / len) * 11;
+  }
+  return { x1: fc.x+ox, y1: fc.y+oy, x2: tc.x+ox, y2: tc.y+oy, mx: (fc.x+tc.x)/2+ox, my: (fc.y+tc.y)/2+oy };
+}
+
+function renderSVG() {
+  const defs = svg.querySelector('defs');
+  svg.innerHTML = '';
+  svg.appendChild(defs);
+
+  S.edges.forEach(edge => {
+    const fn = findNode(edge.from), tn = findNode(edge.to);
+    if (!fn || !tn) return;
+    const { x1, y1, x2, y2, mx, my } = edgePoints(fn, tn);
+
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+    line.setAttribute('class', 'edge-line');
+    line.setAttribute('marker-end', 'url(#arr)');
+    svg.appendChild(line);
+
+    // Label background
+    const lw = edge.direction.length * 6.5 + 8;
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', mx - lw/2); rect.setAttribute('y', my - 14);
+    rect.setAttribute('width', lw); rect.setAttribute('height', 14);
+    rect.setAttribute('rx', 3); rect.setAttribute('class', 'edge-label-bg');
+    rect.setAttribute('style', 'pointer-events:none');
+    svg.appendChild(rect);
+
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', mx); text.setAttribute('y', my - 3);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('class', 'edge-lbl');
+    text.textContent = edge.direction;
+    text.addEventListener('click', () => {
+      S.edges = S.edges.filter(e => e.id !== edge.id);
+      renderSVG();
+      if (S.selected === edge.from) renderEdgeList(edge.from);
+      setStatus(`Verbindung "${edge.direction}" entfernt.`);
+    });
+    svg.appendChild(text);
+  });
+}
+
+// ── EDGE LIST SIDEBAR ─────────────────────────────────────────────────────────
+
+function renderEdgeList(nodeId) {
+  edgeList.innerHTML = '';
+  const out = S.edges.filter(e => e.from === nodeId);
+  if (!out.length) {
+    edgeList.innerHTML = '<li style="font-size:11px;color:var(--text2)">Keine Ausgänge definiert</li>';
+    return;
+  }
+  out.forEach(edge => {
+    const li = document.createElement('li');
+    li.className = 'edge-item';
+    li.innerHTML = `<span class="dir">${edge.direction}</span><span style="color:var(--text2)">→</span><span class="target">${edge.to}</span><button class="edge-del" title="Löschen">✕</button>`;
+    li.querySelector('.edge-del').addEventListener('click', () => {
+      S.edges = S.edges.filter(e => e.id !== edge.id);
+      renderSVG(); renderEdgeList(nodeId);
+      setStatus(`Ausgang "${edge.direction}" entfernt.`);
+    });
+    edgeList.appendChild(li);
+  });
+}
+
+// ── TOOLBAR ACTIONS ───────────────────────────────────────────────────────────
+
+btnAdd.addEventListener('click', () => createNode());
+
+btnDelete.addEventListener('click', () => {
+  if (!S.selected) { setStatus('Keine Position ausgewählt.', 'err'); return; }
+  if (confirm(`Position "${S.selected}" und alle Verbindungen löschen?`)) deleteNode(S.selected);
+});
+
+$('canvas-wrap').addEventListener('click', e => {
+  if (e.target.id === 'canvas-wrap' || e.target.id === 'canvas') {
+    if (S.connectMode) { toggleConnect(); return; }
+    selectNode(null);
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (S.connectMode) { toggleConnect(); return; }
+    selectNode(null);
+  }
+  if (e.key === 'Delete' && S.selected && !document.activeElement.matches('input,textarea')) {
+    if (confirm(`Position "${S.selected}" löschen?`)) deleteNode(S.selected);
+  }
+});
+
+// ── BUILD GRAPH JSON ──────────────────────────────────────────────────────────
+
+function buildGraph() {
+  if (!S.startNode) throw new Error('Kein StartNode gesetzt.');
+  return {
+    startNode: S.startNode,
+    nodes: S.nodes.map(n => ({
+      id: n.id,
+      image: n.imageUrl || '',
+      building: n.building || null,
+      heading: n.heading ?? 0,
+      exits: Object.fromEntries(S.edges.filter(e => e.from === n.id).map(e => [e.direction, e.to])),
+      nearby_rooms: n.nearby_rooms || [],
+      spots: [],
+    })),
+  };
+}
+
+// ── EXPORT ────────────────────────────────────────────────────────────────────
+
+btnExport.addEventListener('click', () => {
+  try {
+    const graph = buildGraph();
+    const blob = new Blob([JSON.stringify({ graph }, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'streetview_graph.json';
+    a.click();
+    setStatus('Graph als JSON exportiert.', 'ok');
+  } catch (err) { setStatus(err.message, 'err'); }
+});
+
+// ── IMPORT ────────────────────────────────────────────────────────────────────
+
+btnImport.addEventListener('click', () => fileImport.click());
+fileImport.addEventListener('change', () => {
+  const file = fileImport.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = e => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      loadGraph(parsed.graph ?? parsed);
+      setStatus(`"${file.name}" geladen.`, 'ok');
+    } catch (err) { setStatus('JSON-Fehler: ' + err.message, 'err'); }
+  };
+  r.readAsText(file);
+  fileImport.value = '';
+});
+
+function loadGraph(g) {
+  canvas.querySelectorAll('.node-card').forEach(c => c.remove());
+  const defs = svg.querySelector('defs'); svg.innerHTML = ''; svg.appendChild(defs);
+  S.nodes = []; S.edges = []; S.selected = null; S.startNode = g.startNode;
+  S.nodeCounter = 0; S.edgeCounter = 0;
+
+  const cols = Math.ceil(Math.sqrt(g.nodes.length));
+  g.nodes.forEach((n, i) => {
+    const num = parseInt((n.id || '').replace(/\D/g, ''), 10);
+    if (!isNaN(num)) S.nodeCounter = Math.max(S.nodeCounter, num + 1);
+    S.nodes.push({
+      id: n.id,
+      x: 60 + (i % cols) * 200,
+      y: 60 + Math.floor(i / cols) * 180,
+      building: n.building || '',
+      heading: n.heading ?? 0,
+      imageUrl: n.image || '',
+      dataUrl: '',
+      nearby_rooms: n.nearby_rooms || [],
+    });
+  });
+  g.nodes.forEach(n => {
+    Object.entries(n.exits || {}).forEach(([dir, tid]) => {
+      S.edges.push({ id: `e${S.edgeCounter++}`, from: n.id, to: tid, direction: dir });
+    });
+  });
+  S.nodes.forEach(renderNode);
+  selectNode(null);
+  renderSVG();
+}
+
+// ── POST GRAPH TO API ─────────────────────────────────────────────────────────
+
+btnPost.addEventListener('click', async () => {
+  const base = inpApi.value.trim().replace(/\/$/, '');
+  const key  = inpKey.value.trim();
+  try {
+    const graph = buildGraph();
+    const buildings = [...new Set(S.nodes.map(n => n.building).filter(Boolean))];
+    const body = { graph };
+    if (buildings[0]) body.building_id = buildings[0];
+
+    const res = await fetch(`${base}/api/v1/streetview/graph`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(key ? { 'X-API-Key': key } : {}) },
+      body: JSON.stringify(body),
+    });
+
+    if (res.ok) {
+      const d = await res.json();
+      setStatus(`✓ Graph gespeichert (ID: ${d.id}). Gebäude: ${buildings[0] ?? '–'}`, 'ok');
+    } else {
+      setStatus(`API-Fehler ${res.status}: ${await res.text()}`, 'err');
+    }
+  } catch (err) { setStatus('Netzwerkfehler: ' + err.message, 'err'); }
+});
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+
+inpApi.value = window.location.origin;
+// Start empty — user imports or creates fresh
+setStatus('Bereit. Positionen anlegen und 360°-Bilder hochladen.');
+</script>
+</body>
+</html>

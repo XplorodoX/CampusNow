@@ -453,6 +453,50 @@ def test_post_streetview_graph(client):
     assert r.status_code == 200
 
 
+def test_get_streetview_route(client, fake_db):
+    """Route endpoint returns ordered steps via Dijkstra."""
+    graph_doc = {
+        "building_id": "G2",
+        "graph": {
+            "startNode": "node0",
+            "nodes": [
+                {"id": "node0", "image": "i0.jpg", "building": "G2", "room": None,      "heading": 0,  "exits": {"front": "node1"}, "spots": []},
+                {"id": "node1", "image": "i1.jpg", "building": "G2", "room": "G2 0.01", "heading": 10, "exits": {"back": "node0"},  "spots": []},
+            ],
+        },
+    }
+    fake_db.streetview_graphs.find_one.return_value = graph_doc
+    r = client.get("/api/v1/streetview/route/building/G2?to_room=G2 0.01")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["total_steps"] == 2
+    assert data["steps"][0]["node_id"] == "node0"
+    assert data["steps"][0]["direction"] == "front"
+    assert data["steps"][1]["node_id"] == "node1"
+    assert data["steps"][1]["direction"] is None
+
+
+def test_get_streetview_route_no_path(client, fake_db):
+    graph_doc = {
+        "building_id": "G2",
+        "graph": {
+            "startNode": "node0",
+            "nodes": [
+                {"id": "node0", "image": "i0.jpg", "room": None, "heading": 0, "exits": {}, "spots": []},
+            ],
+        },
+    }
+    fake_db.streetview_graphs.find_one.return_value = graph_doc
+    r = client.get("/api/v1/streetview/route/building/G2?to_room=NOWHERE")
+    assert r.status_code == 404
+
+
+def test_get_streetview_route_building_not_found(client, fake_db):
+    fake_db.streetview_graphs.find_one.return_value = None
+    r = client.get("/api/v1/streetview/route/building/GHOST?to_room=anything")
+    assert r.status_code == 404
+
+
 # ---------------------------------------------------------------------------
 # Settings
 # ---------------------------------------------------------------------------
