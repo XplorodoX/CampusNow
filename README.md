@@ -8,7 +8,8 @@
 ## 🚀 Schnellstart
 
 ### Vorrausetzungen
-- Docker & Docker Compose
+- Podman
+- systemd mit Quadlet-Unterstützung
 - Git
 - (Optional) Python 3.9+ für lokale Entwicklung
 
@@ -25,18 +26,26 @@ cp .env.example .env
 # Bearbeite .env falls nötig (Passwörter, URLs, etc.)
 ```
 
-3. **Services starten**
+3. **Quadlets installieren und starten**
 ```bash
-docker-compose up -d
+make quadlet-up
 ```
 
 4. **Status prüfen**
 ```bash
-docker-compose ps
-docker-compose logs -f api
-docker-compose logs -f scraper
-docker-compose logs -f mongodb
+systemctl --user status mongodb.service api.service scraper.service
+journalctl --user -u api.service -f
+journalctl --user -u scraper.service -f
+journalctl --user -u mongodb.service -f
 ```
+
+Optionaler Mock-Seeder:
+
+```bash
+systemctl --user start mock-seeder.service
+```
+
+Die Quadlet-Dateien liegen unter [backend/podman/quadlets](backend/podman/quadlets) und werden per `make quadlet-install` in `~/.config/containers/systemd/campusnow/` verlinkt.
 
 ---
 
@@ -108,34 +117,35 @@ campusnow/
 ├── ARCHITECTURE_PLAN.md        # Detaillierte Architektur
 ├── ARCHITECTURE_DIAGRAM.md     # System Diagramm
 │
-├── scraper-service/            # Scraper Microservice
-│   ├── main.py                 # Entry Point
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   ├── config.py
+├── backend/
+│   ├── scraper-service/        # Scraper Microservice
+│   │   ├── main.py             # Entry Point
+│   │   ├── Dockerfile
+│   │   ├── requirements.txt
+│   │   ├── config.py
+│   │   │
+│   │   ├── scraper/
+│   │   │   ├── starplan_scraper.py   # Sammelt iCal-Links
+│   │   │   ├── ical_parser.py        # Parsed Vorlesungen
+│   │   │   └── image_downloader.py   # Downloaded 360°-Bilder
+│   │   │
+│   │   ├── db/
+│   │   │   └── mongo_client.py       # MongoDB Connection
+│   │   │
+│   │   └── scheduler/
+│   │       └── tasks.py              # Scraper-Jobs
 │   │
-│   ├── scraper/
-│   │   ├── starplan_scraper.py   # Sammelt iCal-Links
-│   │   ├── ical_parser.py        # Parsed Vorlesungen
-│   │   └── image_downloader.py   # Downloaded 360°-Bilder
-│   │
-│   ├── db/
-│   │   └── mongo_client.py       # MongoDB Connection
-│   │
-│   └── scheduler/
-│       └── tasks.py              # Scraper-Jobs
-│
-├── api-service/                # REST-API Microservice
-│   ├── main.py                 # FastAPI Entry Point
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   │
-│   └── app/
-│       ├── config.py           # Konfiguration
-│       ├── models/             # Pydantic Models
-│       ├── routers/            # API Endpoints
-│       ├── db/                 # Database Client
-│       └── services/           # Business Logic
+│   └── api-service/            # REST-API Microservice
+│       ├── main.py             # FastAPI Entry Point
+│       ├── Dockerfile
+│       ├── requirements.txt
+│       │
+│       └── app/
+│           ├── config.py       # Konfiguration
+│           ├── models/         # Pydantic Models
+│           ├── routers/         # API Endpoints
+│           ├── db/             # Database Client
+│           └── services/       # Business Logic
 │
 ├── data/
 │   ├── images/360/             # 360°-Bilder Speicher
@@ -217,14 +227,14 @@ db.image_metadata.find()
 ### Entwicklung
 ```bash
 # Lokale Enticklung (ohne Docker)
-cd scraper-service
+cd backend/scraper-service
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 python main.py
 
 # Anderes Terminal für API
-cd api-service
+cd backend/api-service
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt

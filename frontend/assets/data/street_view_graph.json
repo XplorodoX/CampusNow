@@ -1,0 +1,102 @@
+{
+  "startNode": "node0",
+  "nodes": [
+    {
+      "id": "node0",
+      "image": "assets/images/360-0.JPG",
+      "building": "Waterfront",
+      "room": "Pier Entrance",
+      "heading": 12,
+      "exits": {
+        "front": "node1",
+        "right": "node2"
+      },
+      "spots": [
+        {
+          "name": "Dock Sign",
+          "longitude": 8,
+          "latitude": 0,
+          "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur."
+        }
+      ]
+    },
+    {
+      "id": "node1",
+      "image": "assets/images/360-1.JPG",
+      "building": "North Sector",
+      "room": "Snow Access Road",
+      "heading": 22,
+      "exits": {
+        "back": "node0",
+        "front": "node4",
+        "left": "node3"
+      },
+      "spots": [
+        {
+          "name": "Service Van",
+          "longitude": 96,
+          "latitude": 0,
+          "description": "Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante. Donec eu libero sit amet quam egestas semper. Aenean ultricies mi vitae est. Mauris placerat eleifend leo."
+        }
+      ]
+    },
+    {
+      "id": "node2",
+      "image": "assets/images/360-2.JPG",
+      "building": "Skyline Tower",
+      "room": "Pool Deck",
+      "heading": -18,
+      "exits": {
+        "left": "node0",
+        "front": "node3"
+      },
+      "spots": [
+        {
+          "name": "Pool Edge",
+          "longitude": 145,
+          "latitude": 0,
+          "description": "Quisque sit amet est et sapien ullamcorper pharetra. Vestibulum erat wisi, condimentum sed, commodo vitae, ornare sit amet, wisi. Aenean fermentum, elit eget tincidunt condimentum, eros ipsum rutrum orci, sagittis tempus lacus enim ac dui. Donec non enim in turpis pulvinar facilisis. Ut felis."
+        }
+      ]
+    },
+    {
+      "id": "node3",
+      "image": "assets/images/360-3.jpg",
+      "building": "Green Park",
+      "room": "Wooden Dock",
+      "heading": 0,
+      "exits": {
+        "back": "node2",
+        "right": "node1",
+        "front": "node4"
+      },
+      "spots": [
+        {
+          "name": "Forest Line",
+          "longitude": 176,
+          "latitude": 0,
+          "description": "Nam pretium turpis et arcu. Duis arcu tortor, suscipit eget, imperdiet nec, imperdiet iaculis, ipsum. Sed aliquam ultrices mauris. Integer ante arcu, accumsan a, consectetuer eget, posuere ut, mauris. Praesent adipiscing. Phasellus ullamcorper ipsum rutrum nunc. Nunc nonummy metus."
+        }
+      ]
+    },
+    {
+      "id": "node4",
+      "image": "assets/images/360-4.jpg",
+      "building": "Lagoon Campus",
+      "room": "Shallow Bay",
+      "heading": 14,
+      "exits": {
+        "back": "node3",
+        "left": "node1"
+      },
+      "spots": [
+        {
+          "name": "Beach Boats",
+          "longitude": -112,
+          "latitude": 0,
+          "description": "Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Proin vel ante a orci tempus eleifend ut et magna. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus luctus urna sed urna ultricies ac tempor dui sagittis."
+        }
+      ]
+    }
+  ]
+}

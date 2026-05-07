@@ -61,8 +61,8 @@ skip_gitignore = true
 
 [tool.pytest.ini_options]
 minversion = "7.0"
-addopts = "-ra -q --strict-markers --tb=short --cov=scraper-service --cov=api-service --cov-report=term-missing"
-testpaths = ["scraper-service", "api-service"]
+addopts = "-ra -q --strict-markers --tb=short --cov=backend/scraper-service --cov=backend/api-service --cov-report=term-missing"
+testpaths = ["backend/scraper-service", "backend/api-service"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -73,7 +73,7 @@ filterwarnings = [
 
 [tool.coverage.run]
 branch = true
-source = ["scraper-service/scraper", "scraper-service/db", "scraper-service/scheduler", "api-service/app"]
+source = ["backend/scraper-service/scraper", "backend/scraper-service/db", "backend/scraper-service/scheduler", "backend/api-service/app"]
 omit = [
     "*/__init__.py",
     "*/tests/*",

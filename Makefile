@@ -1,4 +1,4 @@
-.PHONY: help install install-dev lint format test coverage clean docker-up docker-down docker-logs docker-seed-mock security pre-commit ci-local quality complexity release release-check release-rc all
+.PHONY: help install install-dev lint format test coverage clean docker-up docker-down docker-logs docker-seed-mock quadlet-install quadlet-reload quadlet-start quadlet-up quadlet-stop quadlet-status quadlet-seed security pre-commit ci-local quality complexity release release-check release-rc all
 
 help:
 	@echo "CampusNow - Development Commands"
@@ -36,49 +36,58 @@ help:
 	@echo "  make docker-build  - Build Docker images"
 	@echo "  make docker-seed-mock - Run one-shot mock seeder (without timetable data)"
 	@echo ""
+	@echo "Podman Quadlets:"
+	@echo "  make quadlet-install - Symlink Quadlets into ~/.config/containers/systemd/campusnow"
+	@echo "  make quadlet-reload - Reload systemd user units for Quadlets"
+	@echo "  make quadlet-start  - Start MongoDB, API and scraper via systemd user units"
+	@echo "  make quadlet-up     - Install, reload and start Quadlets"
+	@echo "  make quadlet-stop   - Stop MongoDB, API and scraper via systemd user units"
+	@echo "  make quadlet-status - Show Quadlet service status"
+	@echo "  make quadlet-seed   - Run the optional mock seeder unit"
+	@echo ""
 	@echo "Cleanup:"
 	@echo "  make clean         - Remove cache and build files"
 	@echo "  make all           - Full pipeline: clean install-dev lint format test"
 
 install:
 	pip install --upgrade pip
-	cd scraper-service && pip install -r requirements.txt
-	cd api-service && pip install -r requirements.txt
+	cd backend/scraper-service && pip install -r requirements.txt
+	cd backend/api-service && pip install -r requirements.txt
 
 install-dev:
 	pip install --upgrade pip
-	cd scraper-service && pip install -r requirements.txt
-	cd api-service && pip install -r requirements.txt
+	cd backend/scraper-service && pip install -r requirements.txt
+	cd backend/api-service && pip install -r requirements.txt
 	pip install ruff flake8 black pytest pytest-asyncio pytest-cov
 
 lint:
 	@echo "🔍 Running Ruff linter..."
-	ruff check scraper-service api-service
+	ruff check backend/scraper-service backend/api-service
 	@echo ""
 	@echo "🔍 Running Flake8 linter..."
-	python3 -m flake8 scraper-service api-service
+	python3 -m flake8 backend/scraper-service backend/api-service
 	@echo "✅ Lint check passed!"
 
 format:
 	@echo "🎨 Formatting code with Ruff..."
-	ruff format scraper-service api-service
+	ruff format backend/scraper-service backend/api-service
 	@echo "🎨 Formatting code with Black..."
-	black scraper-service api-service --line-length=100
+	black backend/scraper-service backend/api-service --line-length=100
 	@echo "✅ Code formatted!"
 
 format-check:
 	@echo "🔍 Checking code format..."
-	ruff format --check scraper-service api-service
-	black --check scraper-service api-service --line-length=100
+	ruff format --check backend/scraper-service backend/api-service
+	black --check backend/scraper-service backend/api-service --line-length=100
 	@echo "✅ Format check passed!"
 
 test:
 	@echo "🧪 Running tests..."
-	pytest -v --cov=scraper-service --cov=api-service --cov-report=term-missing
+	pytest -v --cov=backend/scraper-service --cov=backend/api-service --cov-report=term-missing
 
 test-cov:
 	@echo "🧪 Running tests with coverage..."
-	pytest -v --cov=scraper-service --cov=api-service --cov-report=html --cov-report=term-missing
+	pytest -v --cov=backend/scraper-service --cov=backend/api-service --cov-report=html --cov-report=term-missing
 	@echo "📊 Coverage report generated: htmlcov/index.html"
 
 clean:
@@ -117,12 +126,44 @@ docker-seed-mock:
 	docker-compose --profile seed run --rm mock-seeder
 	@echo "✅ Mock data seed complete!"
 
+quadlet-reload:
+	@echo "🔄 Reloading Podman Quadlet units..."
+	systemctl --user daemon-reload
+	@echo "✅ Quadlet units reloaded!"
+
+quadlet-install:
+	@echo "📦 Installing Quadlets into the user systemd search path..."
+	mkdir -p "$$HOME/.config/containers/systemd/campusnow"
+	find backend/podman/quadlets -maxdepth 1 \( -name '*.container' -o -name '*.network' -o -name '*.build' \) -exec ln -sf "$(CURDIR)/{}" "$$HOME/.config/containers/systemd/campusnow/" \;
+	@echo "✅ Quadlets installed to ~/.config/containers/systemd/campusnow"
+
+quadlet-start:
+	@echo "🐳 Starting CampusNow via Podman Quadlets..."
+	systemctl --user start mongodb.service api.service scraper.service
+	@echo "✅ Quadlet services started!"
+
+quadlet-up: quadlet-install quadlet-reload quadlet-start
+	@echo "✅ CampusNow Quadlets installed, reloaded and started!"
+
+quadlet-stop:
+	@echo "🛑 Stopping CampusNow Quadlet services..."
+	systemctl --user stop scraper.service api.service mongodb.service
+	@echo "✅ Quadlet services stopped!"
+
+quadlet-status:
+	systemctl --user status mongodb.service api.service scraper.service
+
+quadlet-seed:
+	@echo "🌱 Running Quadlet mock seeder..."
+	systemctl --user start mock-seeder.service
+	@echo "✅ Mock seeder triggered!"
+
 # Security scanning targets
 security:
 	@echo "🔒 Running security scans..."
 	@if command -v bandit &> /dev/null; then \
 		echo "🔐 Running Bandit..."; \
-		bandit -r scraper-service api-service -f json -o bandit-report.json || true; \
+		bandit -r backend/scraper-service backend/api-service -f json -o bandit-report.json || true; \
 		echo "✅ Bandit scan complete"; \
 	else \
 		echo "⚠️  Bandit not installed. Install it with: pip install bandit"; \
@@ -143,8 +184,8 @@ quality: lint format-check complexity
 complexity:
 	@echo "📊 Analyzing code complexity..."
 	@if command -v radon &> /dev/null; then \
-		radon cc scraper-service api-service -a -nb || true; \
-		radon metrics scraper-service api-service -nb || true; \
+		radon cc backend/scraper-service backend/api-service -a -nb || true; \
+		radon metrics backend/scraper-service backend/api-service -nb || true; \
 	else \
 		echo "⚠️  Radon not installed. Install it with: pip install radon"; \
 	fi

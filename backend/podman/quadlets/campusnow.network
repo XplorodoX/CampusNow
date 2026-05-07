@@ -1,0 +1,6 @@
+[Network]
+NetworkName=campusnow-net
+Driver=bridge
+
+[Install]
+WantedBy=default.target

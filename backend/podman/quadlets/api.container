@@ -1,0 +1,27 @@
+[Unit]
+Description=CampusNow REST API
+After=campusnow.network mongodb.container
+Requires=campusnow.network mongodb.container
+
+[Container]
+Image=api.build
+ContainerName=campusnow-api
+Network=campusnow.network
+PublishPort=6058:8000
+Volume=/home/flo/CampusNow/backend/api-service:/app:Z
+Volume=/home/flo/CampusNow/data/images/360:/app/data/images/360:Z
+Environment=MONGO_URI=mongodb://admin:campusnow_secret_2025@mongodb:27017/campusnow?authSource=admin
+Environment=MONGO_DB=campusnow
+Environment=API_TITLE="CampusNow API"
+Environment=API_VERSION=1.0.0
+Environment=CORS_ORIGINS=*
+Environment=LOG_LEVEL=INFO
+Environment=TZ=Europe/Berlin
+
+[Service]
+Restart=always
+RestartSec=5
+TimeoutStartSec=300
+
+[Install]
+WantedBy=default.target

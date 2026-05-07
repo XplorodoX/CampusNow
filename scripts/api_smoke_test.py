@@ -183,7 +183,7 @@ if lecture_id:
 
 new_event_id = None
 
-image_path = "api-service/data/images/360/WhatsApp Image 2026-04-14 at 16.39.51.jpeg"
+image_path = "backend/api-service/data/images/360/WhatsApp Image 2026-04-14 at 16.39.51.jpeg"
 if os.path.exists(image_path):
     boundary = "----campusnowboundary"
     with open(image_path, "rb") as f:

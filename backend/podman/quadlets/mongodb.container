@@ -1,0 +1,25 @@
+[Unit]
+Description=CampusNow MongoDB
+After=campusnow.network
+Requires=campusnow.network
+
+[Container]
+Image=docker.io/library/mongo:7.0
+ContainerName=campusnow-mongo
+Network=campusnow.network
+NetworkAlias=mongodb
+PublishPort=27017:27017
+Volume=/home/flo/CampusNow/data/db:/data/db:Z
+Volume=/home/flo/CampusNow/scripts/init_db.js:/docker-entrypoint-initdb.d/init.js:Z,ro
+Environment=MONGO_INITDB_ROOT_USERNAME=admin
+Environment=MONGO_INITDB_ROOT_PASSWORD=campusnow_secret_2025
+Environment=MONGO_INITDB_DATABASE=campusnow
+Environment=TZ=Europe/Berlin
+
+[Service]
+Restart=always
+RestartSec=5
+TimeoutStartSec=300
+
+[Install]
+WantedBy=default.target

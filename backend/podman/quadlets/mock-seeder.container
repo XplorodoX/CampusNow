@@ -1,0 +1,26 @@
+[Unit]
+Description=CampusNow mock data seeder
+After=campusnow.network mongodb.container
+Requires=campusnow.network mongodb.container
+
+[Container]
+Image=api.build
+ContainerName=campusnow-mock-seeder
+Network=campusnow.network
+Exec=python seed_mock_data.py
+Volume=/home/flo/CampusNow/backend/api-service:/app:Z
+Volume=/home/flo/CampusNow/data/images/360:/app/data/images/360:Z
+Environment=MONGO_URI=mongodb://admin:campusnow_secret_2025@mongodb:27017/campusnow?authSource=admin
+Environment=MONGO_DB=campusnow
+Environment=MOCK_ROOM_ID=MOCK-R1
+Environment=MOCK_BUILDING_ID=AH
+Environment=MOCK_EVENT_TITLE="Mock Campus Event"
+Environment=TZ=Europe/Berlin
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+TimeoutStartSec=300
+
+[Install]
+WantedBy=default.target

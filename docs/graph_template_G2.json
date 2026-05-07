@@ -1,0 +1,447 @@
+{
+  "_info": "G2 Navigationsgraph-Template. Bilder + exits + nearby_rooms nach dem Fotografieren anpassen, dann via API pushen.",
+  "_workflow": [
+    "1. Fotos machen – Dateiname = Node-ID: G2-EG-E01.jpg, G2-EG-G01.jpg, ...",
+    "2. Hochladen: python scripts/upload_panoramas.py --dir ./fotos/G2 --api-url http://localhost:6058 --api-key KEY",
+    "3. nearby_rooms pro Node anpassen (welche Raeume sichtbar/erreichbar sind)",
+    "4. heading anpassen (0-360 Grad – Blickrichtung beim Laden des Panoramas)",
+    "5. spots optional befuellen (Pins im Panorama: longitude 0-360, latitude -90 bis +90)",
+    "6. Graph pushen: curl -X POST http://localhost:6058/api/v1/streetview/graph -H 'Content-Type: application/json' -H 'X-API-Key: KEY' -d @docs/graph_template_G2.json"
+  ],
+  "building_id": "G2",
+  "graph": {
+    "startNode": "G2-EG-E01",
+    "nodes": [
+
+      {
+        "id": "G2-EG-E01",
+        "_comment": "Haupteingang EG",
+        "image": "/api/v1/images/rooms/G2-EG-E01/latest",
+        "building": "G2",
+        "floor": 0,
+        "node_type": "entrance",
+        "heading": 0,
+        "exits": {
+          "front": "G2-EG-G01"
+        },
+        "nearby_rooms": [],
+        "spots": []
+      },
+
+      {
+        "id": "G2-EG-G01",
+        "_comment": "1. Kreuzung EG – nahe Eingang",
+        "image": "/api/v1/images/rooms/G2-EG-G01/latest",
+        "building": "G2",
+        "floor": 0,
+        "node_type": "corridor",
+        "heading": 0,
+        "exits": {
+          "front": "G2-EG-G02",
+          "back":  "G2-EG-E01",
+          "left":  "G2-EG-T01"
+        },
+        "nearby_rooms": [
+          { "room_id": "G2 0.01", "direction": "rechts" },
+          { "room_id": "G2 0.03", "direction": "rechts" },
+          { "room_id": "G2 0.04", "direction": "rechts" }
+        ],
+        "spots": []
+      },
+
+      {
+        "id": "G2-EG-G02",
+        "_comment": "2. Kreuzung EG",
+        "image": "/api/v1/images/rooms/G2-EG-G02/latest",
+        "building": "G2",
+        "floor": 0,
+        "node_type": "corridor",
+        "heading": 0,
+        "exits": {
+          "front": "G2-EG-G03",
+          "back":  "G2-EG-G01"
+        },
+        "nearby_rooms": [
+          { "room_id": "G2 0.05", "direction": "links" },
+          { "room_id": "G2 0.06", "direction": "links" },
+          { "room_id": "G2 0.07", "direction": "rechts" },
+          { "room_id": "G2 0.08", "direction": "rechts" }
+        ],
+        "spots": []
+      },
+
+      {
+        "id": "G2-EG-G03",
+        "_comment": "3. Kreuzung EG – Mitte",
+        "image": "/api/v1/images/rooms/G2-EG-G03/latest",
+        "building": "G2",
+        "floor": 0,
+        "node_type": "corridor",
+        "heading": 0,
+        "exits": {
+          "front": "G2-EG-G04",
+          "back":  "G2-EG-G02"
+        },
+        "nearby_rooms": [
+          { "room_id": "G2 0.09", "direction": "links" },
+          { "room_id": "G2 0.10", "direction": "links" },
+          { "room_id": "G2 0.11", "direction": "rechts" },
+          { "room_id": "G2 0.12", "direction": "rechts" },
+          { "room_id": "G2 0.14", "direction": "rechts" }
+        ],
+        "spots": []
+      },
+
+      {
+        "id": "G2-EG-G04",
+        "_comment": "4. Kreuzung EG",
+        "image": "/api/v1/images/rooms/G2-EG-G04/latest",
+        "building": "G2",
+        "floor": 0,
+        "node_type": "corridor",
+        "heading": 0,
+        "exits": {
+          "front": "G2-EG-G05",
+          "back":  "G2-EG-G03"
+        },
+        "nearby_rooms": [
+          { "room_id": "G2 0.15", "direction": "links" },
+          { "room_id": "G2 0.16", "direction": "links" },
+          { "room_id": "G2 0.17", "direction": "rechts" },
+          { "room_id": "G2 0.18", "direction": "rechts" },
+          { "room_id": "G2 0.19", "direction": "rechts" },
+          { "room_id": "G2 0.20", "direction": "rechts" }
+        ],
+        "spots": []
+      },
+
+      {
+        "id": "G2-EG-G05",
+        "_comment": "5. Kreuzung EG – Ende Gang",
+        "image": "/api/v1/images/rooms/G2-EG-G05/latest",
+        "building": "G2",
+        "floor": 0,
+        "node_type": "corridor",
+        "heading": 0,
+        "exits": {
+          "back": "G2-EG-G04"
+        },
+        "nearby_rooms": [
+          { "room_id": "G2 0.21", "direction": "links" },
+          { "room_id": "G2 0.23", "direction": "links" },
+          { "room_id": "G2 0.25", "direction": "links" },
+          { "room_id": "G2 0.26", "direction": "rechts" },
+          { "room_id": "G2 0.27", "direction": "rechts" },
+          { "room_id": "G2 0.28", "direction": "rechts" },
+          { "room_id": "G2 0.29", "direction": "rechts" },
+          { "room_id": "G2 0.30", "direction": "rechts" },
+          { "room_id": "G2 0.31", "direction": "rechts" },
+          { "room_id": "G2 0.32", "direction": "rechts" },
+          { "room_id": "G2 0.33", "direction": "rechts" },
+          { "room_id": "G2 0.34", "direction": "rechts" },
+          { "room_id": "G2 0.35", "direction": "rechts" },
+          { "room_id": "G2 0.36", "direction": "rechts" },
+          { "room_id": "G2 0.37", "direction": "rechts" }
+        ],
+        "spots": []
+      },
+
+      {
+        "id": "G2-EG-T01",
+        "_comment": "Treppenhaus EG -> 1OG (front = rauf)",
+        "image": "/api/v1/images/rooms/G2-EG-T01/latest",
+        "building": "G2",
+        "floor": 0,
+        "node_type": "staircase",
+        "heading": 0,
+        "exits": {
+          "front": "G2-1OG-T01",
+          "back":  "G2-EG-G01"
+        },
+        "nearby_rooms": [],
+        "spots": [
+          { "name": "Treppe", "longitude": 0, "latitude": -20, "description": "Treppenaufgang ins 1. OG" }
+        ]
+      },
+
+      {
+        "id": "G2-1OG-T01",
+        "_comment": "Treppenhaus 1OG – verbindet EG und 2OG (right = raus in den Gang)",
+        "image": "/api/v1/images/rooms/G2-1OG-T01/latest",
+        "building": "G2",
+        "floor": 1,
+        "node_type": "staircase",
+        "heading": 0,
+        "exits": {
+          "front": "G2-2OG-T01",
+          "back":  "G2-EG-T01",
+          "right": "G2-1OG-G01"
+        },
+        "nearby_rooms": [],
+        "spots": [
+          { "name": "Treppe rauf",   "longitude": 0,   "latitude": -20, "description": "Aufgang ins 2. OG" },
+          { "name": "Treppe runter", "longitude": 180, "latitude": -20, "description": "Zurueck ins EG" }
+        ]
+      },
+
+      {
+        "id": "G2-1OG-G01",
+        "_comment": "1. Kreuzung 1OG – nahe Treppenhaus",
+        "image": "/api/v1/images/rooms/G2-1OG-G01/latest",
+        "building": "G2",
+        "floor": 1,
+        "node_type": "corridor",
+        "heading": 0,
+        "exits": {
+          "front": "G2-1OG-G02",
+          "back":  "G2-1OG-T01"
+        },
+        "nearby_rooms": [
+          { "room_id": "G2 1.01", "direction": "links" },
+          { "room_id": "G2 1.02", "direction": "links" },
+          { "room_id": "G2 1.03", "direction": "rechts" },
+          { "room_id": "G2 1.04", "direction": "rechts" }
+        ],
+        "spots": []
+      },
+
+      {
+        "id": "G2-1OG-G02",
+        "_comment": "2. Kreuzung 1OG",
+        "image": "/api/v1/images/rooms/G2-1OG-G02/latest",
+        "building": "G2",
+        "floor": 1,
+        "node_type": "corridor",
+        "heading": 0,
+        "exits": {
+          "front": "G2-1OG-G03",
+          "back":  "G2-1OG-G01"
+        },
+        "nearby_rooms": [
+          { "room_id": "G2 1.05", "direction": "links" },
+          { "room_id": "G2 1.06", "direction": "links" },
+          { "room_id": "G2 1.07", "direction": "rechts" },
+          { "room_id": "G2 1.18", "direction": "rechts" },
+          { "room_id": "G2 1.19", "direction": "rechts" }
+        ],
+        "spots": []
+      },
+
+      {
+        "id": "G2-1OG-G03",
+        "_comment": "3. Kreuzung 1OG – Mitte",
+        "image": "/api/v1/images/rooms/G2-1OG-G03/latest",
+        "building": "G2",
+        "floor": 1,
+        "node_type": "corridor",
+        "heading": 0,
+        "exits": {
+          "front": "G2-1OG-G04",
+          "back":  "G2-1OG-G02"
+        },
+        "nearby_rooms": [
+          { "room_id": "G2 1.20", "direction": "links" },
+          { "room_id": "G2 1.21", "direction": "links" },
+          { "room_id": "G2 1.22", "direction": "links" },
+          { "room_id": "G2 1.23", "direction": "rechts" },
+          { "room_id": "G2 1.24", "direction": "rechts" },
+          { "room_id": "G2 1.25", "direction": "rechts" }
+        ],
+        "spots": []
+      },
+
+      {
+        "id": "G2-1OG-G04",
+        "_comment": "4. Kreuzung 1OG",
+        "image": "/api/v1/images/rooms/G2-1OG-G04/latest",
+        "building": "G2",
+        "floor": 1,
+        "node_type": "corridor",
+        "heading": 0,
+        "exits": {
+          "front": "G2-1OG-G05",
+          "back":  "G2-1OG-G03"
+        },
+        "nearby_rooms": [
+          { "room_id": "G2 1.26", "direction": "links" },
+          { "room_id": "G2 1.27", "direction": "links" },
+          { "room_id": "G2 1.28", "direction": "links" },
+          { "room_id": "G2 1.30", "direction": "rechts" },
+          { "room_id": "G2 1.31", "direction": "rechts" },
+          { "room_id": "G2 1.32", "direction": "rechts" },
+          { "room_id": "G2 1.33", "direction": "rechts" }
+        ],
+        "spots": []
+      },
+
+      {
+        "id": "G2-1OG-G05",
+        "_comment": "5. Kreuzung 1OG – Ende Gang",
+        "image": "/api/v1/images/rooms/G2-1OG-G05/latest",
+        "building": "G2",
+        "floor": 1,
+        "node_type": "corridor",
+        "heading": 0,
+        "exits": {
+          "back": "G2-1OG-G04"
+        },
+        "nearby_rooms": [
+          { "room_id": "G2 1.34", "direction": "links" },
+          { "room_id": "G2 1.35", "direction": "links" },
+          { "room_id": "G2 1.36", "direction": "links" },
+          { "room_id": "G2 1.37", "direction": "rechts" },
+          { "room_id": "G2 1.38", "direction": "rechts" },
+          { "room_id": "G2 1.39", "direction": "rechts" },
+          { "room_id": "G2 1.40", "direction": "rechts" },
+          { "room_id": "G2 1.41", "direction": "rechts" },
+          { "room_id": "G2 1.42", "direction": "rechts" },
+          { "room_id": "G2 1.43", "direction": "rechts" },
+          { "room_id": "G2 1.44", "direction": "rechts" }
+        ],
+        "spots": []
+      },
+
+      {
+        "id": "G2-2OG-T01",
+        "_comment": "Treppenhaus 2OG – oberstes OG, kein Aufgang mehr",
+        "image": "/api/v1/images/rooms/G2-2OG-T01/latest",
+        "building": "G2",
+        "floor": 2,
+        "node_type": "staircase",
+        "heading": 0,
+        "exits": {
+          "back":  "G2-1OG-T01",
+          "right": "G2-2OG-G01"
+        },
+        "nearby_rooms": [],
+        "spots": [
+          { "name": "Treppe runter", "longitude": 180, "latitude": -20, "description": "Zurueck ins 1. OG" }
+        ]
+      },
+
+      {
+        "id": "G2-2OG-G01",
+        "_comment": "1. Kreuzung 2OG – nahe Treppenhaus",
+        "image": "/api/v1/images/rooms/G2-2OG-G01/latest",
+        "building": "G2",
+        "floor": 2,
+        "node_type": "corridor",
+        "heading": 0,
+        "exits": {
+          "front": "G2-2OG-G02",
+          "back":  "G2-2OG-T01"
+        },
+        "nearby_rooms": [
+          { "room_id": "G2 2.01", "direction": "links" },
+          { "room_id": "G2 2.02", "direction": "links" },
+          { "room_id": "G2 2.04", "direction": "rechts" },
+          { "room_id": "G2 2.05", "direction": "rechts" },
+          { "room_id": "G2 2.06", "direction": "rechts" }
+        ],
+        "spots": []
+      },
+
+      {
+        "id": "G2-2OG-G02",
+        "_comment": "2. Kreuzung 2OG",
+        "image": "/api/v1/images/rooms/G2-2OG-G02/latest",
+        "building": "G2",
+        "floor": 2,
+        "node_type": "corridor",
+        "heading": 0,
+        "exits": {
+          "front": "G2-2OG-G03",
+          "back":  "G2-2OG-G01"
+        },
+        "nearby_rooms": [
+          { "room_id": "G2 2.07", "direction": "links" },
+          { "room_id": "G2 2.08", "direction": "links" },
+          { "room_id": "G2 2.09", "direction": "links" },
+          { "room_id": "G2 2.10", "direction": "rechts" },
+          { "room_id": "G2 2.11", "direction": "rechts" },
+          { "room_id": "G2 2.12", "direction": "rechts" },
+          { "room_id": "G2 2.13", "direction": "rechts" }
+        ],
+        "spots": []
+      },
+
+      {
+        "id": "G2-2OG-G03",
+        "_comment": "3. Kreuzung 2OG – Mitte",
+        "image": "/api/v1/images/rooms/G2-2OG-G03/latest",
+        "building": "G2",
+        "floor": 2,
+        "node_type": "corridor",
+        "heading": 0,
+        "exits": {
+          "front": "G2-2OG-G04",
+          "back":  "G2-2OG-G02"
+        },
+        "nearby_rooms": [
+          { "room_id": "G2 2.14", "direction": "links" },
+          { "room_id": "G2 2.15", "direction": "links" },
+          { "room_id": "G2 2.16", "direction": "links" },
+          { "room_id": "G2 2.17", "direction": "rechts" },
+          { "room_id": "G2 2.18", "direction": "rechts" },
+          { "room_id": "G2 2.19", "direction": "rechts" },
+          { "room_id": "G2 2.20", "direction": "rechts" }
+        ],
+        "spots": []
+      },
+
+      {
+        "id": "G2-2OG-G04",
+        "_comment": "4. Kreuzung 2OG",
+        "image": "/api/v1/images/rooms/G2-2OG-G04/latest",
+        "building": "G2",
+        "floor": 2,
+        "node_type": "corridor",
+        "heading": 0,
+        "exits": {
+          "front": "G2-2OG-G05",
+          "back":  "G2-2OG-G03"
+        },
+        "nearby_rooms": [
+          { "room_id": "G2 2.21", "direction": "links" },
+          { "room_id": "G2 2.22", "direction": "links" },
+          { "room_id": "G2 2.23", "direction": "links" },
+          { "room_id": "G2 2.24", "direction": "rechts" },
+          { "room_id": "G2 2.25", "direction": "rechts" },
+          { "room_id": "G2 2.26", "direction": "rechts" },
+          { "room_id": "G2 2.28", "direction": "rechts" }
+        ],
+        "spots": []
+      },
+
+      {
+        "id": "G2-2OG-G05",
+        "_comment": "5. Kreuzung 2OG – Ende Gang",
+        "image": "/api/v1/images/rooms/G2-2OG-G05/latest",
+        "building": "G2",
+        "floor": 2,
+        "node_type": "corridor",
+        "heading": 0,
+        "exits": {
+          "back": "G2-2OG-G04"
+        },
+        "nearby_rooms": [
+          { "room_id": "G2 2.29", "direction": "links" },
+          { "room_id": "G2 2.30", "direction": "links" },
+          { "room_id": "G2 2.31", "direction": "links" },
+          { "room_id": "G2 2.32", "direction": "links" },
+          { "room_id": "G2 2.33", "direction": "rechts" },
+          { "room_id": "G2 2.34", "direction": "rechts" },
+          { "room_id": "G2 2.35", "direction": "rechts" },
+          { "room_id": "G2 2.36", "direction": "rechts" },
+          { "room_id": "G2 2.37", "direction": "rechts" },
+          { "room_id": "G2 2.38", "direction": "rechts" },
+          { "room_id": "G2 2.39", "direction": "rechts" },
+          { "room_id": "G2 2.40", "direction": "rechts" },
+          { "room_id": "G2 2.41", "direction": "rechts" }
+        ],
+        "spots": []
+      }
+
+    ]
+  }
+}

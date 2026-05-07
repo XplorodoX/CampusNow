@@ -1,0 +1,10 @@
+[Build]
+File=/home/flo/CampusNow/backend/api-service/Dockerfile
+SetWorkingDirectory=/home/flo/CampusNow/backend/api-service
+ImageTag=localhost/campusnow-api:latest
+
+[Service]
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target

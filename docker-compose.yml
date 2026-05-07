@@ -21,10 +21,10 @@ services:
       retries: 3
     restart: unless-stopped
 
-  # Scraper Service
+  # Scraper Service – scrapt nur Lectures, Studiengänge und Events (KEINE Gebäude/Räume)
   scraper:
     build:
-      context: ./scraper-service
+      context: ./backend/scraper-service
       dockerfile: Dockerfile
     container_name: campusnow-scraper
     environment:
@@ -39,7 +39,7 @@ services:
         condition: service_healthy
     volumes:
       - ./data/images/360:/app/data/images/360
-      - ./scraper-service:/app
+      - ./backend/scraper-service:/app
     networks:
       - campusnow-net
     restart: unless-stopped
@@ -47,7 +47,7 @@ services:
   # REST API Service
   api:
     build:
-      context: ./api-service
+      context: ./backend/api-service
       dockerfile: Dockerfile
     container_name: campusnow-api
     ports:
@@ -57,15 +57,35 @@ services:
       - mongodb
     volumes:
       - ./data/images/360:/app/data/images/360
-      - ./api-service:/app
+      - ./backend/api-service:/app
     networks:
       - campusnow-net
     restart: unless-stopped
 
+  # One-shot G2 Room Seeder – läuft automatisch beim ersten Start (idempotent)
+  g2-seeder:
+    build:
+      context: ./backend/api-service
+      dockerfile: Dockerfile
+    container_name: campusnow-g2-seeder
+    command: ["python", "seed_g2_rooms.py"]
+    environment:
+      MONGO_URI: mongodb://admin:campusnow_secret_2025@mongodb:27017/campusnow?authSource=admin
+      MONGO_DB: campusnow
+      TZ: Europe/Berlin
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - ./backend/api-service:/app
+    networks:
+      - campusnow-net
+    restart: "no"
+
   # One-shot Mock Seeder (keine Timetable-Daten)
   mock-seeder:
     build:
-      context: ./api-service
+      context: ./backend/api-service
       dockerfile: Dockerfile
     container_name: campusnow-mock-seeder
     command: ["python", "seed_mock_data.py"]
@@ -81,7 +101,7 @@ services:
         condition: service_healthy
     volumes:
       - ./data/images/360:/app/data/images/360
-      - ./api-service:/app
+      - ./backend/api-service:/app
     networks:
       - campusnow-net
     profiles:

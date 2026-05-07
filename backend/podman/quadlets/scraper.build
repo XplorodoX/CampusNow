@@ -1,0 +1,10 @@
+[Build]
+File=/home/flo/CampusNow/backend/scraper-service/Dockerfile
+SetWorkingDirectory=/home/flo/CampusNow/backend/scraper-service
+ImageTag=localhost/campusnow-scraper:latest
+
+[Service]
+TimeoutStartSec=900
+
+[Install]
+WantedBy=default.target

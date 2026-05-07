@@ -19,8 +19,8 @@ ignore:
 flags:
   unittests:
     paths:
-      - scraper-service/scraper/
-      - api-service/app/
+      - backend/scraper-service/scraper/
+      - backend/api-service/app/
     carryforward: true
 
 github:

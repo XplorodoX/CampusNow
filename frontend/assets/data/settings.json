@@ -1,0 +1,9 @@
+{
+  "notificationLeadMinutes": 15,
+  "defaultCourseOfStudyIds": ["cs_b3"],
+  "defaultSemesterIds": ["sem_3"],
+  "defaultEventGroupIds": ["career", "sports"],
+  "savedLectureIds": [],
+  "savedEventIds": [],
+  "theme": "system"
+}
