@@ -1,4 +1,4 @@
-.PHONY: help install install-dev lint format test coverage clean docker-up docker-down docker-logs docker-seed-mock quadlet-install quadlet-reload quadlet-start quadlet-up quadlet-stop quadlet-status quadlet-seed security pre-commit ci-local quality complexity release release-check release-rc all
+.PHONY: help install install-dev lint format test coverage clean docker-up docker-down docker-logs docker-seed-mock quadlet-install quadlet-reload quadlet-start quadlet-up quadlet-stop quadlet-status quadlet-seed podman-reinit security pre-commit ci-local quality complexity release release-check release-rc all
 
 help:
 	@echo "CampusNow - Development Commands"
@@ -44,6 +44,7 @@ help:
 	@echo "  make quadlet-stop   - Stop MongoDB, API and scraper via systemd user units"
 	@echo "  make quadlet-status - Show Quadlet service status"
 	@echo "  make quadlet-seed   - Run the optional mock seeder unit"
+	@echo "  make podman-reinit  - Wipe CampusNow Podman state, rebuild images and seed data"
 	@echo ""
 	@echo "Cleanup:"
 	@echo "  make clean         - Remove cache and build files"
@@ -157,6 +158,9 @@ quadlet-seed:
 	@echo "🌱 Running Quadlet mock seeder..."
 	systemctl --user start mock-seeder.service
 	@echo "✅ Mock seeder triggered!"
+
+podman-reinit:
+	@bash scripts/podman_reinit.sh
 
 # Security scanning targets
 security:

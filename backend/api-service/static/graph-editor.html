@@ -3,218 +3,308 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>StreetView Graph Editor – CampusNow</title>
+<title>Streetview Graph Editor – CampusNow</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #0f1117;
-  --surface: #1a1d27;
-  --surface2: #22263a;
-  --border: #2e3452;
-  --accent: #4f6ef7;
-  --accent2: #7c3aed;
-  --danger: #ef4444;
-  --success: #22c55e;
-  --warn: #f59e0b;
-  --text: #e2e8f0;
-  --text2: #94a3b8;
-  --node-w: 148px;
+  --bg:       #0d1117;
+  --surface:  #161b22;
+  --surface2: #1c2128;
+  --surface3: #22272e;
+  --border:   #30363d;
+  --accent:   #4f8ef7;
+  --accent2:  #7c3aed;
+  --danger:   #f85149;
+  --success:  #3fb950;
+  --warn:     #d29922;
+  --text:     #e6edf3;
+  --text2:    #7d8590;
+  --text3:    #484f58;
+
+  /* Node type colours */
+  --c-corridor:  #4f8ef7;
+  --c-entrance:  #d29922;
+  --c-staircase: #bc4cf7;
+  --c-elevator:  #3dd68c;
 }
 
-body { background: var(--bg); color: var(--text); font: 13px/1.4 system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+body {
+  background: var(--bg); color: var(--text);
+  font: 13px/1.5 system-ui, -apple-system, sans-serif;
+  height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+}
 
-/* ── TOOLBAR ─────────────────────────────────────────────── */
+/* ── TOOLBAR ───────────────────────────────────────────── */
 #toolbar {
-  display: flex; align-items: center; gap: 8px; padding: 8px 12px;
-  background: var(--surface); border-bottom: 1px solid var(--border);
-  flex-shrink: 0; flex-wrap: wrap;
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; background: var(--surface);
+  border-bottom: 1px solid var(--border); flex-shrink: 0; flex-wrap: wrap;
 }
-#toolbar h1 { font-size: 14px; font-weight: 700; color: var(--accent); margin-right: 4px; white-space: nowrap; }
-.tb-sep { width: 1px; height: 24px; background: var(--border); margin: 0 2px; flex-shrink: 0; }
+#toolbar h1 { font-size: 13px; font-weight: 700; color: var(--accent); white-space: nowrap; margin-right: 2px; }
+.tb-sep { width: 1px; height: 20px; background: var(--border); margin: 0 2px; flex-shrink: 0; }
+
 .btn {
-  padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border);
+  padding: 4px 11px; border-radius: 6px; border: 1px solid var(--border);
   background: var(--surface2); color: var(--text); cursor: pointer; font-size: 12px;
-  transition: background .15s, border-color .15s; white-space: nowrap;
+  transition: background .12s, border-color .12s; white-space: nowrap; line-height: 1.6;
 }
-.btn:hover { background: var(--border); }
+.btn:hover  { background: var(--surface3); border-color: #484f58; }
 .btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 .btn.danger { border-color: var(--danger); color: var(--danger); }
 .btn.danger:hover { background: var(--danger); color: #fff; }
-.btn.success { background: var(--success); border-color: var(--success); color: #fff; }
-.tb-input { padding: 5px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 12px; }
-#inp-api  { width: 200px; }
-#inp-key  { width: 150px; }
+.btn.success-btn { background: #1a6e35; border-color: var(--success); color: var(--success); }
+.btn.success-btn:hover { background: #2a8e45; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
 
-/* ── MAIN ────────────────────────────────────────────────── */
+.tb-input {
+  padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text); font-size: 12px;
+}
+#inp-api  { width: 190px; }
+#inp-key  { width: 130px; }
+#inp-bld  { width: 70px; }
+
+/* Floor tabs */
+#floor-tabs { display: flex; gap: 2px; background: var(--surface2); border-radius: 6px; padding: 2px; }
+.ftab {
+  padding: 3px 9px; border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: 600;
+  color: var(--text2); transition: background .12s, color .12s; border: none; background: none;
+}
+.ftab:hover { color: var(--text); }
+.ftab.active { background: var(--accent); color: #fff; }
+
+/* ── LAYOUT ────────────────────────────────────────────── */
 #main { display: flex; flex: 1; overflow: hidden; }
 
-/* ── SIDEBAR ─────────────────────────────────────────────── */
+/* ── SIDEBAR ───────────────────────────────────────────── */
 #sidebar {
-  width: 248px; background: var(--surface); border-right: 1px solid var(--border);
+  width: 256px; min-width: 256px; background: var(--surface);
+  border-right: 1px solid var(--border);
   display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0;
 }
 .panel { padding: 12px; border-bottom: 1px solid var(--border); }
-.panel h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--text2); margin-bottom: 10px; }
+.panel-hd {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--text2); margin-bottom: 10px; font-weight: 600;
+  display: flex; align-items: center; justify-content: space-between;
+}
 .field { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; }
+.field:last-child { margin-bottom: 0; }
 .field label { font-size: 11px; color: var(--text2); }
-.field input, .field select {
+.field input, .field select, .field textarea {
   padding: 5px 8px; border-radius: 5px; border: 1px solid var(--border);
   background: var(--surface2); color: var(--text); font-size: 12px; width: 100%;
 }
-.field input:focus { outline: none; border-color: var(--accent); }
-.field .hint { font-size: 10px; color: var(--text2); margin-top: 1px; }
+.field input:focus, .field select:focus { outline: none; border-color: var(--accent); }
+.hint { font-size: 10px; color: var(--text3); margin-top: 2px; }
 
-/* image upload area */
+/* ── UPLOAD AREA ───────────────────────────────────────── */
 #upload-area {
-  border: 2px dashed var(--border); border-radius: 8px; padding: 12px;
+  border: 2px dashed var(--border); border-radius: 8px; padding: 10px;
   text-align: center; cursor: pointer; transition: border-color .15s, background .15s;
-  margin-top: 4px; position: relative;
+  position: relative;
 }
-#upload-area:hover, #upload-area.drag-over { border-color: var(--accent); background: rgba(79,110,247,.06); }
-#upload-area.uploading { border-color: var(--warn); background: rgba(245,158,11,.06); cursor: default; }
-#upload-area.done { border-color: var(--success); background: rgba(34,197,94,.06); }
-#upload-area.error { border-color: var(--danger); background: rgba(239,68,68,.06); }
-#upload-icon { font-size: 24px; margin-bottom: 4px; }
+#upload-area:hover,
+#upload-area.drag-over { border-color: var(--accent); background: rgba(79,142,247,.05); }
+#upload-area.uploading { border-color: var(--warn); background: rgba(210,153,34,.05); cursor: default; }
+#upload-area.done      { border-color: var(--success); background: rgba(63,185,80,.05); }
+#upload-area.error     { border-color: var(--danger);  background: rgba(248,81,73,.05); }
+#upload-icon  { font-size: 22px; margin-bottom: 3px; }
 #upload-label { font-size: 11px; color: var(--text2); }
-#upload-file { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+#upload-file  { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 #upload-file.uploading { pointer-events: none; }
-
 #prop-preview {
   width: 100%; aspect-ratio: 2/1; object-fit: cover; border-radius: 6px;
   border: 1px solid var(--border); margin-top: 8px; display: none;
 }
-.upload-url {
-  font-size: 10px; color: var(--success); word-break: break-all;
-  margin-top: 4px; display: none;
+.upload-url { font-size: 10px; color: var(--success); word-break: break-all; margin-top: 4px; display: none; }
+
+#no-selection {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; color: var(--text2); font-size: 12px;
+  text-align: center; padding: 32px 20px; gap: 8px;
+}
+#no-selection .ns-icon { font-size: 36px; margin-bottom: 4px; }
+
+/* inline list items */
+.list-item {
+  display: flex; align-items: center; gap: 5px; padding: 5px 7px;
+  border-radius: 5px; background: var(--surface2); margin-bottom: 4px; font-size: 11px;
+}
+.list-item .lbl   { color: var(--accent); font-weight: 700; min-width: 40px; font-family: monospace; }
+.list-item .lbl2  { color: var(--accent2); font-size: 10px; white-space: nowrap; }
+.list-item .rest  { color: var(--text2); flex: 1; overflow: hidden; text-overflow: ellipsis; }
+.list-del { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 13px; padding: 0 2px; line-height: 1; margin-left: auto; }
+.list-del:hover { color: var(--danger); }
+
+/* empty state */
+.empty-hint { font-size: 11px; color: var(--text3); text-align: center; padding: 6px 0; }
+
+/* ── CANVAS AREA ───────────────────────────────────────── */
+#canvas-wrap {
+  flex: 1; position: relative; overflow: hidden; cursor: default;
+  background: var(--bg);
+  background-image: radial-gradient(circle, #30363d 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+#canvas-inner {
+  position: absolute; top: 0; left: 0;
+  width: 3000px; height: 2400px;
+  transform-origin: 0 0;
 }
 
-#no-selection { padding: 20px 12px; color: var(--text2); font-size: 12px; text-align: center; padding-top: 48px; }
-
-/* edges list */
-.edge-item {
-  display: flex; align-items: center; gap: 4px;
-  padding: 5px 8px; border-radius: 5px; background: var(--surface2);
-  margin-bottom: 4px; font-size: 11px;
-}
-.edge-item .dir { color: var(--accent); font-weight: 700; min-width: 36px; }
-.edge-item .target { color: var(--text2); flex: 1; overflow: hidden; text-overflow: ellipsis; }
-.edge-del { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 13px; padding: 0 2px; line-height: 1; }
-.edge-del:hover { color: var(--danger); }
-
-/* room list */
-.room-item {
-  display: flex; align-items: center; gap: 4px;
-  padding: 5px 8px; border-radius: 5px; background: var(--surface2);
-  margin-bottom: 4px; font-size: 11px;
-}
-.room-item .room-id { color: var(--text); font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; }
-.room-item .room-dir { color: var(--accent2); font-size: 10px; white-space: nowrap; }
-.room-del { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 13px; padding: 0 2px; line-height: 1; }
-.room-del:hover { color: var(--danger); }
-
-/* ── CANVAS ──────────────────────────────────────────────── */
-#canvas-wrap { flex: 1; position: relative; overflow: auto; cursor: default; }
-#canvas { position: relative; min-width: 1400px; min-height: 900px; }
-#svg-overlay {
-  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-  pointer-events: none; overflow: visible;
-}
-
-/* ── NODE CARDS ──────────────────────────────────────────── */
+/* ── NODE CARDS ────────────────────────────────────────── */
 .node-card {
-  position: absolute; width: var(--node-w); border-radius: 10px;
+  position: absolute; width: 152px; border-radius: 9px;
   border: 2px solid var(--border); background: var(--surface);
-  cursor: grab; user-select: none; transition: border-color .12s, box-shadow .12s;
-  overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.4);
+  cursor: grab; user-select: none;
+  transition: border-color .1s, box-shadow .1s, opacity .15s;
+  overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,.5);
 }
-.node-card:active { cursor: grabbing; }
-.node-card:hover { border-color: #4a5577; }
-.node-card.selected { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,110,247,.22); }
-.node-card.connect-src { border-color: var(--accent2); box-shadow: 0 0 0 3px rgba(124,58,237,.28); }
-.node-card.connect-tgt:not(.connect-src):hover { border-color: var(--success); }
+.node-card:hover      { border-color: #484f58; box-shadow: 0 4px 18px rgba(0,0,0,.6); }
+.node-card.selected   { box-shadow: 0 0 0 3px rgba(79,142,247,.35); }
+.node-card.connect-src { border-color: var(--accent2) !important; box-shadow: 0 0 0 3px rgba(124,58,237,.35); }
+.node-card.connect-tgt:not(.connect-src):hover { border-color: var(--success) !important; }
+.node-card.floor-hidden { opacity: 0; pointer-events: none; }
+
+/* type-coloured top border */
+.node-card[data-type="corridor"]  { border-color: var(--c-corridor); }
+.node-card[data-type="entrance"]  { border-color: var(--c-entrance); }
+.node-card[data-type="staircase"] { border-color: var(--c-staircase); }
+.node-card[data-type="elevator"]  { border-color: var(--c-elevator); }
+.node-card.selected[data-type="corridor"]  { box-shadow: 0 0 0 3px rgba(79,142,247,.4); }
+.node-card.selected[data-type="entrance"]  { box-shadow: 0 0 0 3px rgba(210,153,34,.4); }
+.node-card.selected[data-type="staircase"] { box-shadow: 0 0 0 3px rgba(188,76,247,.4); }
+.node-card.selected[data-type="elevator"]  { box-shadow: 0 0 0 3px rgba(61,214,140,.4); }
 
 .node-thumb {
-  width: 100%; height: 76px; object-fit: cover; display: block;
+  width: 100%; height: 72px; object-fit: cover; display: block;
   background: var(--surface2); border-bottom: 1px solid var(--border);
 }
 .node-thumb-ph {
-  width: 100%; height: 76px; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 4px;
+  width: 100%; height: 72px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 3px;
   background: var(--surface2); border-bottom: 1px solid var(--border);
-  color: var(--text2); font-size: 18px;
+  color: var(--text3); font-size: 20px;
 }
-.node-thumb-ph span { font-size: 10px; }
-.node-info { padding: 5px 8px 6px; }
-.node-id { font-size: 10px; color: var(--accent); font-weight: 700; font-family: monospace; }
-.node-meta { font-size: 10px; color: var(--text2); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.node-upload-bar {
-  height: 3px; background: var(--warn); position: absolute; bottom: 0; left: 0;
-  transition: width .3s; border-radius: 0 0 0 8px;
-}
+.node-thumb-ph span { font-size: 9px; color: var(--text3); }
+.node-info   { padding: 5px 8px 6px; }
+.node-id     { font-size: 10px; color: var(--text); font-weight: 700; font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.node-sub    { font-size: 9px; color: var(--text2); margin-top: 2px; display: flex; gap: 4px; align-items: center; }
+.node-room-count { font-size: 9px; color: var(--text3); margin-top: 1px; }
 
-.start-badge {
-  position: absolute; top: 4px; left: 4px; background: var(--accent);
-  color: #fff; font-size: 9px; padding: 1px 5px; border-radius: 3px; font-weight: 700;
+.badge {
+  font-size: 8px; padding: 1px 5px; border-radius: 3px; font-weight: 700;
+  position: absolute; top: 4px;
 }
-.img-badge {
-  position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,.55);
-  color: #fff; font-size: 9px; padding: 1px 4px; border-radius: 3px;
-}
+.badge.start { left: 4px; background: var(--accent); color: #fff; }
+.badge.floor { right: 4px; background: rgba(0,0,0,.6); color: var(--text2); }
+.badge.img   { right: 4px; background: rgba(0,0,0,.55); color: #fff; }
 
-/* ── SVG EDGES ───────────────────────────────────────────── */
-.edge-line { stroke: #3a4060; stroke-width: 1.8; }
+/* ── SVG EDGES ─────────────────────────────────────────── */
+.edge-line  { stroke: #3a4060; stroke-width: 1.6; }
 .edge-arrow { fill: #3a4060; }
-.edge-label-bg { fill: var(--surface); }
-.edge-lbl { font-size: 10px; fill: var(--text2); font-family: system-ui, sans-serif; pointer-events: all; cursor: pointer; }
+.edge-label-bg { fill: var(--surface); rx: 3; }
+.edge-lbl { font-size: 9px; fill: #7d8590; font-family: system-ui, sans-serif; pointer-events: all; cursor: pointer; }
 .edge-lbl:hover { fill: var(--danger); }
 
-/* ── MODAL ───────────────────────────────────────────────── */
+/* ── ZOOM CONTROLS ─────────────────────────────────────── */
+#zoom-controls {
+  position: absolute; bottom: 12px; right: 12px;
+  display: flex; flex-direction: column; gap: 4px; z-index: 10;
+}
+.zoom-btn {
+  width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text); cursor: pointer; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .12s;
+}
+.zoom-btn:hover { background: var(--surface2); }
+#zoom-label {
+  font-size: 10px; color: var(--text2); text-align: center; padding: 2px 0;
+}
+
+/* ── MODAL ─────────────────────────────────────────────── */
 #modal-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,.65); display: none;
+  position: fixed; inset: 0; background: rgba(0,0,0,.7); display: none;
   align-items: center; justify-content: center; z-index: 1000;
 }
 #modal-overlay.open { display: flex; }
 #modal {
   background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-  padding: 24px; min-width: 320px; box-shadow: 0 12px 40px rgba(0,0,0,.6);
+  padding: 24px; min-width: 340px; max-width: 440px; width: 90%;
+  box-shadow: 0 16px 48px rgba(0,0,0,.7);
 }
-#modal h3 { margin-bottom: 8px; font-size: 14px; }
-#modal p  { font-size: 11px; color: var(--text2); margin-bottom: 14px; }
-#modal input {
-  width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border);
-  background: var(--surface2); color: var(--text); font-size: 13px; margin-bottom: 14px;
+#modal h3   { margin-bottom: 6px; font-size: 15px; }
+#modal .sub { font-size: 11px; color: var(--text2); margin-bottom: 16px; }
+.modal-field { margin-bottom: 12px; }
+.modal-field label { display: block; font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+.modal-field input,
+.modal-field select {
+  width: 100%; padding: 7px 10px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text); font-size: 13px;
 }
-#modal input:focus { outline: none; border-color: var(--accent); }
-.modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+.modal-field input:focus,
+.modal-field select:focus { outline: none; border-color: var(--accent); }
+.modal-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 
-/* ── STATUSBAR ───────────────────────────────────────────── */
+/* ── STATUSBAR ─────────────────────────────────────────── */
 #statusbar {
-  padding: 4px 12px; background: var(--surface); border-top: 1px solid var(--border);
+  padding: 4px 14px; background: var(--surface); border-top: 1px solid var(--border);
   font-size: 11px; color: var(--text2); flex-shrink: 0; min-height: 24px;
+  display: flex; align-items: center; gap: 8px;
 }
-#statusbar.ok  { color: var(--success); }
-#statusbar.err { color: var(--danger); }
+#statusbar.ok   { color: var(--success); }
+#statusbar.err  { color: var(--danger); }
 #statusbar.warn { color: var(--warn); }
+#node-count { margin-left: auto; font-size: 10px; color: var(--text3); white-space: nowrap; }
+
+/* ── ADD ROOM ROW ──────────────────────────────────────── */
+.add-row { display: flex; gap: 5px; margin-top: 6px; }
+.add-row input, .add-row select {
+  flex: 1; padding: 5px 7px; border-radius: 5px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text); font-size: 11px;
+}
+.add-row .btn { padding: 5px 8px; flex-shrink: 0; }
+
+/* ── PATCH BTN ─────────────────────────────────────────── */
+#btn-patch-node { width: 100%; margin-top: 4px; }
 </style>
 </head>
 <body>
 
 <!-- TOOLBAR -->
 <div id="toolbar">
-  <h1>🗺 Streetview Editor</h1>
+  <h1>🗺 Graph Editor</h1>
   <div class="tb-sep"></div>
-  <button class="btn" id="btn-add">+ Position</button>
+
+  <button class="btn" id="btn-add">+ Node</button>
   <button class="btn" id="btn-connect">Verbinden</button>
-  <button class="btn danger" id="btn-delete">✕ Löschen</button>
+  <button class="btn danger" id="btn-delete">✕</button>
+
   <div class="tb-sep"></div>
-  <button class="btn" id="btn-import">⬆ JSON laden</button>
-  <button class="btn" id="btn-export">⬇ JSON speichern</button>
-  <div class="tb-sep"></div>
-  <input class="tb-input" id="inp-api" placeholder="http://localhost:8000" title="API-Basis-URL">
-  <input class="tb-input" id="inp-key" placeholder="API-Key" type="password" title="X-API-Key für Upload & POST">
-  <button class="btn success" id="btn-post">→ Graph an API</button>
+
+  <button class="btn" id="btn-import">⬆ Laden</button>
+  <button class="btn" id="btn-export">⬇ Speichern</button>
   <input type="file" id="file-import" accept=".json" style="display:none">
+
+  <div class="tb-sep"></div>
+
+  <input class="tb-input" id="inp-api" placeholder="http://localhost:6058" title="API-Basis-URL">
+  <input class="tb-input" id="inp-key" type="password" placeholder="API-Key" title="X-API-Key">
+  <input class="tb-input" id="inp-bld" placeholder="G2" title="Gebäude-ID für API">
+  <button class="btn" id="btn-load-api">↓ API</button>
+  <button class="btn success-btn" id="btn-post">→ API</button>
+
+  <div class="tb-sep"></div>
+
+  <div id="floor-tabs">
+    <button class="ftab active" data-floor="all">Alle</button>
+    <button class="ftab" data-floor="0">EG</button>
+    <button class="ftab" data-floor="1">1OG</button>
+    <button class="ftab" data-floor="2">2OG</button>
+  </div>
 </div>
 
 <!-- MAIN -->
@@ -224,79 +314,121 @@ body { background: var(--bg); color: var(--text); font: 13px/1.4 system-ui, sans
   <div id="sidebar">
 
     <div id="no-selection">
-      <div style="font-size:32px;margin-bottom:10px">📍</div>
-      <strong>Gangposition auswählen</strong><br><br>
-      <span style="font-size:11px">Jede Position = ein Standpunkt<br>im Korridor (~2 m Abstand).<br>Bilder werden direkt in die API hochgeladen.</span>
+      <div class="ns-icon">📍</div>
+      <strong>Keine Position gewählt</strong>
+      <span>Node anklicken oder<br>„+ Node" zum Erstellen.</span>
     </div>
 
     <div id="props-panel" style="display:none">
 
-      <!-- NODE PROPERTIES -->
+      <!-- PROPERTIES -->
       <div class="panel">
-        <h2>Positions-Eigenschaften</h2>
+        <div class="panel-hd">Node-Eigenschaften</div>
         <div class="field">
-          <label>Position-ID <span style="color:var(--text2)">(Ordner in API)</span></label>
-          <input id="prop-id" readonly style="opacity:.55;font-family:monospace">
+          <label>ID <span style="color:var(--text3);font-size:10px">(API-Pfad + Graph-Schlüssel)</span></label>
+          <input id="prop-id" placeholder="G2-EG-G01" style="font-family:monospace;font-size:11px">
         </div>
         <div class="field">
-          <label>Gebäude-ID</label>
-          <input id="prop-building" placeholder="z. B. G2">
+          <label>Gebäude</label>
+          <input id="prop-building" placeholder="G2">
+        </div>
+        <div style="display:flex;gap:8px">
+          <div class="field" style="flex:1">
+            <label>Etage</label>
+            <select id="prop-floor">
+              <option value="">–</option>
+              <option value="0">0 – EG</option>
+              <option value="1">1 – 1. OG</option>
+              <option value="2">2 – 2. OG</option>
+              <option value="3">3 – 3. OG</option>
+              <option value="-1">–1 – UG</option>
+            </select>
+          </div>
+          <div class="field" style="flex:1">
+            <label>Typ</label>
+            <select id="prop-type">
+              <option value="corridor">🚶 Korridor</option>
+              <option value="entrance">🚪 Eingang</option>
+              <option value="staircase">🏃 Treppe</option>
+              <option value="elevator">🛗 Aufzug</option>
+            </select>
+          </div>
         </div>
         <div class="field">
-          <label>Kamera-Heading (°)</label>
-          <input id="prop-heading" type="number" value="0" min="-360" max="360">
-          <span class="hint">Startausrichtung der 360°-Kamera.</span>
+          <label>Heading (°)</label>
+          <input id="prop-heading" type="number" value="0" min="0" max="360" step="5">
+          <span class="hint">Kameraausrichtung beim Laden (0 = Norden/Vorne)</span>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button class="btn" id="btn-startnode" style="flex:1">⭐ StartNode</button>
+          <button class="btn danger" id="btn-apply-id" style="flex:1" title="ID übernehmen (verschiebt Bild-Ordner!)">✓ ID anwenden</button>
+        </div>
+      </div>
+
+      <!-- IMAGE -->
+      <div class="panel">
+        <div class="panel-hd">360°-Panoramabild</div>
+        <div id="upload-area">
+          <div id="upload-icon">📷</div>
+          <div id="upload-label">Hier ablegen oder anklicken</div>
+          <input type="file" id="upload-file" accept="image/*">
+        </div>
+        <img id="prop-preview">
+        <div class="upload-url" id="upload-url-display"></div>
+        <div class="field" style="margin-top:8px">
+          <label>Bild-URL <span style="color:var(--text3);font-size:10px">(wird auto gesetzt)</span></label>
+          <input id="prop-image-url" placeholder="/api/v1/images/rooms/…/datei.jpg" style="font-size:10px">
         </div>
       </div>
 
       <!-- NEARBY ROOMS -->
       <div class="panel">
-        <h2>Zugängliche Räume</h2>
-        <span class="hint" style="display:block;margin-bottom:8px">Welche Räume sind von dieser Position aus erreichbar, und in welche Richtung liegt die Tür?</span>
-        <ul id="room-list" style="list-style:none;margin-bottom:8px"></ul>
-        <div style="display:flex;gap:6px;margin-bottom:6px">
-          <input id="new-room-id" placeholder="Raum-ID, z. B. G2-0.01" style="flex:1;padding:5px 7px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px">
+        <div class="panel-hd">
+          Zugängliche Räume
+          <span id="room-count" style="color:var(--text3);font-weight:400;font-size:10px"></span>
         </div>
-        <div style="display:flex;gap:6px">
-          <select id="new-room-dir" style="flex:1;padding:5px 7px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:12px">
-            <option value="">Richtung wählen…</option>
-            <option value="geradeaus">⬆ geradeaus</option>
-            <option value="links">⬅ links</option>
-            <option value="rechts">➡ rechts</option>
-            <option value="hinten">⬇ hinten</option>
-            <option value="Tür links">🚪 Tür links</option>
-            <option value="Tür rechts">🚪 Tür rechts</option>
-            <option value="Tür geradeaus">🚪 Tür geradeaus</option>
+        <ul id="room-list" style="list-style:none;margin-bottom:4px"></ul>
+        <div class="add-row">
+          <input id="new-room-id" placeholder="G2 0.01">
+          <select id="new-room-dir">
+            <option value="">Richtung…</option>
+            <option value="links">← links</option>
+            <option value="rechts">→ rechts</option>
+            <option value="geradeaus">↑ geradeaus</option>
+            <option value="hinten">↓ hinten</option>
+            <option value="Tür links">🚪 Tür li.</option>
+            <option value="Tür rechts">🚪 Tür re.</option>
+            <option value="Tür geradeaus">🚪 Tür ger.</option>
           </select>
-          <button class="btn active" id="btn-add-room" style="padding:5px 10px">+ Raum</button>
+          <button class="btn active" id="btn-add-room">+</button>
         </div>
       </div>
 
-      <!-- IMAGE UPLOAD -->
+      <!-- SPOTS -->
       <div class="panel">
-        <h2>360°-Panoramabild</h2>
-        <div id="upload-area">
-          <div id="upload-icon">📷</div>
-          <div id="upload-label">Bild hier ablegen oder anklicken</div>
-          <input type="file" id="upload-file" accept="image/*">
+        <div class="panel-hd">
+          Panorama-Spots
+          <span id="spot-count" style="color:var(--text3);font-weight:400;font-size:10px"></span>
         </div>
-        <img id="prop-preview">
-        <div class="upload-url" id="upload-url-display"></div>
-        <div class="field" style="margin-top:10px">
-          <label>Bild-URL <span style="color:var(--text2)">(wird auto gesetzt)</span></label>
-          <input id="prop-image-url" placeholder="/api/v1/images/rooms/…/datei.jpg">
+        <ul id="spot-list" style="list-style:none;margin-bottom:4px"></ul>
+        <div class="add-row" style="flex-wrap:wrap;gap:4px">
+          <input id="new-spot-name" placeholder="Name" style="flex:2;min-width:80px">
+          <input id="new-spot-lon"  placeholder="Lon 0–360" type="number" min="0" max="360" style="flex:1;min-width:60px">
+          <input id="new-spot-lat"  placeholder="Lat ±90"   type="number" min="-90" max="90"  style="flex:1;min-width:60px">
+          <input id="new-spot-desc" placeholder="Beschreibung (optional)" style="flex:3;min-width:100px">
+          <button class="btn active" id="btn-add-spot" style="flex-shrink:0">+</button>
         </div>
       </div>
 
-      <!-- ACTIONS -->
+      <!-- EXITS -->
       <div class="panel">
-        <button class="btn" id="btn-startnode" style="width:100%">⭐ Als StartNode setzen</button>
+        <div class="panel-hd">Ausgänge</div>
+        <ul id="edge-list" style="list-style:none;margin-bottom:4px"></ul>
       </div>
 
-      <!-- EDGES -->
-      <div class="panel" style="flex:1;border-bottom:none">
-        <h2>Ausgänge von hier</h2>
-        <ul id="edge-list" style="list-style:none"></ul>
+      <!-- PATCH -->
+      <div class="panel" style="border-bottom:none">
+        <button class="btn success-btn" id="btn-patch-node">↑ Nur diesen Node an API senden</button>
       </div>
 
     </div>
@@ -304,28 +436,85 @@ body { background: var(--bg); color: var(--text); font: 13px/1.4 system-ui, sans
 
   <!-- CANVAS -->
   <div id="canvas-wrap">
-    <div id="canvas">
-      <svg id="svg-overlay">
+    <div id="canvas-inner">
+      <svg id="svg-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible">
         <defs>
-          <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" class="edge-arrow"/>
+          <marker id="arr" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+            <polygon points="0 0, 7 2.5, 0 5" class="edge-arrow"/>
           </marker>
         </defs>
       </svg>
+    </div>
+    <div id="zoom-controls">
+      <button class="zoom-btn" id="btn-zoom-in">+</button>
+      <div id="zoom-label">100%</div>
+      <button class="zoom-btn" id="btn-zoom-out">−</button>
+      <button class="zoom-btn" id="btn-zoom-fit" title="Fit">⊡</button>
     </div>
   </div>
 
 </div>
 
 <!-- STATUSBAR -->
-<div id="statusbar">Bereit. „+ Position" anklicken oder vorhandene graph.json laden.</div>
+<div id="statusbar">
+  Bereit — Node anlegen oder JSON laden.
+  <span id="node-count"></span>
+</div>
 
-<!-- DIRECTION MODAL -->
+<!-- CREATE NODE MODAL -->
 <div id="modal-overlay">
   <div id="modal">
-    <h3 id="modal-title">Richtung eingeben</h3>
-    <p id="modal-hint"></p>
-    <input id="modal-input" placeholder="front · back · left · right · …">
+    <h3 id="modal-title">Neue Position</h3>
+    <p class="sub" id="modal-sub"></p>
+
+    <div class="modal-field" id="mf-id">
+      <label>Node-ID <span style="color:var(--text3)">(= Ordnername für Bilder)</span></label>
+      <input id="m-id" placeholder="G2-EG-G01" style="font-family:monospace">
+    </div>
+    <div class="modal-field" id="mf-bld">
+      <label>Gebäude</label>
+      <input id="m-bld" placeholder="G2">
+    </div>
+    <div style="display:flex;gap:10px">
+      <div class="modal-field" style="flex:1" id="mf-floor">
+        <label>Etage</label>
+        <select id="m-floor">
+          <option value="">–</option>
+          <option value="0">0 – EG</option>
+          <option value="1">1 – 1. OG</option>
+          <option value="2">2 – 2. OG</option>
+          <option value="-1">–1 – UG</option>
+        </select>
+      </div>
+      <div class="modal-field" style="flex:1" id="mf-type">
+        <label>Typ</label>
+        <select id="m-type">
+          <option value="corridor">🚶 Korridor</option>
+          <option value="entrance">🚪 Eingang</option>
+          <option value="staircase">🏃 Treppe</option>
+          <option value="elevator">🛗 Aufzug</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="modal-field" id="mf-dir">
+      <label>Richtung</label>
+      <select id="m-dir">
+        <option value="">Richtung wählen…</option>
+        <option value="front">↑ front</option>
+        <option value="back">↓ back</option>
+        <option value="left">← left</option>
+        <option value="right">→ right</option>
+        <option value="up">▲ up (Treppe hoch)</option>
+        <option value="down">▼ down (Treppe runter)</option>
+      </select>
+    </div>
+
+    <div class="modal-field" id="mf-text">
+      <label>Wert</label>
+      <input id="m-text" placeholder="">
+    </div>
+
     <div class="modal-btns">
       <button class="btn" id="modal-cancel">Abbrechen</button>
       <button class="btn active" id="modal-ok">OK</button>
@@ -336,30 +525,34 @@ body { background: var(--bg); color: var(--text); font: 13px/1.4 system-ui, sans
 <script>
 'use strict';
 
-// ── STATE ─────────────────────────────────────────────────────────────────────
-
+// ── STATE ────────────────────────────────────────────────────────────────────
 const S = {
-  nodes: [],        // {id, x, y, building, heading, imageUrl, dataUrl, nearby_rooms: [{room_id, direction}]}
-  edges: [],        // {id, from, to, direction}
-  startNode: null,
-  selected: null,
+  nodes: [],   // {id, x, y, building, floor, nodeType, heading, imageUrl, dataUrl, nearby_rooms, spots}
+  edges: [],   // {id, from, to, direction}
+  startNode:   null,
+  selected:    null,
   connectMode: false,
-  connectSrc: null,
-  nodeCounter: 0,
+  connectSrc:  null,
   edgeCounter: 0,
+  floorFilter: 'all',
 };
 
-// ── DOM ───────────────────────────────────────────────────────────────────────
+const VIEW = { x: 60, y: 60, zoom: 1 };
 
+// ── DOM REFS ─────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
-const canvas     = $('canvas');
-const svg        = $('svg-overlay');
-const statusbar  = $('statusbar');
-const noSel      = $('no-selection');
-const propsPanel = $('props-panel');
+
+const canvasWrap  = $('canvas-wrap');
+const canvasInner = $('canvas-inner');
+const svg         = $('svg-overlay');
+const statusbar   = $('statusbar');
+const noSel       = $('no-selection');
+const propsPanel  = $('props-panel');
 
 const propId       = $('prop-id');
 const propBuilding = $('prop-building');
+const propFloor    = $('prop-floor');
+const propType     = $('prop-type');
 const propHeading  = $('prop-heading');
 const propImageUrl = $('prop-image-url');
 const propPreview  = $('prop-preview');
@@ -367,108 +560,252 @@ const uploadArea   = $('upload-area');
 const uploadFile   = $('upload-file');
 const uploadIcon   = $('upload-icon');
 const uploadLabel  = $('upload-label');
-const uploadUrlDisp = $('upload-url-display');
-const edgeList     = $('edge-list');
+const uploadUrlDisp= $('upload-url-display');
 
-const btnAdd       = $('btn-add');
-const btnConnect   = $('btn-connect');
-const btnDelete    = $('btn-delete');
-const btnExport    = $('btn-export');
-const btnImport    = $('btn-import');
-const fileImport   = $('file-import');
-const btnPost      = $('btn-post');
-const btnStartNode = $('btn-startnode');
-const inpApi       = $('inp-api');
-const inpKey       = $('inp-key');
-
-// ── STATUS ────────────────────────────────────────────────────────────────────
-
+// ── HELPERS ──────────────────────────────────────────────────────────────────
 function setStatus(msg, type = '') {
   statusbar.textContent = msg;
-  statusbar.className = type;
+  statusbar.className   = type;
+  const nc = $('node-count');
+  nc.textContent = `${S.nodes.length} Nodes · ${S.edges.length} Kanten`;
+}
+
+function findNode(id) { return S.nodes.find(n => n.id === id); }
+const NODE_W = 152, NODE_H = 116;
+function nodeCenter(n) { return { x: n.x + NODE_W/2, y: n.y + NODE_H/2 }; }
+
+const TYPE_ICON = { corridor: '🚶', entrance: '🚪', staircase: '🏃', elevator: '🛗' };
+const FLOOR_LBL = { '-1': 'UG', '0': 'EG', '1': '1OG', '2': '2OG', '3': '3OG' };
+
+// ── ZOOM / PAN ───────────────────────────────────────────────────────────────
+function applyTransform() {
+  canvasInner.style.transform = `translate(${VIEW.x}px,${VIEW.y}px) scale(${VIEW.zoom})`;
+  $('zoom-label').textContent = `${Math.round(VIEW.zoom * 100)}%`;
+}
+
+canvasWrap.addEventListener('wheel', e => {
+  e.preventDefault();
+  const rect  = canvasWrap.getBoundingClientRect();
+  const cx    = e.clientX - rect.left;
+  const cy    = e.clientY - rect.top;
+  const delta = e.deltaY < 0 ? 1.1 : 1/1.1;
+  const nz    = Math.max(0.2, Math.min(3, VIEW.zoom * delta));
+  VIEW.x = cx - (cx - VIEW.x) * (nz / VIEW.zoom);
+  VIEW.y = cy - (cy - VIEW.y) * (nz / VIEW.zoom);
+  VIEW.zoom = nz;
+  applyTransform();
+}, { passive: false });
+
+// Middle-button or space+drag → pan
+let panning = null, spaceDown = false;
+document.addEventListener('keydown', e => { if (e.code === 'Space' && !document.activeElement.matches('input,select,textarea')) { spaceDown = true; canvasWrap.style.cursor = 'grab'; e.preventDefault(); }});
+document.addEventListener('keyup',   e => { if (e.code === 'Space') { spaceDown = false; canvasWrap.style.cursor = ''; }});
+
+canvasWrap.addEventListener('mousedown', e => {
+  if (e.button === 1 || (e.button === 0 && spaceDown)) {
+    e.preventDefault();
+    panning = { sx: e.clientX, sy: e.clientY, ox: VIEW.x, oy: VIEW.y };
+    canvasWrap.style.cursor = 'grabbing';
+  }
+});
+document.addEventListener('mousemove', e => {
+  if (!panning) return;
+  VIEW.x = panning.ox + e.clientX - panning.sx;
+  VIEW.y = panning.oy + e.clientY - panning.sy;
+  applyTransform();
+});
+document.addEventListener('mouseup', e => {
+  if (panning) { panning = null; canvasWrap.style.cursor = spaceDown ? 'grab' : ''; }
+});
+
+$('btn-zoom-in').addEventListener('click',  () => { VIEW.zoom = Math.min(3, VIEW.zoom*1.2); applyTransform(); });
+$('btn-zoom-out').addEventListener('click', () => { VIEW.zoom = Math.max(.2, VIEW.zoom/1.2); applyTransform(); });
+$('btn-zoom-fit').addEventListener('click', () => {
+  if (!S.nodes.length) return;
+  const xs = S.nodes.map(n => n.x), ys = S.nodes.map(n => n.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs) + NODE_W;
+  const minY = Math.min(...ys), maxY = Math.max(...ys) + NODE_H;
+  const wr = canvasWrap.clientWidth  / (maxX - minX + 80);
+  const hr = canvasWrap.clientHeight / (maxY - minY + 80);
+  VIEW.zoom = Math.min(wr, hr, 1.5);
+  VIEW.x = (canvasWrap.clientWidth  - (maxX - minX) * VIEW.zoom) / 2 - minX * VIEW.zoom;
+  VIEW.y = (canvasWrap.clientHeight - (maxY - minY) * VIEW.zoom) / 2 - minY * VIEW.zoom;
+  applyTransform();
+});
+
+applyTransform();
+
+// ── FLOOR FILTER ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.ftab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    S.floorFilter = tab.dataset.floor;
+    applyFloorFilter();
+    renderSVG();
+  });
+});
+
+function applyFloorFilter() {
+  S.nodes.forEach(n => {
+    const card = document.getElementById(`card-${n.id}`);
+    if (!card) return;
+    const show = S.floorFilter === 'all' || String(n.floor) === S.floorFilter;
+    card.classList.toggle('floor-hidden', !show);
+  });
+}
+
+function nodeVisible(n) {
+  return S.floorFilter === 'all' || String(n.floor) === S.floorFilter;
 }
 
 // ── MODAL ─────────────────────────────────────────────────────────────────────
-
 let _modalResolve = null;
+let _modalMode = 'create'; // 'create' | 'connect' | 'text'
 
-function openModal(title, hint, def = '') {
+function openModal(mode, opts = {}) {
   return new Promise(r => {
     _modalResolve = r;
-    $('modal-title').textContent = title;
-    $('modal-hint').textContent  = hint;
-    $('modal-input').value = def;
+    _modalMode = mode;
+
+    // Show/hide fields
+    $('mf-id').style.display    = mode === 'create' ? '' : 'none';
+    $('mf-bld').style.display   = mode === 'create' ? '' : 'none';
+    $('mf-floor').style.display = mode === 'create' ? '' : 'none';
+    $('mf-type').style.display  = mode === 'create' ? '' : 'none';
+    $('mf-dir').style.display   = mode === 'connect' ? '' : 'none';
+    $('mf-text').style.display  = mode === 'text'    ? '' : 'none';
+
+    $('modal-title').textContent = opts.title || 'Dialog';
+    $('modal-sub').textContent   = opts.sub   || '';
+
+    if (mode === 'create') {
+      $('m-id').value   = opts.suggestId || '';
+      $('m-bld').value  = opts.building  || '';
+      $('m-floor').value= opts.floor     !== undefined ? String(opts.floor) : '';
+      $('m-type').value = opts.type      || 'corridor';
+      setTimeout(() => $('m-id').focus(), 50);
+    } else if (mode === 'connect') {
+      $('m-dir').value  = opts.suggest || '';
+      setTimeout(() => $('m-dir').focus(), 50);
+    } else if (mode === 'text') {
+      $('m-text').value       = opts.def || '';
+      $('m-text').placeholder = opts.placeholder || '';
+      setTimeout(() => $('m-text').focus(), 50);
+    }
+
     $('modal-overlay').classList.add('open');
-    setTimeout(() => $('modal-input').focus(), 50);
   });
 }
+
 function closeModal(v) {
   $('modal-overlay').classList.remove('open');
   if (_modalResolve) { _modalResolve(v); _modalResolve = null; }
 }
-$('modal-ok').addEventListener('click', () => closeModal($('modal-input').value.trim()));
-$('modal-cancel').addEventListener('click', () => closeModal(null));
-$('modal-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') closeModal($('modal-input').value.trim());
-  if (e.key === 'Escape') closeModal(null);
+
+$('modal-ok').addEventListener('click', () => {
+  if (_modalMode === 'create') {
+    closeModal({
+      id:       $('m-id').value.trim(),
+      building: $('m-bld').value.trim(),
+      floor:    $('m-floor').value !== '' ? parseInt($('m-floor').value) : null,
+      nodeType: $('m-type').value,
+    });
+  } else if (_modalMode === 'connect') {
+    closeModal($('m-dir').value || null);
+  } else {
+    closeModal($('m-text').value.trim());
+  }
 });
+$('modal-cancel').addEventListener('click', () => closeModal(null));
+['m-id','m-bld','m-text'].forEach(id => {
+  $(id).addEventListener('keydown', e => { if (e.key === 'Enter') $('modal-ok').click(); if (e.key === 'Escape') closeModal(null); });
+});
+$('m-dir').addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(null); });
 $('modal-overlay').addEventListener('click', e => { if (e.target.id === 'modal-overlay') closeModal(null); });
 
-// ── NODE UTILS ────────────────────────────────────────────────────────────────
-
-function findNode(id) { return S.nodes.find(n => n.id === id); }
-function findEdge(id) { return S.edges.find(e => e.id === id); }
-
-const NODE_W = 148, NODE_H = 118;
-function nodeCenter(n) { return { x: n.x + NODE_W / 2, y: n.y + NODE_H / 2 }; }
-
 // ── CREATE NODE ───────────────────────────────────────────────────────────────
+async function createNode() {
+  const lastBuilding = S.nodes.length ? S.nodes[S.nodes.length-1].building : ($('inp-bld').value.trim() || 'G2');
+  const lastFloor    = S.nodes.length ? S.nodes[S.nodes.length-1].floor    : null;
 
-function createNode(x = 80 + Math.random() * 500, y = 60 + Math.random() * 320) {
+  const res = await openModal('create', {
+    title:     'Neue Position anlegen',
+    sub:       'Node-ID = Ordnername für Bilder auf dem Server.',
+    suggestId: '',
+    building:  lastBuilding,
+    floor:     lastFloor,
+    type:      'corridor',
+  });
+  if (!res || !res.id) { setStatus('Abgebrochen.', 'warn'); return; }
+
+  if (S.nodes.find(n => n.id === res.id)) {
+    setStatus(`Node-ID "${res.id}" existiert bereits.`, 'err'); return;
+  }
+
+  const cx = canvasWrap.clientWidth / 2, cy = canvasWrap.clientHeight / 2;
+  const x  = Math.max(0, (cx - VIEW.x) / VIEW.zoom - NODE_W/2 + (Math.random()-0.5)*60);
+  const y  = Math.max(0, (cy - VIEW.y) / VIEW.zoom - NODE_H/2 + (Math.random()-0.5)*60);
+
   const node = {
-    id: `pos${S.nodeCounter++}`, x, y,
-    building: '', heading: 0, imageUrl: '', dataUrl: '', nearby_rooms: [],
+    id: res.id, x, y,
+    building: res.building, floor: res.floor, nodeType: res.nodeType,
+    heading: 0, imageUrl: '', dataUrl: '', nearby_rooms: [], spots: [],
   };
   S.nodes.push(node);
   if (!S.startNode) S.startNode = node.id;
   renderNode(node);
+  applyFloorFilter();
   selectNode(node.id);
-  setStatus(`Position "${node.id}" erstellt. Bild hochladen und Verbindungen setzen.`);
+  setStatus(`Node "${node.id}" erstellt.`, 'ok');
 }
 
 // ── RENDER NODE ───────────────────────────────────────────────────────────────
-
 function renderNode(node) {
   let card = document.getElementById(`card-${node.id}`);
   if (!card) {
     card = document.createElement('div');
     card.id = `card-${node.id}`;
     card.className = 'node-card';
-    // Listener nur EINMAL beim Erstellen anhängen
     card.addEventListener('mousedown', e => onNodeMouseDown(e, node.id));
-    canvas.appendChild(card);
+    canvasInner.appendChild(card);
   }
-
   card.style.left = node.x + 'px';
   card.style.top  = node.y + 'px';
+  card.dataset.type  = node.nodeType || 'corridor';
+  card.dataset.floor = node.floor !== null && node.floor !== undefined ? String(node.floor) : '';
 
-  const isStart = S.startNode === node.id;
-  const isSrc   = S.connectSrc === node.id;
-  card.className = `node-card${S.selected === node.id ? ' selected' : ''}${isSrc ? ' connect-src' : ''}${S.connectMode ? ' connect-tgt' : ''}`;
+  const isStart  = S.startNode === node.id;
+  const isSrc    = S.connectSrc === node.id;
+  card.className = [
+    'node-card',
+    S.selected === node.id ? 'selected' : '',
+    isSrc ? 'connect-src' : '',
+    S.connectMode ? 'connect-tgt' : '',
+    !nodeVisible(node) ? 'floor-hidden' : '',
+  ].filter(Boolean).join(' ');
+  card.dataset.type = node.nodeType || 'corridor';
 
-  const thumb = node.dataUrl || node.imageUrl;
-  const roomLabels = (node.nearby_rooms || []).map(r => r.room_id).join(', ');
-  const meta  = [node.building, roomLabels].filter(Boolean).join(' · ') || 'keine Metadaten';
+  const thumb      = node.dataUrl || node.imageUrl;
+  const floorLbl   = node.floor !== null && node.floor !== undefined ? (FLOOR_LBL[String(node.floor)] || String(node.floor)) : null;
+  const typeIcon   = TYPE_ICON[node.nodeType || 'corridor'] || '📍';
+  const roomCount  = (node.nearby_rooms || []).length;
+  const hasImg     = !!node.imageUrl;
 
   card.innerHTML = `
-    ${isStart ? '<div class="start-badge">START</div>' : ''}
-    ${node.imageUrl ? `<div class="img-badge">📷</div>` : ''}
+    ${isStart ? '<div class="badge start">START</div>' : ''}
+    ${floorLbl && !isStart ? `<div class="badge floor">${floorLbl}</div>` : ''}
+    ${isStart && floorLbl  ? `<div class="badge img">${floorLbl}</div>` : ''}
+    ${!isStart && hasImg   ? `<div class="badge img" style="left:4px;right:auto">📷</div>` : ''}
     ${thumb
       ? `<img class="node-thumb" src="${thumb}" draggable="false" onerror="this.style.display='none'">`
-      : `<div class="node-thumb-ph">📍<span>Kein Bild</span></div>`}
+      : `<div class="node-thumb-ph">${typeIcon}<span>${node.nodeType || 'corridor'}</span></div>`}
     <div class="node-info">
       <div class="node-id">${node.id}</div>
-      <div class="node-meta">${meta}</div>
+      <div class="node-sub">
+        <span style="color:var(--text3)">${node.building || '–'}</span>
+        ${roomCount ? `<span style="color:var(--accent2)">· ${roomCount} Räume</span>` : ''}
+      </div>
     </div>
   `;
 }
@@ -476,476 +813,471 @@ function renderNode(node) {
 function renderAllNodes() { S.nodes.forEach(renderNode); }
 
 // ── DELETE NODE ───────────────────────────────────────────────────────────────
-
 function deleteNode(nodeId) {
   S.nodes = S.nodes.filter(n => n.id !== nodeId);
   S.edges = S.edges.filter(e => e.from !== nodeId && e.to !== nodeId);
   document.getElementById(`card-${nodeId}`)?.remove();
   if (S.startNode === nodeId) S.startNode = S.nodes[0]?.id ?? null;
-  if (S.selected === nodeId) selectNode(null);
+  if (S.selected  === nodeId) selectNode(null);
   renderSVG();
-  setStatus(`Position "${nodeId}" gelöscht.`);
+  setStatus(`Node "${nodeId}" gelöscht.`, 'warn');
 }
 
 // ── SELECTION ─────────────────────────────────────────────────────────────────
-
 function selectNode(id) {
   S.selected = id;
-  S.nodes.forEach(n => {
-    const c = document.getElementById(`card-${n.id}`);
-    if (c) c.classList.toggle('selected', n.id === id);
-  });
+  renderAllNodes();
 
-  if (!id) {
-    noSel.style.display = '';
-    propsPanel.style.display = 'none';
-    return;
-  }
-  noSel.style.display = 'none';
-  propsPanel.style.display = '';
+  if (!id) { noSel.style.display = ''; propsPanel.style.display = 'none'; return; }
+  noSel.style.display = 'none'; propsPanel.style.display = '';
 
   const node = findNode(id);
   if (!node) return;
   propId.value       = node.id;
-  propBuilding.value = node.building;
-  propHeading.value  = node.heading;
-  propImageUrl.value = node.imageUrl;
-  renderRoomList(id);
+  propBuilding.value = node.building || '';
+  propFloor.value    = node.floor !== null && node.floor !== undefined ? String(node.floor) : '';
+  propType.value     = node.nodeType || 'corridor';
+  propHeading.value  = node.heading ?? 0;
+  propImageUrl.value = node.imageUrl || '';
 
-  if (node.dataUrl) {
-    propPreview.src = node.dataUrl;
-    propPreview.style.display = 'block';
-  } else if (node.imageUrl) {
-    const base = inpApi.value.trim().replace(/\/$/, '');
-    propPreview.src = base + node.imageUrl;
-    propPreview.style.display = 'block';
-  } else {
-    propPreview.style.display = 'none';
-  }
+  // Preview
+  const preview = node.dataUrl || (node.imageUrl ? `${$('inp-api').value.replace(/\/$/,'')}${node.imageUrl}` : null);
+  if (preview) { propPreview.src = preview; propPreview.style.display = 'block'; }
+  else           { propPreview.style.display = 'none'; }
 
-  // Upload area state reset
   setUploadAreaIdle();
   if (node.imageUrl) {
     uploadIcon.textContent  = '✅';
     uploadLabel.textContent = node.imageUrl.split('/').pop();
-    uploadArea.className    = 'done';
+    uploadArea.className = 'done';
     uploadUrlDisp.style.display = 'block';
     uploadUrlDisp.textContent   = node.imageUrl;
   }
 
+  renderRoomList(id);
+  renderSpotList(id);
   renderEdgeList(id);
 }
 
-// ── SIDEBAR PROP LISTENERS ────────────────────────────────────────────────────
-
+// ── SIDEBAR LISTENERS ────────────────────────────────────────────────────────
 function withSel(fn) { const n = findNode(S.selected); if (n) fn(n); }
 
 propBuilding.addEventListener('input', () => withSel(n => { n.building = propBuilding.value; renderNode(n); }));
-propHeading.addEventListener('input',  () => withSel(n => { n.heading  = parseFloat(propHeading.value) || 0; }));
-propImageUrl.addEventListener('input', () => withSel(n => { n.imageUrl = propImageUrl.value; renderNode(n); renderSVG(); }));
+propFloor.addEventListener('change', () => withSel(n => {
+  n.floor = propFloor.value !== '' ? parseInt(propFloor.value) : null;
+  renderNode(n); applyFloorFilter(); renderSVG();
+}));
+propType.addEventListener('change', () => withSel(n => { n.nodeType = propType.value; renderNode(n); }));
+propHeading.addEventListener('input', () => withSel(n => { n.heading = parseFloat(propHeading.value) || 0; }));
+propImageUrl.addEventListener('input', () => withSel(n => { n.imageUrl = propImageUrl.value; renderNode(n); }));
+
+$('btn-apply-id').addEventListener('click', () => {
+  const node = findNode(S.selected);
+  if (!node) return;
+  const newId = propId.value.trim();
+  if (!newId || newId === node.id) return;
+  if (S.nodes.find(n => n.id === newId)) { setStatus(`ID "${newId}" bereits vergeben.`, 'err'); return; }
+
+  const oldId = node.id;
+  document.getElementById(`card-${oldId}`)?.remove();
+  S.edges.forEach(e => { if (e.from === oldId) e.from = newId; if (e.to === oldId) e.to = newId; });
+  if (S.startNode === oldId) S.startNode = newId;
+  node.id = newId;
+  if (S.selected === oldId) S.selected = newId;
+  renderNode(node);
+  renderAllNodes();
+  renderSVG();
+  setStatus(`Node umbenannt: "${oldId}" → "${newId}". Bild-URL ggf. manuell anpassen.`, 'warn');
+});
+
+$('btn-startnode').addEventListener('click', () => {
+  if (!S.selected) return;
+  S.startNode = S.selected;
+  renderAllNodes();
+  setStatus(`"${S.selected}" ist jetzt StartNode.`, 'ok');
+});
 
 // ── NEARBY ROOMS ──────────────────────────────────────────────────────────────
-
 function renderRoomList(nodeId) {
-  const roomList = $('room-list');
-  roomList.innerHTML = '';
+  const ul = $('room-list');
+  ul.innerHTML = '';
   const node = findNode(nodeId);
   if (!node) return;
-
+  $('room-count').textContent = node.nearby_rooms.length ? `(${node.nearby_rooms.length})` : '';
   if (!node.nearby_rooms.length) {
-    roomList.innerHTML = '<li style="font-size:11px;color:var(--text2)">Keine Räume definiert</li>';
-    return;
+    ul.innerHTML = '<li class="empty-hint">Keine Räume</li>'; return;
   }
-
-  node.nearby_rooms.forEach((r, idx) => {
+  node.nearby_rooms.forEach((r, i) => {
     const li = document.createElement('li');
-    li.className = 'room-item';
-    li.innerHTML = `
-      <span class="room-id">${r.room_id}</span>
-      <span class="room-dir">${r.direction || '–'}</span>
-      <button class="room-del" data-idx="${idx}" title="Entfernen">✕</button>
-    `;
-    li.querySelector('.room-del').addEventListener('click', () => {
-      node.nearby_rooms.splice(idx, 1);
-      renderRoomList(nodeId);
-      renderNode(node);
-      setStatus(`Raum entfernt.`);
+    li.className = 'list-item';
+    li.innerHTML = `<span class="rest">${r.room_id}</span><span class="lbl2">${r.direction || '–'}</span><button class="list-del">✕</button>`;
+    li.querySelector('.list-del').addEventListener('click', () => {
+      node.nearby_rooms.splice(i, 1); renderRoomList(nodeId); renderNode(node);
     });
-    roomList.appendChild(li);
+    ul.appendChild(li);
   });
 }
 
 $('btn-add-room').addEventListener('click', () => {
   const node = findNode(S.selected);
-  if (!node) { setStatus('Keine Position ausgewählt.', 'err'); return; }
-
-  const roomId  = $('new-room-id').value.trim();
-  const roomDir = $('new-room-dir').value;
-
-  if (!roomId) { setStatus('Bitte Raum-ID eingeben.', 'err'); return; }
-  if (node.nearby_rooms.some(r => r.room_id === roomId)) {
-    setStatus(`Raum "${roomId}" ist bereits eingetragen.`, 'err'); return;
-  }
-
-  node.nearby_rooms.push({ room_id: roomId, direction: roomDir || null });
-  $('new-room-id').value  = '';
-  $('new-room-dir').value = '';
-  renderRoomList(S.selected);
-  renderNode(node);
-  setStatus(`Raum "${roomId}" hinzugefügt.`, 'ok');
+  if (!node) return;
+  const rid = $('new-room-id').value.trim();
+  const dir = $('new-room-dir').value;
+  if (!rid) { setStatus('Raum-ID fehlt.', 'err'); return; }
+  if (node.nearby_rooms.some(r => r.room_id === rid)) { setStatus(`"${rid}" bereits eingetragen.`, 'err'); return; }
+  node.nearby_rooms.push({ room_id: rid, direction: dir || null });
+  $('new-room-id').value = ''; $('new-room-dir').value = '';
+  renderRoomList(S.selected); renderNode(node);
+  setStatus(`Raum "${rid}" hinzugefügt.`, 'ok');
 });
 
-btnStartNode.addEventListener('click', () => {
-  if (!S.selected) return;
-  S.startNode = S.selected;
-  renderAllNodes();
-  setStatus(`"${S.selected}" ist jetzt der StartNode.`);
+// ── SPOTS ─────────────────────────────────────────────────────────────────────
+function renderSpotList(nodeId) {
+  const ul = $('spot-list');
+  ul.innerHTML = '';
+  const node = findNode(nodeId);
+  if (!node) return;
+  $('spot-count').textContent = node.spots.length ? `(${node.spots.length})` : '';
+  if (!node.spots.length) { ul.innerHTML = '<li class="empty-hint">Keine Spots</li>'; return; }
+  node.spots.forEach((sp, i) => {
+    const li = document.createElement('li');
+    li.className = 'list-item';
+    li.innerHTML = `<span class="lbl" title="lon/lat">${sp.longitude}°/${sp.latitude}°</span><span class="rest">${sp.name}${sp.description ? ' – '+sp.description : ''}</span><button class="list-del">✕</button>`;
+    li.querySelector('.list-del').addEventListener('click', () => {
+      node.spots.splice(i, 1); renderSpotList(nodeId);
+    });
+    ul.appendChild(li);
+  });
+}
+
+$('btn-add-spot').addEventListener('click', () => {
+  const node = findNode(S.selected);
+  if (!node) return;
+  const name = $('new-spot-name').value.trim();
+  const lon  = parseFloat($('new-spot-lon').value);
+  const lat  = parseFloat($('new-spot-lat').value);
+  const desc = $('new-spot-desc').value.trim();
+  if (!name || isNaN(lon) || isNaN(lat)) { setStatus('Name, Longitude und Latitude sind Pflicht.', 'err'); return; }
+  node.spots.push({ name, longitude: lon, latitude: lat, description: desc || null });
+  $('new-spot-name').value = $('new-spot-lon').value = $('new-spot-lat').value = $('new-spot-desc').value = '';
+  renderSpotList(S.selected);
+  setStatus(`Spot "${name}" hinzugefügt.`, 'ok');
 });
 
 // ── IMAGE UPLOAD ──────────────────────────────────────────────────────────────
-
 function setUploadAreaIdle() {
-  uploadArea.className = '';
+  uploadArea.className    = '';
   uploadIcon.textContent  = '📷';
-  uploadLabel.textContent = 'Bild hier ablegen oder anklicken';
+  uploadLabel.textContent = 'Hier ablegen oder anklicken';
   uploadUrlDisp.style.display = 'none';
 }
 
-// Drag-over highlight
-uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+uploadArea.addEventListener('dragover',  e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
 uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
-uploadArea.addEventListener('drop', e => {
-  e.preventDefault();
-  uploadArea.classList.remove('drag-over');
-  const file = e.dataTransfer.files[0];
-  if (file) handleImageFile(file);
-});
-
-uploadFile.addEventListener('change', () => {
-  const file = uploadFile.files[0];
-  if (file) handleImageFile(file);
-  uploadFile.value = '';
-});
+uploadArea.addEventListener('drop', e => { e.preventDefault(); uploadArea.classList.remove('drag-over'); const f = e.dataTransfer.files[0]; if (f) handleImageFile(f); });
+uploadFile.addEventListener('change', () => { const f = uploadFile.files[0]; if (f) handleImageFile(f); uploadFile.value = ''; });
 
 async function handleImageFile(file) {
   const node = findNode(S.selected);
-  if (!node) { setStatus('Keine Position ausgewählt.', 'err'); return; }
+  if (!node) { setStatus('Kein Node ausgewählt.', 'err'); return; }
 
-  // Show local preview immediately
-  const dataUrl = await readFileAsDataUrl(file);
+  const dataUrl = await readAsDataUrl(file);
   node.dataUrl = dataUrl;
-  propPreview.src = dataUrl;
-  propPreview.style.display = 'block';
+  propPreview.src = dataUrl; propPreview.style.display = 'block';
   renderNode(node);
 
-  const base = inpApi.value.trim().replace(/\/$/, '');
-  const key  = inpKey.value.trim();
+  const base = $('inp-api').value.trim().replace(/\/$/, '');
+  const key  = $('inp-key').value.trim();
 
-  // Upload to API
-  uploadArea.className = 'uploading';
-  uploadIcon.textContent  = '⏳';
-  uploadLabel.textContent = 'Wird hochgeladen…';
+  uploadArea.className   = 'uploading';
+  uploadIcon.textContent = '⏳'; uploadLabel.textContent = 'Wird hochgeladen…';
   uploadFile.classList.add('uploading');
   setStatus(`Lade Bild für "${node.id}" hoch…`, 'warn');
 
   try {
-    const formData = new FormData();
-    formData.append('file', file, file.name);
-
-    const res = await fetch(`${base}/api/v1/images/rooms/${node.id}/upload`, {
+    const fd = new FormData();
+    fd.append('file', file, file.name);
+    const res = await fetch(`${base}/api/v1/images/rooms/${encodeURIComponent(node.id)}/upload`, {
       method: 'POST',
       headers: key ? { 'X-API-Key': key } : {},
-      body: formData,
+      body: fd,
     });
-
-    if (!res.ok) {
-      const txt = await res.text();
-      throw new Error(`HTTP ${res.status}: ${txt}`);
-    }
-
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
     const data = await res.json();
-    const filename = data.filename;
-    const imageUrl = `/api/v1/images/rooms/${node.id}/${filename}`;
-
+    const imageUrl = `/api/v1/images/rooms/${node.id}/${data.filename}`;
     node.imageUrl = imageUrl;
     propImageUrl.value = imageUrl;
-
-    uploadArea.className = 'done';
-    uploadIcon.textContent  = '✅';
-    uploadLabel.textContent = filename;
-    uploadUrlDisp.style.display = 'block';
-    uploadUrlDisp.textContent   = imageUrl;
-
+    uploadArea.className   = 'done';
+    uploadIcon.textContent = '✅'; uploadLabel.textContent = data.filename;
+    uploadUrlDisp.style.display = 'block'; uploadUrlDisp.textContent = imageUrl;
     renderNode(node);
     setStatus(`Bild hochgeladen → ${imageUrl}`, 'ok');
   } catch (err) {
-    uploadArea.className = 'error';
-    uploadIcon.textContent  = '❌';
-    uploadLabel.textContent = 'Upload fehlgeschlagen';
+    uploadArea.className   = 'error';
+    uploadIcon.textContent = '❌'; uploadLabel.textContent = 'Upload fehlgeschlagen';
     setStatus(`Upload-Fehler: ${err.message}`, 'err');
-  } finally {
-    uploadFile.classList.remove('uploading');
-  }
+  } finally { uploadFile.classList.remove('uploading'); }
 }
 
-function readFileAsDataUrl(file) {
+function readAsDataUrl(file) {
   return new Promise((res, rej) => {
     const r = new FileReader();
-    r.onload = e => res(e.target.result);
-    r.onerror = rej;
+    r.onload = e => res(e.target.result); r.onerror = rej;
     r.readAsDataURL(file);
   });
 }
 
 // ── DRAG NODES ────────────────────────────────────────────────────────────────
-
 let drag = null;
 
 function onNodeMouseDown(e, nodeId) {
   e.stopPropagation();
-  if (e.button !== 0) return;
-
+  if (e.button !== 0 || spaceDown) return;
   if (S.connectMode) { handleConnectClick(nodeId); return; }
-
   selectNode(nodeId);
   const n = findNode(nodeId);
   drag = { nodeId, sx: e.clientX, sy: e.clientY, ox: n.x, oy: n.y };
-  document.addEventListener('mousemove', onMouseMove);
-  document.addEventListener('mouseup', onMouseUp);
+  document.addEventListener('mousemove', onDragMove);
+  document.addEventListener('mouseup',   onDragUp);
 }
 
-function onMouseMove(e) {
+function onDragMove(e) {
   if (!drag) return;
   const n = findNode(drag.nodeId);
   if (!n) return;
-  n.x = Math.max(0, drag.ox + e.clientX - drag.sx);
-  n.y = Math.max(0, drag.oy + e.clientY - drag.sy);
+  n.x = Math.max(0, drag.ox + (e.clientX - drag.sx) / VIEW.zoom);
+  n.y = Math.max(0, drag.oy + (e.clientY - drag.sy) / VIEW.zoom);
   const c = document.getElementById(`card-${drag.nodeId}`);
   if (c) { c.style.left = n.x + 'px'; c.style.top = n.y + 'px'; }
   renderSVG();
 }
 
-function onMouseUp() {
+function onDragUp() {
   drag = null;
-  document.removeEventListener('mousemove', onMouseMove);
-  document.removeEventListener('mouseup', onMouseUp);
+  document.removeEventListener('mousemove', onDragMove);
+  document.removeEventListener('mouseup',   onDragUp);
 }
 
 // ── CONNECT MODE ──────────────────────────────────────────────────────────────
-
-btnConnect.addEventListener('click', toggleConnect);
+$('btn-connect').addEventListener('click', toggleConnect);
 
 function toggleConnect() {
   S.connectMode = !S.connectMode;
   S.connectSrc  = null;
-  btnConnect.classList.toggle('active', S.connectMode);
+  $('btn-connect').classList.toggle('active', S.connectMode);
   renderAllNodes();
-  setStatus(S.connectMode ? 'Verbindungsmodus aktiv — Quell-Position anklicken…' : 'Verbindungsmodus deaktiviert.');
+  setStatus(S.connectMode ? 'Verbindungsmodus — Quell-Node anklicken…' : 'Verbindungsmodus beendet.');
 }
 
 async function handleConnectClick(nodeId) {
   if (!S.connectSrc) {
-    S.connectSrc = nodeId;
-    renderAllNodes();
-    setStatus(`Quelle: "${nodeId}" — jetzt Ziel-Position anklicken…`);
+    S.connectSrc = nodeId; renderAllNodes();
+    setStatus(`Quelle: "${nodeId}" — Ziel anklicken…`);
     return;
   }
   if (S.connectSrc === nodeId) {
     S.connectSrc = null; renderAllNodes();
-    setStatus('Verbindungsmodus — Quell-Position anklicken…');
+    setStatus('Verbindungsmodus — Quell-Node anklicken…');
     return;
   }
-
   const from = S.connectSrc, to = nodeId;
   S.connectSrc = null; renderAllNodes();
 
-  // Suggest direction from relative position
   const fn = findNode(from), tn = findNode(to);
   const dx = tn.x - fn.x, dy = tn.y - fn.y;
-  const sugg = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'front' : 'back');
+  const sugg = Math.abs(dx) > Math.abs(dy) ? (dx>0?'right':'left') : (dy>0?'front':'back');
 
-  const dir = await openModal('Richtung eingeben', `Von "${from}" → "${to}"`, sugg);
-  if (!dir) { setStatus('Verbindung abgebrochen.'); return; }
+  const dir = await openModal('connect', {
+    title: `Verbindung anlegen`,
+    sub:   `Von "${from}" → "${to}"`,
+    suggest: sugg,
+  });
+  if (!dir) { setStatus('Verbindung abgebrochen.', 'warn'); return; }
 
-  const dup = S.edges.find(e => e.from === from && e.direction === dir);
-  if (dup) { setStatus(`Richtung "${dir}" von "${from}" existiert bereits.`, 'err'); return; }
-
+  if (S.edges.find(e => e.from === from && e.direction === dir)) {
+    setStatus(`Richtung "${dir}" von "${from}" existiert bereits.`, 'err'); return;
+  }
   S.edges.push({ id: `e${S.edgeCounter++}`, from, to, direction: dir });
   renderSVG();
   if (S.selected === from) renderEdgeList(from);
-  setStatus(`Verbindung "${dir}": "${from}" → "${to}".`);
+  setStatus(`Verbindung "${dir}": "${from}" → "${to}".`, 'ok');
 }
 
-// ── SVG RENDERING ─────────────────────────────────────────────────────────────
-
-function edgePoints(fn, tn) {
-  const fc = nodeCenter(fn), tc = nodeCenter(tn);
-  const bi = S.edges.some(e => e.from === tn.id && e.to === fn.id);
-  let ox = 0, oy = 0;
-  if (bi) {
-    const dx = tc.x - fc.x, dy = tc.y - fc.y, len = Math.sqrt(dx*dx + dy*dy) || 1;
-    ox = (-dy / len) * 11; oy = (dx / len) * 11;
-  }
-  return { x1: fc.x+ox, y1: fc.y+oy, x2: tc.x+ox, y2: tc.y+oy, mx: (fc.x+tc.x)/2+ox, my: (fc.y+tc.y)/2+oy };
+// ── EDGE LIST ─────────────────────────────────────────────────────────────────
+function renderEdgeList(nodeId) {
+  const ul = $('edge-list');
+  ul.innerHTML = '';
+  const out = S.edges.filter(e => e.from === nodeId);
+  if (!out.length) { ul.innerHTML = '<li class="empty-hint">Keine Ausgänge</li>'; return; }
+  out.forEach(edge => {
+    const li = document.createElement('li');
+    li.className = 'list-item';
+    li.innerHTML = `<span class="lbl">${edge.direction}</span><span style="color:var(--text3)">→</span><span class="rest">${edge.to}</span><button class="list-del">✕</button>`;
+    li.querySelector('.list-del').addEventListener('click', () => {
+      S.edges = S.edges.filter(e => e.id !== edge.id);
+      renderSVG(); renderEdgeList(nodeId);
+      setStatus(`Ausgang "${edge.direction}" entfernt.`);
+    });
+    ul.appendChild(li);
+  });
 }
 
+// ── SVG ───────────────────────────────────────────────────────────────────────
 function renderSVG() {
   const defs = svg.querySelector('defs');
-  svg.innerHTML = '';
-  svg.appendChild(defs);
+  svg.innerHTML = ''; svg.appendChild(defs);
 
   S.edges.forEach(edge => {
     const fn = findNode(edge.from), tn = findNode(edge.to);
     if (!fn || !tn) return;
-    const { x1, y1, x2, y2, mx, my } = edgePoints(fn, tn);
+    if (!nodeVisible(fn) || !nodeVisible(tn)) return;
 
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('x1', x1); line.setAttribute('y1', y1);
-    line.setAttribute('x2', x2); line.setAttribute('y2', y2);
-    line.setAttribute('class', 'edge-line');
-    line.setAttribute('marker-end', 'url(#arr)');
+    const fc = nodeCenter(fn), tc = nodeCenter(tn);
+    const bi = S.edges.some(e => e.from === tn.id && e.to === fn.id);
+    let ox = 0, oy = 0;
+    if (bi) {
+      const dx = tc.x-fc.x, dy = tc.y-fc.y, len = Math.sqrt(dx*dx+dy*dy)||1;
+      ox = (-dy/len)*10; oy = (dx/len)*10;
+    }
+    const x1=fc.x+ox, y1=fc.y+oy, x2=tc.x+ox, y2=tc.y+oy;
+    const mx=(x1+x2)/2, my=(y1+y2)/2;
+
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',x1); line.setAttribute('y1',y1);
+    line.setAttribute('x2',x2); line.setAttribute('y2',y2);
+    line.setAttribute('class','edge-line'); line.setAttribute('marker-end','url(#arr)');
     svg.appendChild(line);
 
-    // Label background
-    const lw = edge.direction.length * 6.5 + 8;
-    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    rect.setAttribute('x', mx - lw/2); rect.setAttribute('y', my - 14);
-    rect.setAttribute('width', lw); rect.setAttribute('height', 14);
-    rect.setAttribute('rx', 3); rect.setAttribute('class', 'edge-label-bg');
-    rect.setAttribute('style', 'pointer-events:none');
-    svg.appendChild(rect);
+    const lw = edge.direction.length * 6 + 8;
+    const bg = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    bg.setAttribute('x',mx-lw/2); bg.setAttribute('y',my-13);
+    bg.setAttribute('width',lw); bg.setAttribute('height',13);
+    bg.setAttribute('rx',3); bg.setAttribute('class','edge-label-bg');
+    bg.setAttribute('style','pointer-events:none');
+    svg.appendChild(bg);
 
-    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    text.setAttribute('x', mx); text.setAttribute('y', my - 3);
-    text.setAttribute('text-anchor', 'middle');
-    text.setAttribute('class', 'edge-lbl');
-    text.textContent = edge.direction;
-    text.addEventListener('click', () => {
+    const txt = document.createElementNS('http://www.w3.org/2000/svg','text');
+    txt.setAttribute('x',mx); txt.setAttribute('y',my-3);
+    txt.setAttribute('text-anchor','middle'); txt.setAttribute('class','edge-lbl');
+    txt.textContent = edge.direction;
+    txt.addEventListener('click', () => {
       S.edges = S.edges.filter(e => e.id !== edge.id);
       renderSVG();
       if (S.selected === edge.from) renderEdgeList(edge.from);
       setStatus(`Verbindung "${edge.direction}" entfernt.`);
     });
-    svg.appendChild(text);
+    svg.appendChild(txt);
   });
 }
 
-// ── EDGE LIST SIDEBAR ─────────────────────────────────────────────────────────
-
-function renderEdgeList(nodeId) {
-  edgeList.innerHTML = '';
-  const out = S.edges.filter(e => e.from === nodeId);
-  if (!out.length) {
-    edgeList.innerHTML = '<li style="font-size:11px;color:var(--text2)">Keine Ausgänge definiert</li>';
-    return;
-  }
-  out.forEach(edge => {
-    const li = document.createElement('li');
-    li.className = 'edge-item';
-    li.innerHTML = `<span class="dir">${edge.direction}</span><span style="color:var(--text2)">→</span><span class="target">${edge.to}</span><button class="edge-del" title="Löschen">✕</button>`;
-    li.querySelector('.edge-del').addEventListener('click', () => {
-      S.edges = S.edges.filter(e => e.id !== edge.id);
-      renderSVG(); renderEdgeList(nodeId);
-      setStatus(`Ausgang "${edge.direction}" entfernt.`);
-    });
-    edgeList.appendChild(li);
-  });
-}
-
-// ── TOOLBAR ACTIONS ───────────────────────────────────────────────────────────
-
-btnAdd.addEventListener('click', () => createNode());
-
-btnDelete.addEventListener('click', () => {
-  if (!S.selected) { setStatus('Keine Position ausgewählt.', 'err'); return; }
-  if (confirm(`Position "${S.selected}" und alle Verbindungen löschen?`)) deleteNode(S.selected);
-});
-
-$('canvas-wrap').addEventListener('click', e => {
-  if (e.target.id === 'canvas-wrap' || e.target.id === 'canvas') {
+// ── CANVAS CLICK ──────────────────────────────────────────────────────────────
+canvasWrap.addEventListener('click', e => {
+  if (e.target === canvasWrap || e.target === canvasInner || e.target === svg) {
     if (S.connectMode) { toggleConnect(); return; }
     selectNode(null);
   }
 });
 
+// ── KEYBOARD ──────────────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
+  const active = document.activeElement;
+  if (active && active.matches('input,select,textarea')) return;
   if (e.key === 'Escape') {
     if (S.connectMode) { toggleConnect(); return; }
     selectNode(null);
   }
-  if (e.key === 'Delete' && S.selected && !document.activeElement.matches('input,textarea')) {
-    if (confirm(`Position "${S.selected}" löschen?`)) deleteNode(S.selected);
+  if (e.key === 'Delete' && S.selected) {
+    if (confirm(`Node "${S.selected}" löschen?`)) deleteNode(S.selected);
   }
+  if ((e.ctrlKey||e.metaKey) && e.key === 'z') { /* undo placeholder */ }
 });
 
-// ── BUILD GRAPH JSON ──────────────────────────────────────────────────────────
+// ── TOOLBAR ACTIONS ───────────────────────────────────────────────────────────
+$('btn-add').addEventListener('click', createNode);
 
+$('btn-delete').addEventListener('click', () => {
+  if (!S.selected) { setStatus('Kein Node ausgewählt.', 'err'); return; }
+  if (confirm(`Node "${S.selected}" und alle Verbindungen löschen?`)) deleteNode(S.selected);
+});
+
+// ── BUILD GRAPH ───────────────────────────────────────────────────────────────
 function buildGraph() {
   if (!S.startNode) throw new Error('Kein StartNode gesetzt.');
   return {
     startNode: S.startNode,
     nodes: S.nodes.map(n => ({
-      id: n.id,
-      image: n.imageUrl || '',
-      building: n.building || null,
-      heading: n.heading ?? 0,
-      exits: Object.fromEntries(S.edges.filter(e => e.from === n.id).map(e => [e.direction, e.to])),
+      id:           n.id,
+      image:        n.imageUrl || '',
+      building:     n.building || null,
+      floor:        n.floor !== null && n.floor !== undefined ? n.floor : null,
+      node_type:    n.nodeType || 'corridor',
+      heading:      n.heading ?? 0,
+      exits:        Object.fromEntries(S.edges.filter(e => e.from === n.id).map(e => [e.direction, e.to])),
       nearby_rooms: n.nearby_rooms || [],
-      spots: [],
+      spots:        n.spots || [],
     })),
   };
 }
 
-// ── EXPORT ────────────────────────────────────────────────────────────────────
+// positions meta — persisted in exported JSON to restore canvas layout
+function buildPositions() {
+  const pos = {};
+  S.nodes.forEach(n => { pos[n.id] = { x: Math.round(n.x), y: Math.round(n.y) }; });
+  return pos;
+}
 
-btnExport.addEventListener('click', () => {
+// ── EXPORT ────────────────────────────────────────────────────────────────────
+$('btn-export').addEventListener('click', () => {
   try {
-    const graph = buildGraph();
-    const blob = new Blob([JSON.stringify({ graph }, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
+    const graph  = buildGraph();
+    const bld    = [...new Set(S.nodes.map(n=>n.building).filter(Boolean))][0] || $('inp-bld').value.trim() || null;
+    const payload = { building_id: bld, graph, _positions: buildPositions() };
+    const blob   = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const a      = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'streetview_graph.json';
+    a.download = `graph_${bld || 'export'}.json`;
     a.click();
     setStatus('Graph als JSON exportiert.', 'ok');
   } catch (err) { setStatus(err.message, 'err'); }
 });
 
 // ── IMPORT ────────────────────────────────────────────────────────────────────
-
-btnImport.addEventListener('click', () => fileImport.click());
-fileImport.addEventListener('change', () => {
-  const file = fileImport.files[0]; if (!file) return;
+$('btn-import').addEventListener('click', () => $('file-import').click());
+$('file-import').addEventListener('change', () => {
+  const file = $('file-import').files[0]; if (!file) return;
   const r = new FileReader();
   r.onload = e => {
     try {
       const parsed = JSON.parse(e.target.result);
-      loadGraph(parsed.graph ?? parsed);
+      loadGraph(parsed.graph ?? parsed, parsed._positions, parsed.building_id);
       setStatus(`"${file.name}" geladen.`, 'ok');
-    } catch (err) { setStatus('JSON-Fehler: ' + err.message, 'err'); }
+    } catch(err) { setStatus('JSON-Fehler: ' + err.message, 'err'); }
   };
-  r.readAsText(file);
-  fileImport.value = '';
+  r.readAsText(file); $('file-import').value = '';
 });
 
-function loadGraph(g) {
-  canvas.querySelectorAll('.node-card').forEach(c => c.remove());
+function loadGraph(g, positions = {}, buildingId = null) {
+  canvasInner.querySelectorAll('.node-card').forEach(c => c.remove());
   const defs = svg.querySelector('defs'); svg.innerHTML = ''; svg.appendChild(defs);
-  S.nodes = []; S.edges = []; S.selected = null; S.startNode = g.startNode;
-  S.nodeCounter = 0; S.edgeCounter = 0;
+  S.nodes = []; S.edges = []; S.selected = null; S.startNode = g.startNode; S.edgeCounter = 0;
+
+  if (buildingId) $('inp-bld').value = buildingId;
 
   const cols = Math.ceil(Math.sqrt(g.nodes.length));
   g.nodes.forEach((n, i) => {
-    const num = parseInt((n.id || '').replace(/\D/g, ''), 10);
-    if (!isNaN(num)) S.nodeCounter = Math.max(S.nodeCounter, num + 1);
+    const savedPos = positions && positions[n.id];
+    const x = savedPos ? savedPos.x : 60 + (i % cols) * 200;
+    const y = savedPos ? savedPos.y : 60 + Math.floor(i / cols) * 175;
     S.nodes.push({
-      id: n.id,
-      x: 60 + (i % cols) * 200,
-      y: 60 + Math.floor(i / cols) * 180,
-      building: n.building || '',
-      heading: n.heading ?? 0,
-      imageUrl: n.image || '',
-      dataUrl: '',
+      id:          n.id, x, y,
+      building:    n.building || '',
+      floor:       n.floor !== null && n.floor !== undefined ? n.floor : null,
+      nodeType:    n.node_type || 'corridor',
+      heading:     n.heading ?? 0,
+      imageUrl:    n.image   || '',
+      dataUrl:     '',
       nearby_rooms: n.nearby_rooms || [],
+      spots:        n.spots || [],
     });
   });
   g.nodes.forEach(n => {
@@ -955,40 +1287,92 @@ function loadGraph(g) {
   });
   S.nodes.forEach(renderNode);
   selectNode(null);
+  applyFloorFilter();
   renderSVG();
+  setTimeout(() => $('btn-zoom-fit').click(), 50);
+  setStatus(`${S.nodes.length} Nodes, ${S.edges.length} Kanten geladen.`, 'ok');
 }
 
-// ── POST GRAPH TO API ─────────────────────────────────────────────────────────
+// ── LOAD FROM API ─────────────────────────────────────────────────────────────
+$('btn-load-api').addEventListener('click', async () => {
+  const base = $('inp-api').value.trim().replace(/\/$/,'');
+  const bld  = $('inp-bld').value.trim();
+  const key  = $('inp-key').value.trim();
+  if (!bld) { setStatus('Gebäude-ID (rechts neben API-Key) eingeben.', 'err'); return; }
 
-btnPost.addEventListener('click', async () => {
-  const base = inpApi.value.trim().replace(/\/$/, '');
-  const key  = inpKey.value.trim();
+  setStatus(`Lade Graph für "${bld}" von API…`, 'warn');
+  try {
+    const res = await fetch(`${base}/api/v1/streetview/graph/building/${bld}`, {
+      headers: key ? { 'X-API-Key': key } : {},
+    });
+    if (res.status === 404) { setStatus(`Kein Graph für "${bld}" in der API gefunden.`, 'err'); return; }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const graph = await res.json();
+    loadGraph(graph, {}, bld);
+    setStatus(`Graph "${bld}" von API geladen (${S.nodes.length} Nodes).`, 'ok');
+  } catch(err) { setStatus(`Ladefehler: ${err.message}`, 'err'); }
+});
+
+// ── POST TO API ───────────────────────────────────────────────────────────────
+$('btn-post').addEventListener('click', async () => {
+  const base = $('inp-api').value.trim().replace(/\/$/,'');
+  const key  = $('inp-key').value.trim();
+  const bld  = $('inp-bld').value.trim() || [...new Set(S.nodes.map(n=>n.building).filter(Boolean))][0];
   try {
     const graph = buildGraph();
-    const buildings = [...new Set(S.nodes.map(n => n.building).filter(Boolean))];
-    const body = { graph };
-    if (buildings[0]) body.building_id = buildings[0];
+    const body  = { graph };
+    if (bld) body.building_id = bld;
 
+    setStatus('Sende Graph an API…', 'warn');
     const res = await fetch(`${base}/api/v1/streetview/graph`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(key ? { 'X-API-Key': key } : {}) },
       body: JSON.stringify(body),
     });
-
     if (res.ok) {
       const d = await res.json();
-      setStatus(`✓ Graph gespeichert (ID: ${d.id}). Gebäude: ${buildings[0] ?? '–'}`, 'ok');
+      setStatus(`✓ Graph gespeichert (ID: ${d.id}) · Gebäude: ${bld || '–'}`, 'ok');
     } else {
       setStatus(`API-Fehler ${res.status}: ${await res.text()}`, 'err');
     }
-  } catch (err) { setStatus('Netzwerkfehler: ' + err.message, 'err'); }
+  } catch(err) { setStatus('Netzwerkfehler: ' + err.message, 'err'); }
+});
+
+// ── PATCH SINGLE NODE ─────────────────────────────────────────────────────────
+$('btn-patch-node').addEventListener('click', async () => {
+  const node = findNode(S.selected);
+  if (!node) { setStatus('Kein Node ausgewählt.', 'err'); return; }
+  const base = $('inp-api').value.trim().replace(/\/$/,'');
+  const key  = $('inp-key').value.trim();
+  const bld  = $('inp-bld').value.trim() || node.building;
+  if (!bld) { setStatus('Gebäude-ID fehlt.', 'err'); return; }
+
+  const payload = {
+    image:        node.imageUrl  || null,
+    building:     node.building  || null,
+    floor:        node.floor     !== null && node.floor !== undefined ? node.floor : null,
+    node_type:    node.nodeType  || 'corridor',
+    heading:      node.heading   ?? 0,
+    exits:        Object.fromEntries(S.edges.filter(e=>e.from===node.id).map(e=>[e.direction,e.to])),
+    nearby_rooms: node.nearby_rooms || [],
+    spots:        node.spots || [],
+  };
+
+  setStatus(`PATCH Node "${node.id}"…`, 'warn');
+  try {
+    const res = await fetch(`${base}/api/v1/streetview/graph/building/${bld}/node/${encodeURIComponent(node.id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...(key ? { 'X-API-Key': key } : {}) },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) { setStatus(`✓ Node "${node.id}" aktualisiert.`, 'ok'); }
+    else { setStatus(`PATCH-Fehler ${res.status}: ${await res.text()}`, 'err'); }
+  } catch(err) { setStatus('Netzwerkfehler: ' + err.message, 'err'); }
 });
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
-
-inpApi.value = window.location.origin;
-// Start empty — user imports or creates fresh
-setStatus('Bereit. Positionen anlegen und 360°-Bilder hochladen.');
+$('inp-api').value = window.location.origin;
+setStatus('Bereit — „+ Node" oder JSON laden. Scrollen = Zoom · Space+Drag = Pan.');
 </script>
 </body>
 </html>
