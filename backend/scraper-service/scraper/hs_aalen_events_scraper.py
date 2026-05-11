@@ -45,7 +45,58 @@ _DETAIL_LABELS: list[tuple[re.Pattern, str]] = [
     (re.compile(r"veranstalter",   re.I),            "organizer"),
     (re.compile(r"anmeldefrist",   re.I),            "registration_deadline"),
     (re.compile(r"anmeldeschluss", re.I),            "registration_deadline"),
+    (re.compile(r"zielgruppe",     re.I),            "target_audience"),
 ]
+
+# Keyword-Regeln für automatische Event-Kategorisierung (Priorität: oben → unten)
+_GROUP_RULES: list[tuple[re.Pattern, str]] = [
+    (re.compile(
+        r"sport|fitness|laufen|schwimm|yoga|volleyball|basketball|fußball|klettern|turnen|joggen|fahrrad",
+        re.I,
+    ), "sports"),
+    (re.compile(
+        r"workshop|kurs|training|seminar|bootcamp|hackathon|masterclass|webinar|lehrgang",
+        re.I,
+    ), "workshops"),
+    (re.compile(
+        r"alumni|absolvent|ehemalig|absolventen",
+        re.I,
+    ), "alumni"),
+    (re.compile(
+        r"international|erasmus|exchange|ausland|partnerschaft|delegation|language|english|sprach|francais",
+        re.I,
+    ), "international"),
+    (re.compile(
+        r"forschung|research|symposium|konferenz|conference|wissenschaft|academic|ringvorlesung|oberseminar|kolloquium|fachtagung",
+        re.I,
+    ), "academic"),
+    (re.compile(
+        r"vortrag|nachhalt|strabismus|amblyop|modellpräd|reallabor|ausstellung|konzert|theater|tagung|kultur|kunstausstellung",
+        re.I,
+    ), "culture"),
+    (re.compile(
+        r"karriere|bewerb|bachelor|phd|doktor|startup|vba|informationssicherheit|digital.learning"
+        r"|resilience|co.?writing|lampenfieber|leistungsfähigkeit|abschlussarbeit|vorkurs|stipendien"
+        r"|finanzierung|branchenmesse|studieninfo|infoveranstaltung|berufsbegleit|learntalk"
+        r"|lerntalk|fit.für.die|citavi|zotero|literaturrecherche|doctoral|forschungsfrage|hilfskräfte"
+        r"|praktikum|networking|netzwerk|bewerbungsprozess|master(?:studium|forum|infoveranst|kurs)"
+        r"|promovierende|dissertation|exposé|schreibzeit|jobfair|berufsmesse|infotag|recruiting",
+        re.I,
+    ), "career"),
+    (re.compile(
+        r"grill|wanderung|open.?campus|campus.?day|summer.?school|mintmacht|meetry|chill|party|fest|feier|social.?event",
+        re.I,
+    ), "social"),
+]
+
+
+def _classify_event(title: str, description: str = "", target_audience: str = "") -> str:
+    """Bestimmt die Event-Gruppe aus Titel, Beschreibung und Zielgruppe."""
+    text = f"{title} {description} {target_audience}"
+    for pattern, group in _GROUP_RULES:
+        if pattern.search(text):
+            return group
+    return "social"
 
 
 def _parse_german_date(text: str, fallback_year: int | None = None) -> datetime | None:
@@ -155,11 +206,16 @@ class HsAalenEventsScraper:
                 logger.info("No events on page %d — stopping", page)
                 break
 
-            # Detail-Seite jedes Events abrufen für Beschreibung / Veranstalter / Anmeldefrist
+            # Detail-Seite abrufen + Kategorie bestimmen
             for evt in events:
                 if evt.get("detail_url"):
                     extra = self.fetch_detail(evt["detail_url"])
                     evt.update(extra)
+                evt["groupId"] = _classify_event(
+                    evt.get("title", ""),
+                    evt.get("description", ""),
+                    evt.get("target_audience", ""),
+                )
 
             all_events.extend(events)
             logger.info("Page %d: %d events found", page, len(events))

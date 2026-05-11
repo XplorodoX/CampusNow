@@ -14,20 +14,17 @@ from scraper.starplan_scraper import StarplanScraper
 def _extract_building_code(room_number: str) -> str | None:
     """Extrahiert das Gebäudekürzel aus der Raumnummer.
 
-    Beispiele:
-        'G2 0.21'  -> 'G2'
-        'H1.02'    -> 'H'
-        'Z106'     -> 'Z'
-        'Aula'     -> None
+    Unterstützte Formate:
+        'G2 0.21'     -> 'G2'   (Leerzeichen-Trenner)
+        'G4-Aquarium' -> 'G4'   (Bindestrich-Trenner)
+        'M2.1.04'     -> 'M2'   (Punkt-Trenner)
+        'AH -1.01'    -> 'AH'
+        '129 (Bunker)'-> None   (beginnt mit Ziffer, kein Kürzel)
     """
     if not room_number:
         return None
-    # Muster: Buchstaben + optionale Zahl am Anfang (vor Leerzeichen oder Punkt/Zahl)
-    match = re.match(r"^([A-Za-z]+\d*)\s", room_number)
-    if match:
-        return match.group(1).upper()
-    # Fallback: nur führende Buchstaben
-    match = re.match(r"^([A-Za-z]+)", room_number)
+    # Kürzel = Buchstaben + optionale Ziffern, gefolgt von Leerzeichen, Bindestrich oder Punkt
+    match = re.match(r"^([A-Za-z]+\d*)[-\s.]", room_number)
     if match:
         return match.group(1).upper()
     return None
@@ -36,17 +33,18 @@ def _extract_building_code(room_number: str) -> str | None:
 def _extract_floor(room_number: str) -> int | None:
     """Extrahiert das Stockwerk aus der Raumnummer.
 
-    Beispiele:
-        'G2 0.21' -> 0
-        'G2 1.01' -> 1
-        'Z106'    -> 1  (erste Ziffer nach Gebäudekürzel)
+    Unterstützte Formate:
+        'G2 0.21'     ->  0   (BLDG FLOOR.ROOM)
+        'AH -1.01'    -> -1   (negatives Stockwerk)
+        'M2.1.04'     ->  1   (BLDG.FLOOR.ROOM, Punkt-Trenner)
+        'G4-Aquarium' -> None (kein Stockwerk)
     """
-    # Format: 'GEBÄUDE STOCK.RAUM'
-    match = re.search(r"\s(\d+)\.", room_number)
+    # Format 1: BLDG[ ][-]FLOOR.ROOM  – Leerzeichen vor Stockwerknummer (auch negativ)
+    match = re.search(r"\s(-?\d+)\.", room_number)
     if match:
         return int(match.group(1))
-    # Format: 'BUCHSTABENZIFFER' z.B. Z106 -> Stockwerk 1
-    match = re.search(r"[A-Za-z]\d*(\d)", room_number)
+    # Format 2: LETTERS+DIGITS.FLOOR.ROOM  – Punkt-Trenner (z.B. M2.1.04)
+    match = re.match(r"^[A-Za-z]+\d+\.(-?\d+)\.", room_number)
     if match:
         return int(match.group(1))
     return None
@@ -65,6 +63,7 @@ def _course_color(code: str) -> str:
     """Gibt eine deterministische Farbe aus der Palette für einen Kurs-Code zurück."""
     h = int(hashlib.md5(code.encode()).hexdigest(), 16)
     return _COURSE_COLORS[h % len(_COURSE_COLORS)]
+
 
 
 def _course_code_matches_studiengang(course_code: str | None, studiengang_code: str | None) -> bool:
@@ -482,7 +481,7 @@ class ScraperTasks:
                     "title":                 raw["title"],
                     "start_time":            start_iso,
                     "end_time":              end_iso,
-                    "groupId":               "social",
+                    "groupId":               raw.get("groupId") or "social",
                     "is_public":             True,
                     "detail_url":            raw.get("detail_url"),
                     "source":                "hs-aalen-website",

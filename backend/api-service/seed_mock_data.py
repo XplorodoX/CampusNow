@@ -161,6 +161,26 @@ def main() -> None:
             "description": "Das Studentenwohnheim ermöglicht studentisches Wohnen direkt am Campus.",
             "campus": "Main",
         },
+        "GS": {
+            "name": "Gymnastiksaal (GS)",
+            "description": "Sporthalle/Gymnastiksaal am Burren-Campus.",
+            "campus": "Burren",
+        },
+        "M2": {
+            "name": "Gebäude M2",
+            "description": "Lehrgebäude am Campus der HS Aalen.",
+            "campus": "Main",
+        },
+        "M3": {
+            "name": "Gebäude M3",
+            "description": "Lehrgebäude am Campus der HS Aalen.",
+            "campus": "Main",
+        },
+        "VFR1": {
+            "name": "Verfügungsraum 1 (VFR1)",
+            "description": "Allgemeiner Verfügungsraum der HS Aalen.",
+            "campus": "Main",
+        },
     }
 
     for bld_code, info in default_buildings_info.items():

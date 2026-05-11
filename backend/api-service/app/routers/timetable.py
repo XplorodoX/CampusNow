@@ -18,28 +18,29 @@ _SEMESTERS = [
 ]
 
 _EVENT_GROUPS = [
-    {"id": "sports",  "label": "Sports & Fitness"},
-    {"id": "culture", "label": "Culture & Arts"},
-    {"id": "career",  "label": "Career & Networking"},
-    {"id": "social",  "label": "Social Events"},
+    {"id": "sports",        "label": "Sports & Fitness",       "color": "#F39C12"},
+    {"id": "workshops",     "label": "Workshops & Training",   "color": "#E74C3C"},
+    {"id": "academic",      "label": "Academic Events",       "color": "#3498DB"},
+    {"id": "culture",       "label": "Culture & Arts",        "color": "#9B59B6"},
+    {"id": "alumni",        "label": "Alumni Events",         "color": "#2E8B57"},
+    {"id": "international", "label": "International Events",  "color": "#16A085"},
+    {"id": "career",        "label": "Career & Networking",   "color": "#2ECC71"},
+    {"id": "social",        "label": "Social Events",         "color": "#95A5A6"},
 ]
 
 # Kategorie-Werte aus dem Scraper → frontend groupId
 _CATEGORY_TO_GROUP: dict[str, str] = {
-    "sport": "sports", "sports": "sports", "fitness": "sports",
-    "kultur": "culture", "culture": "culture",
-    "karriere": "career", "career": "career", "networking": "career",
-    "vortrag": "career",
-    "hochschule": "social", "social": "social", "sonstiges": "social",
-    "mensa": "social",
+    "sports": "sports", "fitness": "sports",
+    "workshops": "workshops", "workshop": "workshops", "training": "workshops", "kurs": "workshops",
+    "academic": "academic", "forschung": "academic", "research": "academic", "symposium": "academic",
+    "kultur": "culture", "culture": "culture", "arts": "culture",
+    "alumni": "alumni", "absolvent": "alumni",
+    "international": "international", "erasmus": "international", "exchange": "international",
+    "career": "career", "networking": "career", "karriere": "career",
+    "social": "social", "hochschule": "social", "sonstiges": "social", "mensa": "social",
 }
 
-_GROUP_COLORS: dict[str, str] = {
-    "sports": "#F39C12",
-    "culture": "#9B59B6",
-    "career": "#2ECC71",
-    "social": "#3498DB",
-}
+_GROUP_COLORS: dict[str, str] = {g["id"]: g["color"] for g in _EVENT_GROUPS}
 
 
 def _to_iso(value: Any) -> str | None:
@@ -71,7 +72,6 @@ def _lecture_to_frontend(lec: dict) -> dict:
         "moduleId":       lec.get("module_id"),
         "courseOfStudyId": lec.get("courseOfStudyId", ""),
         "semesterId":     semester_ids[0] if semester_ids else "",
-        "semesterIds":    semester_ids,
         "room":           lec.get("room_number", ""),
         "building":       lec.get("building", ""),
         "professor":      lec.get("professor") or "",
@@ -79,7 +79,6 @@ def _lecture_to_frontend(lec: dict) -> dict:
         "endTime":        _to_iso(lec.get("end_time")),
         "dayOfWeek":      lec.get("day_of_week", ""),
         "durationMinutes": lec.get("duration_minutes", 90),
-        "color":          lec.get("color", "#4A90D9"),
         "recurrence":     lec.get("recurrence", "weekly"),
     }
 
@@ -87,15 +86,17 @@ def _lecture_to_frontend(lec: dict) -> dict:
 def _event_to_frontend(evt: dict) -> dict:
     """Mappt ein DB-Event-Dokument auf das timetable.json-Format."""
     group_id = _CATEGORY_TO_GROUP.get((evt.get("groupId") or "").lower(), "social")
+    event_id = str(evt.get("_id", ""))
+    image_url = evt.get("image_url") or f"https://picsum.photos/seed/{event_id}/800/450"
     result: dict = {
-        "id":        str(evt.get("_id", "")),
+        "id":        event_id,
         "title":     evt.get("title", ""),
         "groupId":   group_id,
         "startTime": _to_iso(evt.get("start_time")),
         "endTime":   _to_iso(evt.get("end_time")),
-        "color":     _GROUP_COLORS.get(group_id, "#3498DB"),
         "is_public": evt.get("is_public", True),
         "detail_url": evt.get("detail_url"),
+        "image_url": image_url,
     }
     # Optionale Felder nur wenn vorhanden (von Detailseite)
     for field in ("description", "organizer", "registration_url", "registration_deadline"):
@@ -175,87 +176,86 @@ async def get_timetable(
     try:
         db = mongo_client.get_db()
 
-        # courses_of_study aus DB – code-Feld als ID, damit Filter-Werte matchbar sind
-        studiengaenge = list(db.studiengaenge.find({}, {"code": 1, "name": 1}))
-        courses_of_study = [
-            {
-                "id": s.get("code") or str(s.get("_id", "")),
-                "label": s.get("name", ""),
-            }
-            for s in studiengaenge
-        ]
+        # Decide which collections to query based on which filters are active.
+        # Lecture-only params: course, semester, professor, room, recurrence
+        # Event-only params:   event_group, public_only
+        # Shared params:       building, date_from, date_to
+        has_lec_filter = bool(course or semester or professor or room or recurrence)
+        has_evt_filter = bool(event_group or public_only)
+        # If only one side's filters are active, skip the other side entirely.
+        skip_lectures = has_evt_filter and not has_lec_filter
+        skip_events   = has_lec_filter and not has_evt_filter
 
         # ── Lecture-Query aufbauen ──────────────────────────────────────
-        lec_clauses: list[dict] = []
+        lectures: list[dict] = []
+        if not skip_lectures:
+            lec_clauses: list[dict] = []
 
-        if course:
-            ids = [c.strip() for c in course.split(",")]
-            lec_clauses.append({"$or": [
-                {"courseOfStudyId": {"$in": ids}},
-                {"course_code": {"$in": ids}},
-            ]})
-        if semester:
-            sids = [s.strip() for s in semester.split(",")]
-            lec_clauses.append({"$or": [
-                {"semesterIds": {"$in": sids}},
-                {"semesterId": {"$in": sids}},
-            ]})
-        if building:
-            lec_clauses.append({"$or": [
-                {"building": building},
-                {"building_id": building},
-            ]})
-        if room:
-            lec_clauses.append({"$or": [
-                {"room": {"$regex": room, "$options": "i"}},
-                {"room_number": {"$regex": room, "$options": "i"}},
-            ]})
-        if professor:
-            lec_clauses.append({"professor": {"$regex": professor, "$options": "i"}})
-        if date_from:
-            dt = _parse_date(date_from)
-            if dt:
-                lec_clauses.append({"start_time": {"$gte": dt}})
-        if date_to:
-            dt = _parse_date(date_to)
-            if dt:
-                lec_clauses.append({"start_time": {"$lte": dt.replace(hour=23, minute=59, second=59)}})
-        if recurrence:
-            lec_clauses.append({"recurrence": recurrence})
+            if course:
+                ids = [c.strip() for c in course.split(",")]
+                lec_clauses.append({"$or": [
+                    {"courseOfStudyId": {"$in": ids}},
+                    {"course_code": {"$in": ids}},
+                ]})
+            if semester:
+                sids = [s.strip() for s in semester.split(",")]
+                lec_clauses.append({"$or": [
+                    {"semesterIds": {"$in": sids}},
+                    {"semesterId": {"$in": sids}},
+                ]})
+            if building:
+                lec_clauses.append({"$or": [
+                    {"building": building},
+                    {"building_id": building},
+                ]})
+            if room:
+                lec_clauses.append({"$or": [
+                    {"room": {"$regex": room, "$options": "i"}},
+                    {"room_number": {"$regex": room, "$options": "i"}},
+                ]})
+            if professor:
+                lec_clauses.append({"professor": {"$regex": professor, "$options": "i"}})
+            if date_from:
+                dt = _parse_date(date_from)
+                if dt:
+                    lec_clauses.append({"start_time": {"$gte": dt}})
+            if date_to:
+                dt = _parse_date(date_to)
+                if dt:
+                    lec_clauses.append({"start_time": {"$lte": dt.replace(hour=23, minute=59, second=59)}})
+            if recurrence:
+                lec_clauses.append({"recurrence": recurrence})
 
-        lec_query: dict[str, Any] = {"$and": lec_clauses} if lec_clauses else {}
-        raw_lectures = serialize_docs(list(db.lectures.find(lec_query).limit(limit_lectures)))
-        lectures = [_lecture_to_frontend(lec) for lec in raw_lectures]
+            lec_query: dict[str, Any] = {"$and": lec_clauses} if lec_clauses else {}
+            lectures = [_lecture_to_frontend(lec) for lec in serialize_docs(list(db.lectures.find(lec_query).limit(limit_lectures)))]
 
         # ── Event-Query aufbauen ────────────────────────────────────────
-        evt_clauses: list[dict] = []
+        events: list[dict] = []
+        if not skip_events:
+            evt_clauses: list[dict] = []
 
-        if public_only or course:
-            evt_clauses.append({"is_public": True})
-        if event_group:
-            gids = [g.strip() for g in event_group.split(",")]
-            evt_clauses.append({"$or": [
-                {"groupId": {"$in": gids}},
-                {"category": {"$in": [_CATEGORY_TO_GROUP.get(g.lower(), g) for g in gids]}},
-            ]})
-        if building:
-            evt_clauses.append({"$or": [
-                {"building": building},
-                {"building_id": building},
-            ]})
-        if date_from:
-            evt_clauses.append({"start_time": {"$gte": date_from}})
-        if date_to:
-            evt_clauses.append({"start_time": {"$lte": date_to + "T23:59:59"}})
+            if public_only or course:
+                evt_clauses.append({"is_public": True})
+            if event_group:
+                gids = [g.strip() for g in event_group.split(",")]
+                evt_clauses.append({"$or": [
+                    {"groupId": {"$in": gids}},
+                    {"category": {"$in": [_CATEGORY_TO_GROUP.get(g.lower(), g) for g in gids]}},
+                ]})
+            if building:
+                evt_clauses.append({"$or": [
+                    {"building": building},
+                    {"building_id": building},
+                ]})
+            if date_from:
+                evt_clauses.append({"start_time": {"$gte": date_from}})
+            if date_to:
+                evt_clauses.append({"start_time": {"$lte": date_to + "T23:59:59"}})
 
-        evt_query: dict[str, Any] = {"$and": evt_clauses} if evt_clauses else {}
-        raw_events = serialize_docs(list(db.events.find(evt_query).limit(limit_events)))
-        events = [_event_to_frontend(e) for e in raw_events]
+            evt_query: dict[str, Any] = {"$and": evt_clauses} if evt_clauses else {}
+            events = [_event_to_frontend(e) for e in serialize_docs(list(db.events.find(evt_query).limit(limit_events)))]
 
         return {
-            "courses_of_study": courses_of_study,
-            "semesters": _SEMESTERS,
-            "event_groups": _EVENT_GROUPS,
             "lectures": lectures,
             "events": events,
         }
