@@ -1,7 +1,7 @@
 import logging
 import os
 
-from pymongo import MongoClient
+from pymongo import ASCENDING, MongoClient
 from pymongo.errors import ServerSelectionTimeoutError
 
 logger = logging.getLogger(__name__)
@@ -40,6 +40,51 @@ class MongoDBClient:
         except ServerSelectionTimeoutError:
             logger.error("✗ Failed to connect to MongoDB")
             return False
+
+    def ensure_indices(self) -> None:
+        """Erstellt alle benötigten MongoDB-Indices – idempotent, sicher bei Mehrfachaufruf."""
+        db = self.get_db()
+        if db is None:
+            return
+        try:
+            # lectures – Haupt-Collection; timetable-Endpunkt filtert nach all diesen Feldern
+            db.lectures.create_index([("courseOfStudyId", ASCENDING)])
+            db.lectures.create_index([("semesterIds", ASCENDING)])
+            db.lectures.create_index([("start_time", ASCENDING)])
+            db.lectures.create_index([("building", ASCENDING)])
+            db.lectures.create_index([("room_number", ASCENDING)])
+            db.lectures.create_index([("professor", ASCENDING)])
+            db.lectures.create_index([("source_type", ASCENDING)])
+            db.lectures.create_index([("room_id", ASCENDING)])
+            # Compound: häufigster timetable-Filter (Studiengang + Semester + Datum)
+            db.lectures.create_index([
+                ("courseOfStudyId", ASCENDING),
+                ("semesterIds", ASCENDING),
+                ("start_time", ASCENDING),
+            ])
+
+            # studiengaenge
+            db.studiengaenge.create_index([("code", ASCENDING)])
+            db.studiengaenge.create_index([("program_code", ASCENDING)])
+
+            # events
+            db.events.create_index([("start_time", ASCENDING)])
+            db.events.create_index([("is_public", ASCENDING)])
+            db.events.create_index(
+                [("source_slug", ASCENDING)], unique=True, sparse=True
+            )
+            db.events.create_index([("groupId", ASCENDING)])
+
+            # rooms
+            db.rooms.create_index([("building_id", ASCENDING)])
+            db.rooms.create_index([("room_number", ASCENDING)])
+
+            # buildings
+            db.buildings.create_index([("campus", ASCENDING)])
+
+            logger.info("✓ MongoDB indices ensured")
+        except Exception as e:
+            logger.warning(f"Index creation warning: {e}")
 
     def disconnect(self):
         """Trenne Verbindung zu MongoDB"""

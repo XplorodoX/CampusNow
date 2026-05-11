@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import os
 import shutil
 from datetime import datetime, timedelta, timezone
@@ -13,9 +14,20 @@ MONGO_URI = os.getenv(
 )
 MONGO_DB = os.getenv("MONGO_DB", "campusnow")
 
-# This seeder intentionally avoids timetable collections (lectures, studiengaenge).
 ROOM_ID = os.getenv("MOCK_ROOM_ID", "MOCK-R1")
 BUILDING_ID = os.getenv("MOCK_BUILDING_ID", "AH")
+
+_COURSE_COLORS = [
+    "#4A90D9", "#E67E22", "#2ECC71", "#9B59B6", "#E74C3C",
+    "#1ABC9C", "#F39C12", "#3498DB", "#D35400", "#27AE60",
+    "#8E44AD", "#C0392B", "#16A085", "#E91E63", "#FF5722",
+    "#607D8B", "#795548", "#FF9800", "#009688", "#673AB7",
+]
+
+
+def _course_color(code: str) -> str:
+    h = int(hashlib.md5(code.encode()).hexdigest(), 16)
+    return _COURSE_COLORS[h % len(_COURSE_COLORS)]
 
 
 def _ensure_mock_image(base_image_dir: Path, room_id: str) -> tuple[str | None, str | None]:
@@ -151,13 +163,13 @@ def main() -> None:
         },
     }
 
-    for code, info in default_buildings_info.items():
+    for bld_code, info in default_buildings_info.items():
         db.buildings.update_one(
-            {"_id": code},
+            {"_id": bld_code},
             {
                 "$set": {
-                    "code": code,
-                    "name": info.get("name") or f"Gebäude {code}",
+                    "code": bld_code,
+                    "name": info.get("name") or f"Gebäude {bld_code}",
                     "campus": info.get("campus", "Main"),
                     "address": info.get("address"),
                     "floors": info.get("floors", []),
@@ -171,67 +183,70 @@ def main() -> None:
             upsert=True,
         )
 
-        # Insert common bachelor study programs
-        bachelor_programs = {
-            # Wirtschaftswissenschaften
-            "B": "Betriebswirtschaft für kleine und mittlere Unternehmen",
-            "BAN": "Business Analytics",
-            "GM": "Gesundheitsmanagement",
-            "I": "Internationale Betriebswirtschaft",
-            "W": "Wirtschaftsingenieurwesen",
-            "WI": "Wirtschaftsinformatik",
-            "WIP": "Wirtschaftspsychologie",
-            # Optik / Mechatronik
-            "A": "Augenoptik / Augenoptik und Hörakustik",
-            "AO": "Augenoptik / Optometrie",
-            "DHM": "Digital Health Management",
-            "F": "Mechatronik",
-            "FTC": "Technical Content Creation",
-            "FTK": "Technische Redaktion",
-            "FUX": "User Experience",
-            "GBA": "Ingenieurpädagogik",
-            "HA": "Hörakustik / Audiologie",
-            "OE": "Optical Engineering",
-            # Maschinenbau / Oberflächentechnologie
-            "K": "Kunststofftechnik",
-            "M": "Allgemeiner Maschinenbau",
-            "MBW": "Maschinenbau / Produktion und Management",
-            "MBP": "Maschinenbau / Produktion und Management",
-            "MP": "Maschinenbau Plus",
-            "P": "Maschinenbau / Produktentwicklung und Simulation",
-            "PE": "Maschinenbau / Entwicklung: Design & Simula",
-            "VI": "International Sales Management and Technology",
-            "VMG": "Oberflächentechnologie / Neue Materialien",
-            "VMM": "Oberflächentechnologie / Neue Materialien",
-            "VV": "Oberflächentechnologie / Neue Materialien",
-            # Chemie
-            "C": "Chemie",
-            "BPW": "Biopharmazeutische Wissenschaften",
-            # Elektronik / Informatik
-            "DS": "Data Science",
-            "ET": "Elektrotechnik",
-            "ETI": "Technische Informatik / Embedded Systems",
-            "IN": "Informatik",
-            "IOT": "Internet der Dinge",
-            "DPD": "Digital Product Design and Development",
-        }
+    # Bachelor study programs – one doc per program_code (same structure as scraper output).
+    # semesters list: which semesters this program has (scraper overwrites on real run).
+    bachelor_programs: dict[str, dict] = {
+        # Wirtschaftswissenschaften
+        "B":   {"name": "Betriebswirtschaft für kleine und mittlere Unternehmen", "semesters": list(range(1, 8))},
+        "BAN": {"name": "Business Analytics",                                      "semesters": list(range(1, 8))},
+        "GM":  {"name": "Gesundheitsmanagement",                                   "semesters": list(range(1, 8))},
+        "I":   {"name": "Internationale Betriebswirtschaft",                       "semesters": list(range(1, 8))},
+        "W":   {"name": "Wirtschaftsingenieurwesen",                               "semesters": list(range(1, 8))},
+        "WI":  {"name": "Wirtschaftsinformatik",                                   "semesters": list(range(1, 8))},
+        "WIP": {"name": "Wirtschaftspsychologie",                                  "semesters": list(range(1, 8))},
+        # Optik / Mechatronik
+        "A":   {"name": "Augenoptik / Augenoptik und Hörakustik",                  "semesters": list(range(1, 8))},
+        "AO":  {"name": "Augenoptik / Optometrie",                                 "semesters": list(range(1, 8))},
+        "DHM": {"name": "Digital Health Management",                               "semesters": list(range(1, 8))},
+        "F":   {"name": "Mechatronik",                                             "semesters": list(range(1, 8))},
+        "FTC": {"name": "Technical Content Creation",                              "semesters": list(range(1, 8))},
+        "FTK": {"name": "Technische Redaktion",                                    "semesters": list(range(1, 8))},
+        "FUX": {"name": "User Experience",                                         "semesters": list(range(1, 8))},
+        "GBA": {"name": "Ingenieurpädagogik",                                      "semesters": list(range(1, 8))},
+        "HA":  {"name": "Hörakustik / Audiologie",                                 "semesters": list(range(1, 8))},
+        "OE":  {"name": "Optical Engineering",                                     "semesters": list(range(1, 8))},
+        # Maschinenbau / Oberflächentechnologie
+        "K":   {"name": "Kunststofftechnik",                                       "semesters": list(range(1, 8))},
+        "M":   {"name": "Allgemeiner Maschinenbau",                                "semesters": list(range(1, 8))},
+        "MBW": {"name": "Maschinenbau / Produktion und Management",                "semesters": list(range(1, 8))},
+        "MBP": {"name": "Maschinenbau / Produktion und Management",                "semesters": list(range(1, 8))},
+        "MP":  {"name": "Maschinenbau Plus",                                       "semesters": list(range(1, 8))},
+        "P":   {"name": "Maschinenbau / Produktentwicklung und Simulation",        "semesters": list(range(1, 8))},
+        "PE":  {"name": "Maschinenbau / Entwicklung: Design & Simulation",         "semesters": list(range(1, 8))},
+        "VI":  {"name": "International Sales Management and Technology",           "semesters": list(range(1, 8))},
+        "VMG": {"name": "Oberflächentechnologie / Neue Materialien",               "semesters": list(range(1, 8))},
+        "VMM": {"name": "Oberflächentechnologie / Neue Materialien",               "semesters": list(range(1, 8))},
+        "VV":  {"name": "Oberflächentechnologie / Neue Materialien",               "semesters": list(range(1, 8))},
+        # Chemie
+        "C":   {"name": "Chemie",                                                  "semesters": list(range(1, 8))},
+        "BPW": {"name": "Biopharmazeutische Wissenschaften",                       "semesters": list(range(1, 8))},
+        # Elektronik / Informatik
+        "DS":  {"name": "Data Science",                                            "semesters": list(range(1, 8))},
+        "ET":  {"name": "Elektrotechnik",                                          "semesters": list(range(1, 8))},
+        "ETI": {"name": "Technische Informatik / Embedded Systems",                "semesters": list(range(1, 8))},
+        "IN":  {"name": "Informatik",                                              "semesters": list(range(1, 8))},
+        "IOT": {"name": "Internet der Dinge",                                      "semesters": list(range(1, 8))},
+        "DPD": {"name": "Digital Product Design and Development",                  "semesters": list(range(1, 8))},
+    }
 
-        for code, name in bachelor_programs.items():
-            db.studiengaenge.update_one(
-                {"_id": code},
-                {
-                    "$set": {
-                        "name": name,
-                        "code": code,
-                        "program_code": code,
-                        "program_name": f"Bachelor {name}",
-                        "lecture_count": 0,
-                        "last_scraped": now,
-                        "created_at": now,
-                    }
+    for prog_code, prog_info in bachelor_programs.items():
+        db.studiengaenge.update_one(
+            {"_id": prog_code},
+            {
+                "$set": {
+                    "name": prog_info["name"],
+                    "code": prog_code,
+                    "program_code": prog_code,
+                    "program_name": f"Bachelor {prog_info['name']}",
+                    "semesters": prog_info["semesters"],
+                    "color": _course_color(prog_code),
+                    "lecture_count": 0,
+                    "last_scraped": now,
                 },
-                upsert=True,
-            )
+                "$setOnInsert": {"created_at": now},
+            },
+            upsert=True,
+        )
 
     db.rooms.update_one(
         {"_id": ROOM_ID},
@@ -317,8 +332,84 @@ def main() -> None:
             upsert=True,
         )
 
-    print("Mock seed complete (excluding timetable lectures):")
+    # Sample course lectures – reflect the exact field structure the scraper produces.
+    # Based on real ICS data from splan_SoSe26_IN_S1_AI.ics (StarPlan, HS Aalen).
+    # The scraper will overwrite these on first run; they exist so the timetable
+    # endpoint returns non-empty data immediately after seeding.
+    in_color = _course_color("IN")
+    # SoSe 2026: pick a stable Monday as anchor so dates don't drift
+    _monday = datetime(2026, 5, 11, tzinfo=timezone.utc)
+
+    sample_lectures = [
+        {
+            "lecture_id":       "seed-IN-S1-rechnerarchitektur",
+            "module_name":      "Rechnerarchitektur",
+            "module_id":        "31-57103",
+            "room_number":      "G2 1.44",
+            "building":         "G2",
+            "professor":        "Prof. Dr. Müller",
+            "start_time":       _monday.replace(hour=8, minute=0),
+            "end_time":         _monday.replace(hour=9, minute=30),
+            "day_of_week":      "Monday",
+            "duration_minutes": 90,
+            "source_type":      "course",
+            "course_code":      "IN S1 AI",
+            "courseOfStudyId":  "IN",
+            "semesterIds":      ["sem_1"],
+            "color":            in_color,
+            "recurrence":       "weekly",
+            "created_at":       now,
+        },
+        {
+            "lecture_id":       "seed-IN-S1-mathematik2",
+            "module_name":      "Mathematik 2",
+            "module_id":        "31-57111",
+            "room_number":      "G2 1.44",
+            "building":         "G2",
+            "professor":        "Prof. Dr. Schmidt",
+            "start_time":       (_monday + timedelta(days=1)).replace(hour=10, minute=0),
+            "end_time":         (_monday + timedelta(days=1)).replace(hour=11, minute=30),
+            "day_of_week":      "Tuesday",
+            "duration_minutes": 90,
+            "source_type":      "course",
+            "course_code":      "IN S1 AI",
+            "courseOfStudyId":  "IN",
+            "semesterIds":      ["sem_1"],
+            "color":            in_color,
+            "recurrence":       "weekly",
+            "created_at":       now,
+        },
+        {
+            "lecture_id":       "seed-IN-S1-programmierung2",
+            "module_name":      "Programmierung 2",
+            "module_id":        "31-57105",
+            "room_number":      "G2 0.31",
+            "building":         "G2",
+            "professor":        "Prof. Dr. Bauer",
+            "start_time":       (_monday + timedelta(days=2)).replace(hour=8, minute=0),
+            "end_time":         (_monday + timedelta(days=2)).replace(hour=9, minute=30),
+            "day_of_week":      "Wednesday",
+            "duration_minutes": 90,
+            "source_type":      "course",
+            "course_code":      "IN S1 AI",
+            "courseOfStudyId":  "IN",
+            "semesterIds":      ["sem_1"],
+            "color":            in_color,
+            "recurrence":       "weekly",
+            "created_at":       now,
+        },
+    ]
+
+    for lec in sample_lectures:
+        db.lectures.update_one(
+            {"lecture_id": lec["lecture_id"]},
+            {"$setOnInsert": lec},
+            upsert=True,
+        )
+
+    print("Mock seed complete:")
     print("- updated: buildings, rooms, settings, streetview_graphs, studiengaenge")
+    print(f"- seeded {len(sample_lectures)} sample lectures for IN S1 (idempotent)")
     if filename:
         print(f"- image_metadata entry created for room={ROOM_ID}, filename={filename}")
     else:

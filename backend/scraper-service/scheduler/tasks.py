@@ -110,16 +110,15 @@ class ScraperTasks:
             db = mongo.get_db()
             logger.info("✓ MongoDB connected")
 
-            # Job-Start in DB festhalten
             log_doc = {
-                "started_at": started_at,
-                "completed_at": None,
-                "status": "running",
-                "rooms_processed": 0,
+                "started_at":        started_at,
+                "completed_at":      None,
+                "status":            "running",
+                "rooms_processed":   0,
                 "courses_processed": 0,
-                "lectures_total": 0,
+                "lectures_total":    0,
                 "buildings_upserted": 0,
-                "error": None,
+                "error":             None,
             }
             log_id = db.scheduler_logs.insert_one(log_doc).inserted_id
 
@@ -137,84 +136,37 @@ class ScraperTasks:
 
             logger.info(f"✓ Found {len(rooms)} rooms and {len(courses)} courses")
 
-            # 3. Process rooms
-            logger.info("📍 Processing rooms...")
+            # 3. Räume synchronisieren – NUR Metadaten, KEINE Lectures aus Room-iCal.
+            # Vorlesungen kommen ausschließlich aus den Kurs-/Planungsgruppen-iCals (Schritt 4),
+            # damit es keine Duplikate gibt.
+            logger.info("📍 Syncing room metadata from StarPlan...")
             room_count = 0
-            lecture_count = 0
             building_room_counts: dict[str, int] = {}
 
             for room in rooms:
                 try:
-                    room_id = room.get("room_id")
+                    room_id     = room.get("room_id")
                     room_number = room.get("room_number")
-                    ical_url = room.get("ical_url")
+                    ical_url    = room.get("ical_url")
 
-                    logger.debug(f"Processing room: {room_number} (ID: {room_id})")
-
-                    # Gebäude aus expliziten StarPlan-Feldern oder Raumnummer/-name ableiten
                     building_code = (
                         room.get("building_shortname")
                         or room.get("building_id")
                         or _extract_building_code(room_number or "")
                         or _extract_building_code(room.get("room_name") or "")
                     )
-                    # Wenn nach obigen Versuchen kein Gebäude ermittelt werden konnte,
-                    # versuche ein heuristisches Mapping über vorhandene Räume in der DB.
-                    if not building_code:
-                        try:
-                            num_match = re.search(r"(\d+)", (room_number or ""))
-                            if num_match:
-                                num = num_match.group(1)
-                                # Suche in vorhandenen Räumen nach solchen, die dieselbe Ziffernfolge
-                                # enthalten und bereits ein building_id gesetzt haben.
-                                cursor = db.rooms.find(
-                                    {"room_number": {"$regex": num}, "building_id": {"$ne": None}},
-                                    {"building_id": 1},
-                                ).limit(50)
-                                counts: dict[str, int] = {}
-                                for doc in cursor:
-                                    b = doc.get("building_id")
-                                    if b:
-                                        counts[b] = counts.get(b, 0) + 1
-                                if counts:
-                                    # Wähle das häufigste Gebäude für diese Nummernfolge
-                                    building_code = max(counts, key=counts.get)
-                        except Exception:
-                            # Falls die DB-Abfrage fehlschlägt, nicht fatal
-                            pass
                     if building_code:
                         building_code = str(building_code).upper()
                     floor = _extract_floor(room_number or "")
 
-                    # Parse iCal
-                    room_lectures = IcalParser.parse_ical_from_url(
-                        ical_url, source_type="room", source_id=room_id
-                    )
-
-                    if room_lectures:
-                        for lec in room_lectures:
-                            lec["room_id"] = room_id
-                            lec["room_number"] = room_number
-                            lec["recurrence"] = "weekly"
-                            if building_code:
-                                lec["building"] = building_code
-                                lec["building_id"] = building_code
-
-                        db.lectures.delete_many({"room_id": room_id})
-                        db.lectures.insert_many(room_lectures)
-                        lecture_count += len(room_lectures)
-                        logger.debug(f"Inserted {len(room_lectures)} lectures for room {room_number}")
-
-                    # Raum-Metadaten updaten (inkl. building_id)
                     room_set: dict = {
-                        "room_id": room_id,
-                        "ical_url": ical_url,
+                        "room_id":      room_id,
+                        "ical_url":     ical_url,
                         "last_scraped": datetime.now(),
-                        "lecture_count": len(room_lectures) if room_lectures else 0,
                     }
                     if building_code:
                         room_set["building_id"] = building_code
-                        room_set["building"] = building_code
+                        room_set["building"]    = building_code
                         building_room_counts[building_code] = (
                             building_room_counts.get(building_code, 0) + 1
                         )
@@ -235,41 +187,37 @@ class ScraperTasks:
                         },
                         upsert=True,
                     )
-
                     room_count += 1
 
                 except Exception as e:
-                    logger.error(
-                        f"Error processing room {room_number}: {e}",
-                        exc_info=True,
-                    )
+                    logger.error(f"Error syncing room {room.get('room_number')}: {e}", exc_info=True)
 
-            # Gebäude-Dokumente anlegen / updaten
-            logger.info(f"🏢 Upserting {len(building_room_counts)} buildings...")
+            # Gebäude: nur dynamische Felder (room_count, floors) updaten –
+            # Name, Beschreibung und Campus kommen vom Seed und werden NICHT überschrieben.
+            logger.info(f"🏢 Updating {len(building_room_counts)} buildings (dynamic fields only)...")
             for b_code, r_count in building_room_counts.items():
-                # Alle belegten Stockwerke für dieses Gebäude ermitteln
                 floors_in_db = db.rooms.distinct("floor", {"building_id": b_code, "floor": {"$ne": None}})
                 db.buildings.update_one(
                     {"_id": b_code},
                     {
                         "$set": {
-                            "code": b_code,
-                            "name": f"Gebäude {b_code}",
-                            "room_count": r_count,
-                            "floors": sorted(floors_in_db),
+                            "room_count":   r_count,
+                            "floors":       sorted(floors_in_db),
                             "last_scraped": datetime.now(),
                         },
                         "$setOnInsert": {
-                            "campus": "Main",
-                            "address": None,
+                            "code":                b_code,
+                            "name":                f"Gebäude {b_code}",
+                            "campus":              "Main",
+                            "address":             None,
                             "street_view_enabled": False,
-                            "created_at": datetime.now(),
+                            "created_at":          datetime.now(),
                         },
                     },
                     upsert=True,
                 )
 
-            logger.info(f"✓ Processed {room_count} rooms with {lecture_count} lectures")
+            logger.info(f"✓ Synced {room_count} rooms, {len(building_room_counts)} buildings updated")
 
             # 4. Process courses – gruppiert nach program_code
             # Beispiel: "IN S1 AI", "IN S2 AI", …, "IN S7 AI" → ein Studiengang "IN"
@@ -297,10 +245,10 @@ class ScraperTasks:
                 f"  → {len(courses)} Planungsgruppen → {len(programs)} Studiengänge"
             )
 
-            # Alte Studiengang-Dokumente aus vorherigen Läufen bereinigen
+            # Alte Studiengang-Dokumente und ALLE Lectures aus vorherigen Läufen löschen.
+            # Room-iCal wird nicht mehr gescrapt → es gibt nur noch source_type:"course".
             db.studiengaenge.delete_many({})
-            # Kurs-Vorlesungen aus vorherigen Läufen löschen (room-Vorlesungen bleiben)
-            db.lectures.delete_many({"source_type": "course"})
+            db.lectures.delete_many({})
 
             for program_code, prog_data in programs.items():
                 sorted_sems = sorted(set(prog_data["semesters"]))
@@ -339,20 +287,52 @@ class ScraperTasks:
 
                         if course_lectures:
                             semester_ids = [f"sem_{s}" for s in pg_sems]
-                            for lecture in course_lectures:
-                                lecture["course_id"]      = pg_id
-                                lecture["course_code"]    = pg_code
-                                lecture["courseOfStudyId"] = program_code  # "IN", nicht "IN S1 AI"
-                                lecture["semesterIds"]    = semester_ids
-                                lecture["semesterId"]     = semester_ids[0] if semester_ids else ""
-                                lecture["color"]          = color
-                                lecture["recurrence"]     = "weekly"
+                            saved = 0
+                            for lec in course_lectures:
+                                lid = lec.get("lecture_id")
+                                b   = _extract_building_code(lec.get("room_number") or "")
 
-                            db.lectures.insert_many(course_lectures)
-                            course_lecture_count += len(course_lectures)
-                            logger.debug(
-                                f"  {pg_code}: {len(course_lectures)} Vorlesungen gespeichert"
-                            )
+                                # Felder die immer gesetzt/überschrieben werden
+                                fields: dict = {
+                                    # --- aus iCal ---
+                                    "lecture_id":       lid,
+                                    "module_name":      lec.get("module_name", ""),
+                                    "module_id":        lec.get("module_id"),
+                                    "room_number":      lec.get("room_number", ""),
+                                    "professor":        lec.get("professor"),
+                                    "start_time":       lec.get("start_time"),
+                                    "end_time":         lec.get("end_time"),
+                                    "day_of_week":      lec.get("day_of_week"),
+                                    "duration_minutes": lec.get("duration_minutes", 90),
+                                    # --- vom Scraper ergänzt ---
+                                    "building":         b or None,
+                                    "course_code":      pg_code,
+                                    "courseOfStudyId":  program_code,
+                                    "color":            color,
+                                    "recurrence":       "weekly",
+                                    "source_type":      "course",
+                                    "created_at":       lec.get("created_at"),
+                                }
+
+                                if lid:
+                                    # Upsert: semesterIds per $addToSet zusammenführen,
+                                    # damit ein Lecture das in IN S1 und IN S2 vorkommt
+                                    # beide Semester-IDs bekommt – kein Duplikat.
+                                    db.lectures.update_one(
+                                        {"lecture_id": lid},
+                                        {
+                                            "$set":    fields,
+                                            "$addToSet": {"semesterIds": {"$each": semester_ids}},
+                                        },
+                                        upsert=True,
+                                    )
+                                else:
+                                    fields["semesterIds"] = semester_ids
+                                    db.lectures.insert_one(fields)
+                                saved += 1
+
+                            course_lecture_count += saved
+                            logger.debug(f"  {pg_code}: {saved} Vorlesungen upserted")
 
                         course_count += 1
 
@@ -383,15 +363,14 @@ class ScraperTasks:
                 logger.exception("Error while updating lecture_count for studiengaenge")
 
             # 5. Summary
-            total_lectures = lecture_count + course_lecture_count
             completed_at = datetime.now()
 
             logger.info("=" * 70)
             logger.info("✅ SCRAPE JOB COMPLETED SUCCESSFULLY")
             logger.info("=" * 70)
-            logger.info(f"  - Rooms: {room_count}")
-            logger.info(f"  - Courses: {course_count}")
-            logger.info(f"  - Total Lectures: {total_lectures}")
+            logger.info(f"  - Rooms synced: {room_count}")
+            logger.info(f"  - Courses (planning groups): {course_count}")
+            logger.info(f"  - Lectures upserted: {course_lecture_count}")
             logger.info(f"  - Completed at: {completed_at.isoformat()}")
             logger.info("=" * 70)
 
@@ -404,7 +383,7 @@ class ScraperTasks:
                         "completed_at": completed_at,
                         "rooms_processed": room_count,
                         "courses_processed": course_count,
-                        "lectures_total": total_lectures,
+                        "lectures_total": course_lecture_count,
                         "buildings_upserted": len(building_room_counts),
                     }},
                 )

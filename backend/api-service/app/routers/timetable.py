@@ -66,26 +66,21 @@ def _lecture_to_frontend(lec: dict) -> dict:
     """Mappt ein DB-Lecture-Dokument auf das timetable.json-Format."""
     semester_ids: list = lec.get("semesterIds") or []
     return {
-        "id": str(lec.get("_id") or lec.get("lecture_id", "")),
-        "title": lec.get("title") or lec.get("module_name") or lec.get("summary", ""),
-        "courseOfStudyId": (
-            lec.get("courseOfStudyId")
-            or lec.get("course_code")
-            or lec.get("studiengang_id", "")
-        ),
-        "semesterId": (
-            semester_ids[0]
-            if semester_ids
-            else (lec.get("semesterId") or lec.get("semester") or "")
-        ),
-        "room": lec.get("room") or lec.get("room_number") or lec.get("location", ""),
-        "building": lec.get("building") or lec.get("building_id", ""),
-        "professor": lec.get("professor") or "",
-        "startTime": _to_iso(lec.get("startTime") or lec.get("start_time")),
-        "endTime": _to_iso(lec.get("endTime") or lec.get("end_time")),
-        "color": lec.get("color", "#4A90D9"),
-        "recurrence": lec.get("recurrence", "weekly"),
-        "notes": lec.get("notes", ""),
+        "id":             str(lec.get("_id") or lec.get("lecture_id", "")),
+        "title":          lec.get("module_name", ""),
+        "moduleId":       lec.get("module_id"),
+        "courseOfStudyId": lec.get("courseOfStudyId", ""),
+        "semesterId":     semester_ids[0] if semester_ids else "",
+        "semesterIds":    semester_ids,
+        "room":           lec.get("room_number", ""),
+        "building":       lec.get("building", ""),
+        "professor":      lec.get("professor") or "",
+        "startTime":      _to_iso(lec.get("start_time")),
+        "endTime":        _to_iso(lec.get("end_time")),
+        "dayOfWeek":      lec.get("day_of_week", ""),
+        "durationMinutes": lec.get("duration_minutes", 90),
+        "color":          lec.get("color", "#4A90D9"),
+        "recurrence":     lec.get("recurrence", "weekly"),
     }
 
 

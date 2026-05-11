@@ -248,6 +248,7 @@ async def startup_event() -> None:
 
     if mongo_client.connect():
         logger.info("✓ MongoDB connection established")
+        mongo_client.ensure_indices()
     else:
         logger.warning("⚠ MongoDB connection failed - retrying...")
 

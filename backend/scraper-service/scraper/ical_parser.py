@@ -78,18 +78,15 @@ class IcalParser:
 
             return {
                 "lecture_id":       uid or f"{location}_{start_time.isoformat()}",
-                "summary":          summary,
                 "module_name":      module_name,
                 "module_id":        module_id,
                 "room_number":      location,
                 "professor":        professor,
-                "description":      description,
                 "start_time":       start_time,
                 "end_time":         end_time,
                 "day_of_week":      start_time.strftime("%A") if start_time else "Unknown",
                 "duration_minutes": duration_minutes,
                 "source_type":      source_type,
-                "source_id":        source_id,
                 "created_at":       datetime.now(),
             }
 
@@ -107,18 +104,32 @@ class IcalParser:
           3. Planungsgruppe (z. B. "IN S1")
           4. Optional: Canvas-URL o. ä.
 
-        Es wird ab Zeile 2 nach einem Namen gesucht, der dem Muster
-        „Vorname Nachname" entspricht.
+        Kriterien für einen Dozenten-Namen:
+        - Nach Titel-Stripping (Prof./Dr./Dipl.) verbleiben 1–4 Wörter
+        - Jedes Wort startet mit Großbuchstabe und enthält mindestens einen Kleinbuchstaben
+          (schließt Abkürzungen wie "MLD", "MIN", "ETI" aus)
+        - Ohne Titel mind. 2 Wörter (sonst zu viele False Positives)
         """
         lines = [ln.strip() for ln in description.split("\n") if ln.strip()]
-        # Zeile 0 = Modulname überspringen
         for line in lines[1:]:
-            # Sobald wir die Planungsgruppe ("XX S1") erreichen, abbrechen
-            if re.match(r'^[A-Z]{2,6}\s+S\d', line):
+            if re.match(r'^[A-Z]{2,6}\s+S\d', line):  # Planungsgruppe → stop
                 break
-            if _NAME_RE.match(line):
+            if IcalParser._is_professor_name(line):
                 return line
         return None
+
+    @staticmethod
+    def _is_professor_name(line: str) -> bool:
+        """Gibt True zurück wenn die Zeile wie ein Personenname aussieht."""
+        stripped = _TITLE_STRIP_RE.sub("", line).strip()
+        had_title = stripped != line
+        words = stripped.split()
+        if not words or len(words) > 4:
+            return False
+        # Ohne Titel: mindestens 2 Wörter erforderlich
+        if not had_title and len(words) < 2:
+            return False
+        return all(_NAME_WORD_RE.match(w) for w in words)
 
     @staticmethod
     def _extract_module_name(summary: str) -> str:
