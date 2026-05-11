@@ -1,5 +1,6 @@
 """Scraper tasks for scheduled execution."""
 
+import hashlib
 import logging
 import re
 from datetime import datetime
@@ -51,6 +52,19 @@ def _extract_floor(room_number: str) -> int | None:
     return None
 
 logger = logging.getLogger(__name__)
+
+_COURSE_COLORS = [
+    "#4A90D9", "#E67E22", "#2ECC71", "#9B59B6", "#E74C3C",
+    "#1ABC9C", "#F39C12", "#3498DB", "#D35400", "#27AE60",
+    "#8E44AD", "#C0392B", "#16A085", "#E91E63", "#FF5722",
+    "#607D8B", "#795548", "#FF9800", "#009688", "#673AB7",
+]
+
+
+def _course_color(code: str) -> str:
+    """Gibt eine deterministische Farbe aus der Palette für einen Kurs-Code zurück."""
+    h = int(hashlib.md5(code.encode()).hexdigest(), 16)
+    return _COURSE_COLORS[h % len(_COURSE_COLORS)]
 
 
 def _course_code_matches_studiengang(course_code: str | None, studiengang_code: str | None) -> bool:
@@ -181,6 +195,10 @@ class ScraperTasks:
                         for lec in room_lectures:
                             lec["room_id"] = room_id
                             lec["room_number"] = room_number
+                            lec["recurrence"] = "weekly"
+                            if building_code:
+                                lec["building"] = building_code
+                                lec["building_id"] = building_code
 
                         db.lectures.delete_many({"room_id": room_id})
                         db.lectures.insert_many(room_lectures)
@@ -253,91 +271,109 @@ class ScraperTasks:
 
             logger.info(f"✓ Processed {room_count} rooms with {lecture_count} lectures")
 
-            # 4. Process courses
-            logger.info("📚 Processing courses...")
+            # 4. Process courses – gruppiert nach program_code
+            # Beispiel: "IN S1 AI", "IN S2 AI", …, "IN S7 AI" → ein Studiengang "IN"
+            logger.info("📚 Processing courses (grouped by program_code)...")
             course_count = 0
             course_lecture_count = 0
 
-            for course in courses:
-                try:
-                    course_id = course.get("course_id")
-                    course_name = course.get("name")
-                    course_code = course.get("code")
-                    semesters = course.get("semesters", [])
-                    program_id = course.get("program_id")
-                    program_code = course.get("program_code")
-                    program_name = course.get("program_name")
-                    ical_url = course.get("ical_url")
+            # Alle Planungsgruppen nach program_code bündeln
+            programs: dict[str, dict] = {}
+            for pg in courses:
+                pc = (pg.get("program_code") or "").strip()
+                if not pc:
+                    # Fallback: führendes Wort des Kürzels ("IN" aus "IN S1 AI")
+                    pc = (pg.get("code") or "UNKNOWN").split(" ")[0].upper()
+                if pc not in programs:
+                    programs[pc] = {
+                        "name": pg.get("program_name") or pc,
+                        "semesters": [],
+                        "planning_groups": [],
+                    }
+                programs[pc]["semesters"].extend(pg.get("semesters", []))
+                programs[pc]["planning_groups"].append(pg)
 
-                    logger.debug(f"Processing course: {course_name} ({course_code})")
+            logger.info(
+                f"  → {len(courses)} Planungsgruppen → {len(programs)} Studiengänge"
+            )
 
-                    # Parse iCal
-                    course_lectures = IcalParser.parse_ical_from_url(
-                        ical_url, source_type="course", source_id=course_id
-                    )
+            # Alte Studiengang-Dokumente aus vorherigen Läufen bereinigen
+            db.studiengaenge.delete_many({})
+            # Kurs-Vorlesungen aus vorherigen Läufen löschen (room-Vorlesungen bleiben)
+            db.lectures.delete_many({"source_type": "course"})
 
-                    if course_lectures:
-                        for lecture in course_lectures:
-                            lecture["course_id"] = course_id
-                            lecture["course_code"] = course_code
+            for program_code, prog_data in programs.items():
+                sorted_sems = sorted(set(prog_data["semesters"]))
+                color = _course_color(program_code)
 
-                        db.lectures.insert_many(course_lectures)
-                        course_lecture_count += len(course_lectures)
-                        logger.debug(f"Inserted {len(course_lectures)} lectures for course {course_code}")
-
-                    # Store course metadata
-                    db.studiengaenge.update_one(
-                        {"code": course_code},
-                        {
-                            "$set": {
-                                "course_id": course_id,
-                                "name": course_name,
-                                "code": course_code,
-                                "semesters": semesters,
-                                "program_id": program_id,
-                                "program_code": program_code,
-                                "program_name": program_name,
-                                "ical_url": ical_url,
-                                "last_scraped": datetime.now(),
-                                "lecture_count": len(course_lectures) if course_lectures else 0,
-                            },
-                            "$setOnInsert": {"created_at": datetime.now()},
+                # Ein Studiengang-Dokument pro program_code (z. B. "IN")
+                db.studiengaenge.update_one(
+                    {"_id": program_code},
+                    {
+                        "$set": {
+                            "code": program_code,
+                            "program_code": program_code,
+                            "name": prog_data["name"],
+                            "semesters": sorted_sems,
+                            "color": color,
+                            "last_scraped": datetime.now(),
                         },
-                        upsert=True,
-                    )
+                        "$setOnInsert": {"created_at": datetime.now()},
+                    },
+                    upsert=True,
+                )
 
-                    course_count += 1
+                # Vorlesungen jeder Planungsgruppe abrufen und speichern
+                for pg in prog_data["planning_groups"]:
+                    try:
+                        pg_id       = pg.get("course_id")
+                        pg_code     = pg.get("code")        # z. B. "IN S1 AI"
+                        pg_sems     = pg.get("semesters", [])
+                        ical_url    = pg.get("ical_url")
 
-                except Exception as e:
-                    logger.error(
-                        f"Error processing course {course_name}: {e}",
-                        exc_info=True,
-                    )
+                        logger.debug(f"Fetching iCal for {pg_code} ({program_code})…")
 
-            logger.info(f"✓ Processed {course_count} courses with {course_lecture_count} lectures")
-            # Update lecture_count for studiengaenge based on inserted lectures.
+                        course_lectures = IcalParser.parse_ical_from_url(
+                            ical_url, source_type="course", source_id=pg_id
+                        )
+
+                        if course_lectures:
+                            semester_ids = [f"sem_{s}" for s in pg_sems]
+                            for lecture in course_lectures:
+                                lecture["course_id"]      = pg_id
+                                lecture["course_code"]    = pg_code
+                                lecture["courseOfStudyId"] = program_code  # "IN", nicht "IN S1 AI"
+                                lecture["semesterIds"]    = semester_ids
+                                lecture["semesterId"]     = semester_ids[0] if semester_ids else ""
+                                lecture["color"]          = color
+                                lecture["recurrence"]     = "weekly"
+
+                            db.lectures.insert_many(course_lectures)
+                            course_lecture_count += len(course_lectures)
+                            logger.debug(
+                                f"  {pg_code}: {len(course_lectures)} Vorlesungen gespeichert"
+                            )
+
+                        course_count += 1
+
+                    except Exception as e:
+                        logger.error(
+                            f"Error processing planning group {pg.get('code')}: {e}",
+                            exc_info=True,
+                        )
+
+            logger.info(
+                f"✓ Processed {len(programs)} Studiengänge / "
+                f"{course_count} Planungsgruppen / "
+                f"{course_lecture_count} Vorlesungen"
+            )
+
+            # Lecture-Anzahl pro Studiengang aktualisieren
             logger.info("🔢 Updating lecture_count for studiengaenge...")
             try:
                 for sg in db.studiengaenge.find():
-                    sg_code = sg.get("code") or sg.get("_id")
-                    # Count lectures that reference this study program by course_code prefix or explicit IDs.
-                    count = db.lectures.count_documents(
-                        {
-                            "$or": [
-                                {"studiengang_id": sg.get("_id")},
-                                {"courseOfStudyId": sg.get("_id")},
-                            ]
-                        }
-                    )
-                    if count == 0:
-                        count = sum(
-                            1
-                            for lecture in db.lectures.find(
-                                {"course_code": {"$exists": True}},
-                                {"course_code": 1},
-                            )
-                            if _course_code_matches_studiengang(lecture.get("course_code"), sg_code)
-                        )
+                    pc = sg.get("program_code") or sg.get("_id")
+                    count = db.lectures.count_documents({"courseOfStudyId": pc})
                     db.studiengaenge.update_one(
                         {"_id": sg.get("_id")},
                         {"$set": {"lecture_count": count, "last_scraped": datetime.now()}},

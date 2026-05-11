@@ -16,13 +16,11 @@ from app.routers import (
     buildings,
     events,
     images,
-    lectures,
     rooms,
     schedule,
     scheduler,
     settings,
     streetview,
-    studiengaenge,
     timetable,
 )
 
@@ -52,11 +50,10 @@ Interaktive Campus-Navigations- und Stundenplan-API für die **Hochschule Aalen*
 | `GET /api/v1/streetview/graph` | 360°-Navigationsgraph | `street_view_graph.json` |
 | `GET /api/v1/settings` | Nutzereinstellungen | `settings.json` |
 
-### Weitere Funktionen
+### Weitere Endpunkte
 
-- **Gebäude** – Alle Gebäude der HS Aalen mit Räumen und Stockwerken
-- **Räume** – Raumdaten inkl. Ausstattung, 360°-Bilder und Belegungspläne
-- **Studiengänge** – Alle Studiengänge aus STARplan
+- **Gebäude** – Alle Gebäude der HS Aalen (`GET /api/v1/buildings`)
+- **Räume** – Räumeliste mit Filter (`GET /api/v1/rooms`)
 - **Events** – Campus-Events mit Gäste-Modus (`public_only=true`)
 - **iCal-Import** – Persönlichen StarPlan-Link einfügen → Stundenplan sofort verfügbar
 - **Scheduler** – Scraper-Status und Logs aus der Datenbank
@@ -112,20 +109,6 @@ Vorlesungsdaten werden täglich um **06:00 Uhr** automatisch aus dem
             "description": (
                 "Räume der HS Aalen mit Ausstattungsmerkmalen (Beamer, Video, 360°). "
                 "Über `/{room_id}/schedule` den Belegungsplan eines Raums abrufen."
-            ),
-        },
-        {
-            "name": "lectures",
-            "description": (
-                "Einzelne Vorlesungen aus der Datenbank. Filterbar nach Raum, Studiengang und Zeitraum. "
-                "Für die vollständige Timetable-Ansicht `GET /api/v1/timetable` verwenden."
-            ),
-        },
-        {
-            "name": "studiengaenge",
-            "description": (
-                "Alle Studiengänge aus dem STARplan-System. "
-                "Über `/{id}/lectures` alle Vorlesungen eines Studiengangs abrufen."
             ),
         },
         {
@@ -186,9 +169,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 # Include routers
 app.include_router(buildings.router)
 app.include_router(events.router)
-app.include_router(lectures.router)
 app.include_router(rooms.router)
-app.include_router(studiengaenge.router)
 app.include_router(timetable.router)
 app.include_router(streetview.router)
 app.include_router(settings.router)

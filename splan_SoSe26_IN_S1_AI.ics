@@ -1,0 +1,1659 @@
+BEGIN:VCALENDAR
+PRODID:-//Progotec//StarPlan ics//DE
+VERSION:2.0
+CALSCALE:GREGORIAN
+BEGIN:VTIMEZONE
+TZID:Europe/Berlin
+LAST-MODIFIED:20260306T231828Z
+TZURL:https://www.tzurl.org/zoneinfo/Europe/Berlin
+X-LIC-LOCATION:Europe/Berlin
+X-PROLEPTIC-TZNAME:LMT
+BEGIN:STANDARD
+TZNAME:CET
+TZOFFSETFROM:+005328
+TZOFFSETTO:+0100
+DTSTART:18930401T000000
+END:STANDARD
+BEGIN:DAYLIGHT
+TZNAME:CEST
+TZOFFSETFROM:+0100
+TZOFFSETTO:+0200
+DTSTART:19160430T230000
+RDATE:19400401T030000
+RDATE:19430329T020000
+RDATE:19460414T020000
+RDATE:19470406T030000
+RDATE:19480418T020000
+RDATE:19490410T020000
+RDATE:19800406T020000
+END:DAYLIGHT
+BEGIN:STANDARD
+TZNAME:CET
+TZOFFSETFROM:+0200
+TZOFFSETTO:+0100
+DTSTART:19161001T010000
+RDATE:19421102T030000
+RDATE:19431004T030000
+RDATE:19441002T030000
+RDATE:19451118T030000
+RDATE:19461007T030000
+END:STANDARD
+BEGIN:DAYLIGHT
+TZNAME:CEST
+TZOFFSETFROM:+0100
+TZOFFSETTO:+0200
+DTSTART:19170416T020000
+RRULE:FREQ=YEARLY;UNTIL=19180415T010000Z;BYMONTH=4;BYDAY=3MO
+END:DAYLIGHT
+BEGIN:STANDARD
+TZNAME:CET
+TZOFFSETFROM:+0200
+TZOFFSETTO:+0100
+DTSTART:19170917T030000
+RRULE:FREQ=YEARLY;UNTIL=19180916T010000Z;BYMONTH=9;BYDAY=3MO
+END:STANDARD
+BEGIN:DAYLIGHT
+TZNAME:CEST
+TZOFFSETFROM:+0100
+TZOFFSETTO:+0200
+DTSTART:19440403T020000
+RRULE:FREQ=YEARLY;UNTIL=19450402T010000Z;BYMONTH=4;BYDAY=1MO
+END:DAYLIGHT
+BEGIN:DAYLIGHT
+TZNAME:CEMT
+TZOFFSETFROM:+0200
+TZOFFSETTO:+0300
+DTSTART:19450524T020000
+RDATE:19470511T030000
+END:DAYLIGHT
+BEGIN:DAYLIGHT
+TZNAME:CEST
+TZOFFSETFROM:+0300
+TZOFFSETTO:+0200
+DTSTART:19450924T030000
+RDATE:19470629T030000
+END:DAYLIGHT
+BEGIN:STANDARD
+TZNAME:CET
+TZOFFSETFROM:+0100
+TZOFFSETTO:+0100
+DTSTART:19460101T000000
+RDATE:19800101T000000
+END:STANDARD
+BEGIN:STANDARD
+TZNAME:CET
+TZOFFSETFROM:+0200
+TZOFFSETTO:+0100
+DTSTART:19471005T030000
+RRULE:FREQ=YEARLY;UNTIL=19491002T010000Z;BYMONTH=10;BYDAY=1SU
+END:STANDARD
+BEGIN:STANDARD
+TZNAME:CET
+TZOFFSETFROM:+0200
+TZOFFSETTO:+0100
+DTSTART:19800928T030000
+RRULE:FREQ=YEARLY;UNTIL=19950924T010000Z;BYMONTH=9;BYDAY=-1SU
+END:STANDARD
+BEGIN:DAYLIGHT
+TZNAME:CEST
+TZOFFSETFROM:+0100
+TZOFFSETTO:+0200
+DTSTART:19810329T020000
+RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU
+END:DAYLIGHT
+BEGIN:STANDARD
+TZNAME:CET
+TZOFFSETFROM:+0200
+TZOFFSETTO:+0100
+DTSTART:19961027T030000
+RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260318T080000
+DTEND;TZID=Europe/Berlin:20260318T140000
+SUMMARY:Infoveranstaltung
+UID:5657322142966529199
+LOCATION:G2 1.44
+DESCRIPTION:Infoveranstaltung zum Praxissemester\nErstsemestereinführung\nIN S1 AI\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260318T094500
+DTEND;TZID=Europe/Berlin:20260318T120000
+SUMMARY:Infoveranstaltung
+UID:5657322142966529200
+LOCATION:G2 1.28
+DESCRIPTION:Infoveranstaltung zum Praxissemester\nInitial Semester Greeting MLD MIN\nIN S1 AI\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260318T110000
+DTEND;TZID=Europe/Berlin:20260318T130000
+SUMMARY:Infoveranstaltung
+UID:5657322142966529201
+LOCATION:G2 2.26
+DESCRIPTION:Infoveranstaltung zum Praxissemester\nEinführung in DPD\, ET und ETI und Initial Semester Greeting + Tool Introduction MRE MTE\nIN S1 AI\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260323T094500
+DTEND;TZID=Europe/Berlin:20260323T130000
+SUMMARY:Rechnerarchitektur (31-57103)
+UID:5657322142966529202
+URL:https://aalen.instructure.com/enroll/HKN3GC
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Rechnerarchitektur (31-57103)\nMatthias Meyer\nIN S1\nCanvas: https://aalen.instructure.com/enroll/HKN3GC\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260330T094500
+DTEND;TZID=Europe/Berlin:20260330T130000
+SUMMARY:Rechnerarchitektur (31-57103)
+UID:5657322142966529203
+URL:https://aalen.instructure.com/enroll/HKN3GC
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Rechnerarchitektur (31-57103)\nMatthias Meyer\nIN S1\nCanvas: https://aalen.instructure.com/enroll/HKN3GC\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260413T094500
+DTEND;TZID=Europe/Berlin:20260413T130000
+SUMMARY:Rechnerarchitektur (31-57103)
+UID:5657322142966529204
+URL:https://aalen.instructure.com/enroll/HKN3GC
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Rechnerarchitektur (31-57103)\nMatthias Meyer\nIN S1\nCanvas: https://aalen.instructure.com/enroll/HKN3GC\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260420T094500
+DTEND;TZID=Europe/Berlin:20260420T130000
+SUMMARY:Rechnerarchitektur (31-57103)
+UID:5657322142966529205
+URL:https://aalen.instructure.com/enroll/HKN3GC
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Rechnerarchitektur (31-57103)\nMatthias Meyer\nIN S1\nCanvas: https://aalen.instructure.com/enroll/HKN3GC\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260427T094500
+DTEND;TZID=Europe/Berlin:20260427T130000
+SUMMARY:Rechnerarchitektur (31-57103)
+UID:5657322142966529206
+URL:https://aalen.instructure.com/enroll/HKN3GC
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Rechnerarchitektur (31-57103)\nMatthias Meyer\nIN S1\nCanvas: https://aalen.instructure.com/enroll/HKN3GC\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260504T094500
+DTEND;TZID=Europe/Berlin:20260504T130000
+SUMMARY:Rechnerarchitektur (31-57103)
+UID:5657322142966529207
+URL:https://aalen.instructure.com/enroll/HKN3GC
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Rechnerarchitektur (31-57103)\nMatthias Meyer\nIN S1\nCanvas: https://aalen.instructure.com/enroll/HKN3GC\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260511T094500
+DTEND;TZID=Europe/Berlin:20260511T130000
+SUMMARY:Rechnerarchitektur (31-57103)
+UID:5657322142966529208
+URL:https://aalen.instructure.com/enroll/HKN3GC
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Rechnerarchitektur (31-57103)\nMatthias Meyer\nIN S1\nCanvas: https://aalen.instructure.com/enroll/HKN3GC\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260518T094500
+DTEND;TZID=Europe/Berlin:20260518T130000
+SUMMARY:Rechnerarchitektur (31-57103)
+UID:5657322142966529209
+URL:https://aalen.instructure.com/enroll/HKN3GC
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Rechnerarchitektur (31-57103)\nMatthias Meyer\nIN S1\nCanvas: https://aalen.instructure.com/enroll/HKN3GC\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260601T094500
+DTEND;TZID=Europe/Berlin:20260601T130000
+SUMMARY:Rechnerarchitektur (31-57103)
+UID:5657322142966529210
+URL:https://aalen.instructure.com/enroll/HKN3GC
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Rechnerarchitektur (31-57103)\nMatthias Meyer\nIN S1\nCanvas: https://aalen.instructure.com/enroll/HKN3GC\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260608T094500
+DTEND;TZID=Europe/Berlin:20260608T130000
+SUMMARY:Rechnerarchitektur (31-57103)
+UID:5657322142966529211
+URL:https://aalen.instructure.com/enroll/HKN3GC
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Rechnerarchitektur (31-57103)\nMatthias Meyer\nIN S1\nCanvas: https://aalen.instructure.com/enroll/HKN3GC\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260615T094500
+DTEND;TZID=Europe/Berlin:20260615T130000
+SUMMARY:Rechnerarchitektur (31-57103)
+UID:5657322142966529212
+URL:https://aalen.instructure.com/enroll/HKN3GC
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Rechnerarchitektur (31-57103)\nMatthias Meyer\nIN S1\nCanvas: https://aalen.instructure.com/enroll/HKN3GC\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260622T094500
+DTEND;TZID=Europe/Berlin:20260622T130000
+SUMMARY:Rechnerarchitektur (31-57103)
+UID:5657322142966529213
+URL:https://aalen.instructure.com/enroll/HKN3GC
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Rechnerarchitektur (31-57103)\nMatthias Meyer\nIN S1\nCanvas: https://aalen.instructure.com/enroll/HKN3GC\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260629T094500
+DTEND;TZID=Europe/Berlin:20260629T130000
+SUMMARY:Rechnerarchitektur (31-57103)
+UID:5657322142966529214
+URL:https://aalen.instructure.com/enroll/HKN3GC
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Rechnerarchitektur (31-57103)\nMatthias Meyer\nIN S1\nCanvas: https://aalen.instructure.com/enroll/HKN3GC\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260317T113000
+DTEND;TZID=Europe/Berlin:20260317T130000
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529215
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260324T094500
+DTEND;TZID=Europe/Berlin:20260324T111500
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529216
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260324T113000
+DTEND;TZID=Europe/Berlin:20260324T130000
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529217
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260331T094500
+DTEND;TZID=Europe/Berlin:20260331T111500
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529218
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260331T113000
+DTEND;TZID=Europe/Berlin:20260331T130000
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529219
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260414T094500
+DTEND;TZID=Europe/Berlin:20260414T111500
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529220
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260414T113000
+DTEND;TZID=Europe/Berlin:20260414T130000
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529221
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260421T094500
+DTEND;TZID=Europe/Berlin:20260421T111500
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529222
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260421T113000
+DTEND;TZID=Europe/Berlin:20260421T130000
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529223
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260428T094500
+DTEND;TZID=Europe/Berlin:20260428T111500
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529224
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260428T113000
+DTEND;TZID=Europe/Berlin:20260428T130000
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529225
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260505T094500
+DTEND;TZID=Europe/Berlin:20260505T111500
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529226
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260505T113000
+DTEND;TZID=Europe/Berlin:20260505T130000
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529227
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260512T094500
+DTEND;TZID=Europe/Berlin:20260512T111500
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529228
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260512T113000
+DTEND;TZID=Europe/Berlin:20260512T130000
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529229
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260519T094500
+DTEND;TZID=Europe/Berlin:20260519T111500
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529230
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260519T113000
+DTEND;TZID=Europe/Berlin:20260519T130000
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529231
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260602T094500
+DTEND;TZID=Europe/Berlin:20260602T111500
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529232
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260602T113000
+DTEND;TZID=Europe/Berlin:20260602T130000
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529233
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260609T094500
+DTEND;TZID=Europe/Berlin:20260609T111500
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529234
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260609T113000
+DTEND;TZID=Europe/Berlin:20260609T130000
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529235
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260616T094500
+DTEND;TZID=Europe/Berlin:20260616T111500
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529236
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260616T113000
+DTEND;TZID=Europe/Berlin:20260616T130000
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529237
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260623T094500
+DTEND;TZID=Europe/Berlin:20260623T111500
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529238
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260623T113000
+DTEND;TZID=Europe/Berlin:20260623T130000
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529239
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260630T094500
+DTEND;TZID=Europe/Berlin:20260630T111500
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529240
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260630T113000
+DTEND;TZID=Europe/Berlin:20260630T130000
+SUMMARY:Grundlagen der Mathematik (31-57101)
+UID:5657322142966529241
+URL:https://aalen.instructure.com/enroll/BRAMJD
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Grundlagen der Mathematik (31-57101)\nProf. Dr. Thomas Thierauf\nIN S1\nCanvas: https://aalen.instructure.com/enroll/BRAMJD\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260319T113000
+DTEND;TZID=Europe/Berlin:20260319T130000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529242
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Analysis (31-57102)\nProf. Dr. Christian Heinlein\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260319T140000
+DTEND;TZID=Europe/Berlin:20260319T153000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529243
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 0.21\, Canvas
+DESCRIPTION:Analysis (31-57102)\nProf. Dr. Christian Heinlein\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260326T113000
+DTEND;TZID=Europe/Berlin:20260326T130000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529244
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Analysis (31-57102)\nProf. Dr. Christian Heinlein\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260326T140000
+DTEND;TZID=Europe/Berlin:20260326T153000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529245
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 0.21\, Canvas
+DESCRIPTION:Analysis (31-57102)\nProf. Dr. Christian Heinlein\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260409T113000
+DTEND;TZID=Europe/Berlin:20260409T130000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529246
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Analysis (31-57102)\nProf. Dr. Christian Heinlein\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260409T140000
+DTEND;TZID=Europe/Berlin:20260409T153000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529247
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 0.21\, Canvas
+DESCRIPTION:Analysis (31-57102)\nProf. Dr. Christian Heinlein\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260416T113000
+DTEND;TZID=Europe/Berlin:20260416T130000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529248
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Analysis (31-57102)\nProf. Dr. Christian Heinlein\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260416T140000
+DTEND;TZID=Europe/Berlin:20260416T153000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529249
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 0.21\, Canvas
+DESCRIPTION:Analysis (31-57102)\nProf. Dr. Christian Heinlein\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260423T113000
+DTEND;TZID=Europe/Berlin:20260423T130000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529250
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Analysis (31-57102)\nProf. Dr. Christian Heinlein\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260423T140000
+DTEND;TZID=Europe/Berlin:20260423T153000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529251
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 0.21\, Canvas
+DESCRIPTION:Analysis (31-57102)\nProf. Dr. Christian Heinlein\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260430T113000
+DTEND;TZID=Europe/Berlin:20260430T130000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529252
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Analysis (31-57102)\nProf. Dr. Christian Heinlein\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260430T140000
+DTEND;TZID=Europe/Berlin:20260430T153000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529253
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 0.21\, Canvas
+DESCRIPTION:Analysis (31-57102)\nProf. Dr. Christian Heinlein\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260507T113000
+DTEND;TZID=Europe/Berlin:20260507T130000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529254
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Analysis (31-57102)\nProf. Dr. Christian Heinlein\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260507T140000
+DTEND;TZID=Europe/Berlin:20260507T153000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529255
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 0.21\, Canvas
+DESCRIPTION:Analysis (31-57102)\nProf. Dr. Christian Heinlein\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260521T113000
+DTEND;TZID=Europe/Berlin:20260521T130000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529256
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Analysis (31-57102)\nProf. Dr. Christian Heinlein\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260521T140000
+DTEND;TZID=Europe/Berlin:20260521T153000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529257
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 0.21\, Canvas
+DESCRIPTION:Analysis (31-57102)\nProf. Dr. Christian Heinlein\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260611T113000
+DTEND;TZID=Europe/Berlin:20260611T130000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529258
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Analysis (31-57102)\nProf. Dr. Christian Heinlein\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260611T140000
+DTEND;TZID=Europe/Berlin:20260611T153000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529259
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 0.21\, Canvas
+DESCRIPTION:Analysis (31-57102)\nProf. Dr. Christian Heinlein\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260618T113000
+DTEND;TZID=Europe/Berlin:20260618T130000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529260
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Analysis (31-57102)\nProf. Dr. Christian Heinlein\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260618T140000
+DTEND;TZID=Europe/Berlin:20260618T153000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529261
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 0.21\, Canvas
+DESCRIPTION:Analysis (31-57102)\nProf. Dr. Christian Heinlein\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260625T113000
+DTEND;TZID=Europe/Berlin:20260625T130000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529262
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Analysis (31-57102)\nProf. Dr. Christian Heinlein\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260625T140000
+DTEND;TZID=Europe/Berlin:20260625T153000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529263
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 0.21\, Canvas
+DESCRIPTION:Analysis (31-57102)\nProf. Dr. Christian Heinlein\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260702T113000
+DTEND;TZID=Europe/Berlin:20260702T130000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529264
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 1.01\, Canvas
+DESCRIPTION:Analysis (31-57102)\nProf. Dr. Christian Heinlein\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260702T140000
+DTEND;TZID=Europe/Berlin:20260702T153000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529265
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 0.21\, Canvas
+DESCRIPTION:Analysis (31-57102)\nProf. Dr. Christian Heinlein\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260319T094500
+DTEND;TZID=Europe/Berlin:20260319T111500
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529266
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260323T080000
+DTEND;TZID=Europe/Berlin:20260323T093000
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529267
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260326T094500
+DTEND;TZID=Europe/Berlin:20260326T111500
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529268
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260330T080000
+DTEND;TZID=Europe/Berlin:20260330T093000
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529269
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260409T094500
+DTEND;TZID=Europe/Berlin:20260409T111500
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529270
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260413T080000
+DTEND;TZID=Europe/Berlin:20260413T093000
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529271
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260416T094500
+DTEND;TZID=Europe/Berlin:20260416T111500
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529272
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260420T080000
+DTEND;TZID=Europe/Berlin:20260420T093000
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529273
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260423T094500
+DTEND;TZID=Europe/Berlin:20260423T111500
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529274
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260427T080000
+DTEND;TZID=Europe/Berlin:20260427T093000
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529275
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260430T094500
+DTEND;TZID=Europe/Berlin:20260430T111500
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529276
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260504T080000
+DTEND;TZID=Europe/Berlin:20260504T093000
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529277
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260507T094500
+DTEND;TZID=Europe/Berlin:20260507T111500
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529278
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260511T080000
+DTEND;TZID=Europe/Berlin:20260511T093000
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529279
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260518T080000
+DTEND;TZID=Europe/Berlin:20260518T093000
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529280
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260521T094500
+DTEND;TZID=Europe/Berlin:20260521T111500
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529281
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260601T080000
+DTEND;TZID=Europe/Berlin:20260601T093000
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529282
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260608T080000
+DTEND;TZID=Europe/Berlin:20260608T093000
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529283
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260611T094500
+DTEND;TZID=Europe/Berlin:20260611T111500
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529284
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260615T080000
+DTEND;TZID=Europe/Berlin:20260615T093000
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529285
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260618T094500
+DTEND;TZID=Europe/Berlin:20260618T111500
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529286
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260622T080000
+DTEND;TZID=Europe/Berlin:20260622T093000
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529287
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260625T094500
+DTEND;TZID=Europe/Berlin:20260625T111500
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529288
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260629T080000
+DTEND;TZID=Europe/Berlin:20260629T093000
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529289
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260702T094500
+DTEND;TZID=Europe/Berlin:20260702T111500
+SUMMARY:Strukt. Programmierung (31-57104)
+UID:5657322142966529290
+URL:https://aalen.instructure.com/enroll/78JJ86
+LOCATION:G2 1.44\, Canvas
+DESCRIPTION:Strukturierte Programmierung (31-57104)\nMarc Hermann\nIN S1\nCanvas: https://aalen.instructure.com/enroll/78JJ86\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260421T154500
+DTEND;TZID=Europe/Berlin:20260421T171500
+SUMMARY:Rechnerarchitektur (31-57103)
+UID:5657322142966529291
+LOCATION:G2 0.01
+DESCRIPTION:Rechnerarchitektur (31-57103)\nTutorium\nIN S1\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260428T154500
+DTEND;TZID=Europe/Berlin:20260428T171500
+SUMMARY:Rechnerarchitektur (31-57103)
+UID:5657322142966529292
+LOCATION:G2 0.01
+DESCRIPTION:Rechnerarchitektur (31-57103)\nTutorium\nIN S1\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260505T154500
+DTEND;TZID=Europe/Berlin:20260505T171500
+SUMMARY:Rechnerarchitektur (31-57103)
+UID:5657322142966529293
+LOCATION:G2 0.01
+DESCRIPTION:Rechnerarchitektur (31-57103)\nTutorium\nIN S1\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260512T154500
+DTEND;TZID=Europe/Berlin:20260512T171500
+SUMMARY:Rechnerarchitektur (31-57103)
+UID:5657322142966529294
+LOCATION:G2 0.01
+DESCRIPTION:Rechnerarchitektur (31-57103)\nTutorium\nIN S1\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260519T154500
+DTEND;TZID=Europe/Berlin:20260519T171500
+SUMMARY:Rechnerarchitektur (31-57103)
+UID:5657322142966529295
+LOCATION:G2 0.01
+DESCRIPTION:Rechnerarchitektur (31-57103)\nTutorium\nIN S1\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260602T154500
+DTEND;TZID=Europe/Berlin:20260602T171500
+SUMMARY:Rechnerarchitektur (31-57103)
+UID:5657322142966529296
+LOCATION:G2 0.01
+DESCRIPTION:Rechnerarchitektur (31-57103)\nTutorium\nIN S1\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260609T154500
+DTEND;TZID=Europe/Berlin:20260609T171500
+SUMMARY:Rechnerarchitektur (31-57103)
+UID:5657322142966529297
+LOCATION:G2 0.01
+DESCRIPTION:Rechnerarchitektur (31-57103)\nTutorium\nIN S1\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260616T154500
+DTEND;TZID=Europe/Berlin:20260616T171500
+SUMMARY:Rechnerarchitektur (31-57103)
+UID:5657322142966529298
+LOCATION:G2 0.01
+DESCRIPTION:Rechnerarchitektur (31-57103)\nTutorium\nIN S1\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260623T154500
+DTEND;TZID=Europe/Berlin:20260623T171500
+SUMMARY:Rechnerarchitektur (31-57103)
+UID:5657322142966529299
+LOCATION:G2 0.01
+DESCRIPTION:Rechnerarchitektur (31-57103)\nTutorium\nIN S1\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260630T154500
+DTEND;TZID=Europe/Berlin:20260630T171500
+SUMMARY:Rechnerarchitektur (31-57103)
+UID:5657322142966529300
+LOCATION:G2 0.01
+DESCRIPTION:Rechnerarchitektur (31-57103)\nTutorium\nIN S1\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260319T080000
+DTEND;TZID=Europe/Berlin:20260319T093000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529301
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 2.41\, Canvas
+DESCRIPTION:Analysis (31-57102)\nTutorium\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260326T080000
+DTEND;TZID=Europe/Berlin:20260326T093000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529302
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 2.41\, Canvas
+DESCRIPTION:Analysis (31-57102)\nTutorium\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260409T080000
+DTEND;TZID=Europe/Berlin:20260409T093000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529303
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 2.41\, Canvas
+DESCRIPTION:Analysis (31-57102)\nTutorium\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260416T080000
+DTEND;TZID=Europe/Berlin:20260416T093000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529304
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 2.41\, Canvas
+DESCRIPTION:Analysis (31-57102)\nTutorium\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260423T080000
+DTEND;TZID=Europe/Berlin:20260423T093000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529305
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 2.41\, Canvas
+DESCRIPTION:Analysis (31-57102)\nTutorium\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260430T080000
+DTEND;TZID=Europe/Berlin:20260430T093000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529306
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 2.41\, Canvas
+DESCRIPTION:Analysis (31-57102)\nTutorium\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260507T080000
+DTEND;TZID=Europe/Berlin:20260507T093000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529307
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 2.41\, Canvas
+DESCRIPTION:Analysis (31-57102)\nTutorium\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260521T080000
+DTEND;TZID=Europe/Berlin:20260521T093000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529308
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 2.41\, Canvas
+DESCRIPTION:Analysis (31-57102)\nTutorium\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260611T080000
+DTEND;TZID=Europe/Berlin:20260611T093000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529309
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 2.41\, Canvas
+DESCRIPTION:Analysis (31-57102)\nTutorium\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260618T080000
+DTEND;TZID=Europe/Berlin:20260618T093000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529310
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 2.41\, Canvas
+DESCRIPTION:Analysis (31-57102)\nTutorium\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260625T080000
+DTEND;TZID=Europe/Berlin:20260625T093000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529311
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 2.41\, Canvas
+DESCRIPTION:Analysis (31-57102)\nTutorium\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260702T080000
+DTEND;TZID=Europe/Berlin:20260702T093000
+SUMMARY:Analysis (31-57102)
+UID:5657322142966529312
+URL:https://aalen.instructure.com/enroll/MJK9HX
+LOCATION:G2 2.41\, Canvas
+DESCRIPTION:Analysis (31-57102)\nTutorium\nIN S1\nCanvas: https://aalen.instructure.com/enroll/MJK9HX\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260320T173000
+DTEND;TZID=Europe/Berlin:20260320T204500
+SUMMARY:Schlüsselqualifikationen (31-57105)
+UID:5657322142966529313
+URL:https://aalen.instructure.com/enroll/9PBA9P
+LOCATION:Canvas
+DESCRIPTION:Schlüsselqualifikationen (31-57105)\nDr. Harald Strauß\nIN S1 AI\n- am 23.05 in Raum 223\nCanvas: https://aalen.instructure.com/enroll/9PBA9P\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260327T173000
+DTEND;TZID=Europe/Berlin:20260327T204500
+SUMMARY:Schlüsselqualifikationen (31-57105)
+UID:5657322142966529314
+URL:https://aalen.instructure.com/enroll/9PBA9P
+LOCATION:Canvas
+DESCRIPTION:Schlüsselqualifikationen (31-57105)\nDr. Harald Strauß\nIN S1 AI\n- am 23.05 in Raum 223\nCanvas: https://aalen.instructure.com/enroll/9PBA9P\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260410T173000
+DTEND;TZID=Europe/Berlin:20260410T204500
+SUMMARY:Schlüsselqualifikationen (31-57105)
+UID:5657322142966529315
+URL:https://aalen.instructure.com/enroll/9PBA9P
+LOCATION:Canvas
+DESCRIPTION:Schlüsselqualifikationen (31-57105)\nDr. Harald Strauß\nIN S1 AI\n- am 23.05 in Raum 223\nCanvas: https://aalen.instructure.com/enroll/9PBA9P\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260417T173000
+DTEND;TZID=Europe/Berlin:20260417T204500
+SUMMARY:Schlüsselqualifikationen (31-57105)
+UID:5657322142966529316
+URL:https://aalen.instructure.com/enroll/9PBA9P
+LOCATION:Canvas
+DESCRIPTION:Schlüsselqualifikationen (31-57105)\nDr. Harald Strauß\nIN S1 AI\n- am 23.05 in Raum 223\nCanvas: https://aalen.instructure.com/enroll/9PBA9P\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260424T173000
+DTEND;TZID=Europe/Berlin:20260424T204500
+SUMMARY:Schlüsselqualifikationen (31-57105)
+UID:5657322142966529317
+URL:https://aalen.instructure.com/enroll/9PBA9P
+LOCATION:Canvas
+DESCRIPTION:Schlüsselqualifikationen (31-57105)\nDr. Harald Strauß\nIN S1 AI\n- am 23.05 in Raum 223\nCanvas: https://aalen.instructure.com/enroll/9PBA9P\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260508T173000
+DTEND;TZID=Europe/Berlin:20260508T204500
+SUMMARY:Schlüsselqualifikationen (31-57105)
+UID:5657322142966529318
+URL:https://aalen.instructure.com/enroll/9PBA9P
+LOCATION:Canvas
+DESCRIPTION:Schlüsselqualifikationen (31-57105)\nDr. Harald Strauß\nIN S1 AI\n- am 23.05 in Raum 223\nCanvas: https://aalen.instructure.com/enroll/9PBA9P\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260515T173000
+DTEND;TZID=Europe/Berlin:20260515T204500
+SUMMARY:Schlüsselqualifikationen (31-57105)
+UID:5657322142966529319
+URL:https://aalen.instructure.com/enroll/9PBA9P
+LOCATION:Canvas
+DESCRIPTION:Schlüsselqualifikationen (31-57105)\nDr. Harald Strauß\nIN S1 AI\n- am 23.05 in Raum 223\nCanvas: https://aalen.instructure.com/enroll/9PBA9P\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260605T173000
+DTEND;TZID=Europe/Berlin:20260605T204500
+SUMMARY:Schlüsselqualifikationen (31-57105)
+UID:5657322142966529320
+URL:https://aalen.instructure.com/enroll/9PBA9P
+LOCATION:Canvas
+DESCRIPTION:Schlüsselqualifikationen (31-57105)\nDr. Harald Strauß\nIN S1 AI\n- am 23.05 in Raum 223\nCanvas: https://aalen.instructure.com/enroll/9PBA9P\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260612T173000
+DTEND;TZID=Europe/Berlin:20260612T204500
+SUMMARY:Schlüsselqualifikationen (31-57105)
+UID:5657322142966529321
+URL:https://aalen.instructure.com/enroll/9PBA9P
+LOCATION:Canvas
+DESCRIPTION:Schlüsselqualifikationen (31-57105)\nDr. Harald Strauß\nIN S1 AI\n- am 23.05 in Raum 223\nCanvas: https://aalen.instructure.com/enroll/9PBA9P\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260619T173000
+DTEND;TZID=Europe/Berlin:20260619T204500
+SUMMARY:Schlüsselqualifikationen (31-57105)
+UID:5657322142966529322
+URL:https://aalen.instructure.com/enroll/9PBA9P
+LOCATION:Canvas
+DESCRIPTION:Schlüsselqualifikationen (31-57105)\nDr. Harald Strauß\nIN S1 AI\n- am 23.05 in Raum 223\nCanvas: https://aalen.instructure.com/enroll/9PBA9P\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260626T173000
+DTEND;TZID=Europe/Berlin:20260626T204500
+SUMMARY:Schlüsselqualifikationen (31-57105)
+UID:5657322142966529323
+URL:https://aalen.instructure.com/enroll/9PBA9P
+LOCATION:Canvas
+DESCRIPTION:Schlüsselqualifikationen (31-57105)\nDr. Harald Strauß\nIN S1 AI\n- am 23.05 in Raum 223\nCanvas: https://aalen.instructure.com/enroll/9PBA9P\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260703T173000
+DTEND;TZID=Europe/Berlin:20260703T204500
+SUMMARY:Schlüsselqualifikationen (31-57105)
+UID:5657322142966529324
+URL:https://aalen.instructure.com/enroll/9PBA9P
+LOCATION:Canvas
+DESCRIPTION:Schlüsselqualifikationen (31-57105)\nDr. Harald Strauß\nIN S1 AI\n- am 23.05 in Raum 223\nCanvas: https://aalen.instructure.com/enroll/9PBA9P\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260318T140000
+DTEND;TZID=Europe/Berlin:20260318T153000
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529325
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260318T154500
+DTEND;TZID=Europe/Berlin:20260318T171500
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529326
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260325T140000
+DTEND;TZID=Europe/Berlin:20260325T153000
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529327
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260325T154500
+DTEND;TZID=Europe/Berlin:20260325T171500
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529328
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260401T140000
+DTEND;TZID=Europe/Berlin:20260401T153000
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529329
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260401T154500
+DTEND;TZID=Europe/Berlin:20260401T171500
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529330
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260408T140000
+DTEND;TZID=Europe/Berlin:20260408T153000
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529331
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260408T154500
+DTEND;TZID=Europe/Berlin:20260408T171500
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529332
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260415T140000
+DTEND;TZID=Europe/Berlin:20260415T153000
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529333
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260415T154500
+DTEND;TZID=Europe/Berlin:20260415T171500
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529334
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260422T140000
+DTEND;TZID=Europe/Berlin:20260422T153000
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529335
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260422T154500
+DTEND;TZID=Europe/Berlin:20260422T171500
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529336
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260429T140000
+DTEND;TZID=Europe/Berlin:20260429T153000
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529337
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260429T154500
+DTEND;TZID=Europe/Berlin:20260429T171500
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529338
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260506T140000
+DTEND;TZID=Europe/Berlin:20260506T153000
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529339
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260506T154500
+DTEND;TZID=Europe/Berlin:20260506T171500
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529340
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260513T140000
+DTEND;TZID=Europe/Berlin:20260513T153000
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529341
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260513T154500
+DTEND;TZID=Europe/Berlin:20260513T171500
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529342
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260520T140000
+DTEND;TZID=Europe/Berlin:20260520T153000
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529343
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260520T154500
+DTEND;TZID=Europe/Berlin:20260520T171500
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529344
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260603T140000
+DTEND;TZID=Europe/Berlin:20260603T153000
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529345
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260603T154500
+DTEND;TZID=Europe/Berlin:20260603T171500
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529346
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260610T140000
+DTEND;TZID=Europe/Berlin:20260610T153000
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529347
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260610T154500
+DTEND;TZID=Europe/Berlin:20260610T171500
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529348
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260617T140000
+DTEND;TZID=Europe/Berlin:20260617T153000
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529349
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260617T154500
+DTEND;TZID=Europe/Berlin:20260617T171500
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529350
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260624T140000
+DTEND;TZID=Europe/Berlin:20260624T153000
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529351
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260624T154500
+DTEND;TZID=Europe/Berlin:20260624T171500
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529352
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260701T140000
+DTEND;TZID=Europe/Berlin:20260701T153000
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529353
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+BEGIN:VEVENT
+DTSTAMP:20260511T113907Z
+DTSTART;TZID=Europe/Berlin:20260701T154500
+DTEND;TZID=Europe/Berlin:20260701T171500
+SUMMARY:Programmieren in Python (31-57801)
+UID:5657322142966529354
+URL:https://aalen.instructure.com/enroll/EBXYC6
+LOCATION:Canvas
+DESCRIPTION:Programmieren in Python (31-57801)\nAlper Aybaci\nIN S1\nCanvas: https://aalen.instructure.com/enroll/EBXYC6\n
+END:VEVENT
+END:VCALENDAR

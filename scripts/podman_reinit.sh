@@ -67,7 +67,7 @@ clear_bind_mounts() {
 
 	for data_dir in "${data_dirs[@]}"; do
 		mkdir -p "$data_dir"
-		find "$data_dir" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
+		"$podman_bin" unshare bash -c 'find "$1" -mindepth 1 -maxdepth 1 -exec rm -rf {} +' _ "$data_dir" >/dev/null 2>&1 || true
 	done
 }
 

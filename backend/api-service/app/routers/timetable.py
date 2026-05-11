@@ -1,6 +1,7 @@
 """Timetable router – kombinierter Endpunkt wie timetable.json für das Frontend."""
 
 import logging
+from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
@@ -12,12 +13,10 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/timetable", tags=["timetable"])
 
-# Feste Semester-Liste (entspricht timetable.json)
 _SEMESTERS = [
     {"id": f"sem_{i}", "label": f"Semester {i}"} for i in range(1, 8)
 ]
 
-# Event-Gruppen (entspricht timetable.json event_groups)
 _EVENT_GROUPS = [
     {"id": "sports",  "label": "Sports & Fitness"},
     {"id": "culture", "label": "Culture & Arts"},
@@ -25,30 +24,65 @@ _EVENT_GROUPS = [
     {"id": "social",  "label": "Social Events"},
 ]
 
+# Kategorie-Werte aus dem Scraper → frontend groupId
+_CATEGORY_TO_GROUP: dict[str, str] = {
+    "sport": "sports", "sports": "sports", "fitness": "sports",
+    "kultur": "culture", "culture": "culture",
+    "karriere": "career", "career": "career", "networking": "career",
+    "vortrag": "career",
+    "hochschule": "social", "social": "social", "sonstiges": "social",
+    "mensa": "social",
+}
+
+_GROUP_COLORS: dict[str, str] = {
+    "sports": "#F39C12",
+    "culture": "#9B59B6",
+    "career": "#2ECC71",
+    "social": "#3498DB",
+}
+
+
+def _to_iso(value: Any) -> str | None:
+    if value is None:
+        return None
+    return value.isoformat() if hasattr(value, "isoformat") else str(value)
+
+
+def _parse_date(date_str: str) -> datetime | None:
+    """Parsed YYYY-MM-DD oder vollständigen ISO-String zu datetime."""
+    if not date_str:
+        return None
+    try:
+        return datetime.fromisoformat(date_str)
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(date_str, "%Y-%m-%d")
+    except ValueError:
+        return None
+
 
 def _lecture_to_frontend(lec: dict) -> dict:
     """Mappt ein DB-Lecture-Dokument auf das timetable.json-Format."""
-    def _to_iso(value: Any) -> str | None:
-        if value is None:
-            return None
-        return value.isoformat() if hasattr(value, "isoformat") else str(value)
-
-    start = lec.get("startTime") or (
-        _to_iso(lec.get("start_time"))
-    )
-    end = lec.get("endTime") or (
-        _to_iso(lec.get("end_time"))
-    )
+    semester_ids: list = lec.get("semesterIds") or []
     return {
         "id": str(lec.get("_id") or lec.get("lecture_id", "")),
-        "title": lec.get("title") or lec.get("module_name", ""),
-        "courseOfStudyId": lec.get("courseOfStudyId") or lec.get("studiengang_id"),
-        "semesterId": lec.get("semesterId") or lec.get("semester"),
-        "room": lec.get("room") or lec.get("room_number"),
-        "building": lec.get("building") or lec.get("building_id"),
-        "professor": lec.get("professor"),
-        "startTime": start,
-        "endTime": end,
+        "title": lec.get("title") or lec.get("module_name") or lec.get("summary", ""),
+        "courseOfStudyId": (
+            lec.get("courseOfStudyId")
+            or lec.get("course_code")
+            or lec.get("studiengang_id", "")
+        ),
+        "semesterId": (
+            semester_ids[0]
+            if semester_ids
+            else (lec.get("semesterId") or lec.get("semester") or "")
+        ),
+        "room": lec.get("room") or lec.get("room_number") or lec.get("location", ""),
+        "building": lec.get("building") or lec.get("building_id", ""),
+        "professor": lec.get("professor") or "",
+        "startTime": _to_iso(lec.get("startTime") or lec.get("start_time")),
+        "endTime": _to_iso(lec.get("endTime") or lec.get("end_time")),
         "color": lec.get("color", "#4A90D9"),
         "recurrence": lec.get("recurrence", "weekly"),
         "notes": lec.get("notes", ""),
@@ -57,28 +91,19 @@ def _lecture_to_frontend(lec: dict) -> dict:
 
 def _event_to_frontend(evt: dict) -> dict:
     """Mappt ein DB-Event-Dokument auf das timetable.json-Format."""
-    def _to_iso(value: Any) -> str | None:
-        if value is None:
-            return None
-        return value.isoformat() if hasattr(value, "isoformat") else str(value)
-
-    start = evt.get("startTime") or (
-        _to_iso(evt.get("start_time"))
-    )
-    end = evt.get("endTime") or (
-        _to_iso(evt.get("end_time"))
-    )
+    raw_group = evt.get("groupId") or evt.get("category") or ""
+    group_id = _CATEGORY_TO_GROUP.get(raw_group.lower(), "social")
     return {
         "id": str(evt.get("_id", "")),
         "title": evt.get("title", ""),
-        "groupId": evt.get("groupId") or evt.get("category", "Sonstiges"),
-        "location": evt.get("location") or evt.get("location_text", ""),
-        "building": evt.get("building") or evt.get("building_id", ""),
-        "organizer": evt.get("organizer"),
-        "startTime": start,
-        "endTime": end,
-        "color": evt.get("color", "#F39C12"),
-        "description": evt.get("description", ""),
+        "groupId": group_id,
+        "location": evt.get("location") or evt.get("location_text") or "",
+        "building": evt.get("building") or evt.get("building_id") or "",
+        "organizer": evt.get("organizer") or "",
+        "startTime": _to_iso(evt.get("startTime") or evt.get("start_time")),
+        "endTime": _to_iso(evt.get("endTime") or evt.get("end_time")),
+        "color": evt.get("color") or _GROUP_COLORS.get(group_id, "#3498DB"),
+        "description": evt.get("description") or "",
         "imageUrl": evt.get("imageUrl") or evt.get("image_url"),
     }
 
@@ -92,10 +117,10 @@ def _event_to_frontend(evt: dict) -> dict:
             "content": {
                 "application/json": {
                     "example": {
-                        "courses_of_study": [{"id": "cs_b3", "label": "Computer Science"}],
+                        "courses_of_study": [{"id": "INF S1+2", "label": "Informatik Sem. 1+2"}],
                         "semesters": [{"id": "sem_3", "label": "Semester 3"}],
                         "event_groups": [{"id": "sports", "label": "Sports & Fitness"}],
-                        "lectures": [{"id": "lec_001", "title": "Algorithms & Data Structures"}],
+                        "lectures": [{"id": "lec_001", "title": "Algorithmen & Datenstrukturen"}],
                         "events": [{"id": "evt_001", "title": "Campus Run 5K"}],
                     }
                 }
@@ -105,64 +130,128 @@ def _event_to_frontend(evt: dict) -> dict:
     },
 )
 async def get_timetable(
-    courseOfStudyId: str | None = Query(
-        None, description="Filtert Vorlesungen nach Studiengangs-ID"
+    course: str | None = Query(
+        None,
+        description="Studiengangs-IDs, mehrere mit Komma (z. B. `INF S1+2,INF S3+4`)",
     ),
-    semesterId: str | None = Query(
-        None, description="Filtert Vorlesungen nach Semester-ID (z. B. `sem_3`)"
+    semester: str | None = Query(
+        None,
+        description="Semester-IDs, mehrere mit Komma (z. B. `sem_3,sem_4`)",
     ),
-    eventGroupId: str | None = Query(
-        None, description="Filtert Events nach Gruppen-ID (z. B. `sports`, `career`)"
+    event_group: str | None = Query(
+        None,
+        description="Event-Gruppen-IDs, mehrere mit Komma (z. B. `sports,career`)",
     ),
-    public_only: bool = Query(
-        False, description="Nur öffentliche Events zurückgeben"
+    building: str | None = Query(
+        None,
+        description="Filtert Vorlesungen und Events nach Gebäude-Kürzel (exakter Match, z. B. `G2`)",
     ),
+    room: str | None = Query(
+        None,
+        description="Filtert Vorlesungen nach Raum (Partial-Match, case-insensitiv, z. B. `G2 1`)",
+    ),
+    professor: str | None = Query(
+        None,
+        description="Filtert Vorlesungen nach Dozent (Partial-Match, case-insensitiv)",
+    ),
+    date_from: str | None = Query(
+        None,
+        description="Nur Einträge ab diesem Datum (YYYY-MM-DD)",
+    ),
+    date_to: str | None = Query(
+        None,
+        description="Nur Einträge bis zu diesem Datum (YYYY-MM-DD, inklusive)",
+    ),
+    recurrence: str | None = Query(
+        None,
+        description="Wiederholungstyp: `weekly` oder `once`",
+    ),
+    public_only: bool = Query(False, description="Nur öffentliche Events zurückgeben"),
     limit_lectures: int = Query(200, ge=1, le=1000, description="Max. Vorlesungen"),
     limit_events: int = Query(50, ge=1, le=200, description="Max. Events"),
 ) -> dict[str, Any]:
     """Gibt alle Daten zurück, die das Frontend für die Timetable-Ansicht benötigt.
 
-    Entspricht exakt der Struktur von `timetable.json`:
-    - `courses_of_study` – alle Studiengänge
-    - `semesters` – feste Semester-Liste (1–7)
-    - `event_groups` – feste Gruppen-Liste
-    - `lectures` – Vorlesungen (optional gefiltert nach Studiengang und/oder Semester)
-    - `events` – Campus-Events (optional gefiltert nach Gruppe oder public_only)
+    Entspricht exakt der Struktur von `timetable.json`.
+    Alle Filter-Parameter sind optional und kombinierbar.
     """
     try:
         db = mongo_client.get_db()
 
-        # Studiengänge → courses_of_study
-        studiengaenge = list(db.studiengaenge.find({}, {"_id": 1, "name": 1, "code": 1}))
+        # courses_of_study aus DB – code-Feld als ID, damit Filter-Werte matchbar sind
+        studiengaenge = list(db.studiengaenge.find({}, {"code": 1, "name": 1}))
         courses_of_study = [
-            {"id": str(s.get("_id") or s.get("code", "")), "label": s.get("name", "")}
+            {
+                "id": s.get("code") or str(s.get("_id", "")),
+                "label": s.get("name", ""),
+            }
             for s in studiengaenge
         ]
 
-        # Vorlesungen: AND-Verknüpfung wenn beide Filter gesetzt
-        and_clauses: list[dict] = []
-        if courseOfStudyId:
-            and_clauses.append({"$or": [
-                {"courseOfStudyId": courseOfStudyId},
-                {"studiengang_id": courseOfStudyId},
-            ]})
-        if semesterId:
-            and_clauses.append({"$or": [
-                {"semesterId": semesterId},
-                {"semester": semesterId},
-            ]})
+        # ── Lecture-Query aufbauen ──────────────────────────────────────
+        lec_clauses: list[dict] = []
 
-        lec_query: dict[str, Any] = {"$and": and_clauses} if and_clauses else {}
+        if course:
+            ids = [c.strip() for c in course.split(",")]
+            lec_clauses.append({"$or": [
+                {"courseOfStudyId": {"$in": ids}},
+                {"course_code": {"$in": ids}},
+            ]})
+        if semester:
+            sids = [s.strip() for s in semester.split(",")]
+            lec_clauses.append({"$or": [
+                {"semesterIds": {"$in": sids}},
+                {"semesterId": {"$in": sids}},
+            ]})
+        if building:
+            lec_clauses.append({"$or": [
+                {"building": building},
+                {"building_id": building},
+            ]})
+        if room:
+            lec_clauses.append({"$or": [
+                {"room": {"$regex": room, "$options": "i"}},
+                {"room_number": {"$regex": room, "$options": "i"}},
+            ]})
+        if professor:
+            lec_clauses.append({"professor": {"$regex": professor, "$options": "i"}})
+        if date_from:
+            dt = _parse_date(date_from)
+            if dt:
+                lec_clauses.append({"start_time": {"$gte": dt}})
+        if date_to:
+            dt = _parse_date(date_to)
+            if dt:
+                lec_clauses.append({"start_time": {"$lte": dt.replace(hour=23, minute=59, second=59)}})
+        if recurrence:
+            lec_clauses.append({"recurrence": recurrence})
+
+        lec_query: dict[str, Any] = {"$and": lec_clauses} if lec_clauses else {}
         raw_lectures = serialize_docs(list(db.lectures.find(lec_query).limit(limit_lectures)))
-        lectures = [_lecture_to_frontend(l) for l in raw_lectures]
+        lectures = [_lecture_to_frontend(lec) for lec in raw_lectures]
 
-        # Events: optional nach Gruppe und/oder public_only filtern
-        evt_query: dict[str, Any] = {}
-        if public_only or courseOfStudyId:
-            evt_query["is_public"] = True
-        if eventGroupId:
-            evt_query["$or"] = [{"groupId": eventGroupId}, {"category": eventGroupId}]
+        # ── Event-Query aufbauen ────────────────────────────────────────
+        evt_clauses: list[dict] = []
 
+        if public_only or course:
+            evt_clauses.append({"is_public": True})
+        if event_group:
+            gids = [g.strip() for g in event_group.split(",")]
+            evt_clauses.append({"$or": [
+                {"groupId": {"$in": gids}},
+                {"category": {"$in": [_CATEGORY_TO_GROUP.get(g.lower(), g) for g in gids]}},
+            ]})
+        if building:
+            evt_clauses.append({"$or": [
+                {"building": building},
+                {"building_id": building},
+            ]})
+        if date_from:
+            evt_clauses.append({"start_time": {"$gte": date_from}})
+        if date_to:
+            evt_clauses.append({"start_time": {"$lte": date_to + "T23:59:59"}})
+
+        evt_query: dict[str, Any] = {"$and": evt_clauses} if evt_clauses else {}
         raw_events = serialize_docs(list(db.events.find(evt_query).limit(limit_events)))
         events = [_event_to_frontend(e) for e in raw_events]
 

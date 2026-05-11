@@ -8,18 +8,18 @@
 
 ## Übersicht der Endpunkte
 
-| # | Methode | Pfad                    | Beschreibung                                  |
-|---|---------|-------------------------|-----------------------------------------------|
-| 1 | `GET`   | `/api/timetable`        | Stundenplan + Campusevents (mit Filtern)      |
-| 2 | `GET`   | `/api/settings`         | Nutzereinstellungen laden                     |
-| 3 | `PUT`   | `/api/settings`         | Nutzereinstellungen speichern                 |
-| 4 | `GET`   | `/api/street-view-graph`| 360°-Navigations-Graph des Campus             |
-| 5 | `GET`   | `/api/buildings`        | Alle Gebäude mit ihren Räumen                 |
-| 6 | `GET`   | `/api/rooms`            | Räume, optional gefiltert nach Gebäude        |
+| # | Methode | Pfad                           | Beschreibung                                  |
+|---|---------|--------------------------------|-----------------------------------------------|
+| 1 | `GET`   | `/api/v1/timetable`            | Stundenplan + Campusevents (mit Filtern)      |
+| 2 | `GET`   | `/api/v1/settings`             | Nutzereinstellungen laden                     |
+| 3 | `PUT`   | `/api/v1/settings`             | Nutzereinstellungen speichern                 |
+| 4 | `GET`   | `/api/v1/streetview/graph`     | 360°-Navigations-Graph des Campus             |
+| 5 | `GET`   | `/api/v1/buildings`            | Alle Gebäude mit ihren Räumen                 |
+| 6 | `GET`   | `/api/v1/rooms`                | Räume, optional gefiltert nach Gebäude        |
 
 ---
 
-## 1. `GET /api/timetable`
+## 1. `GET /api/v1/timetable`
 
 ### Beschreibung
 Liefert alle Daten für den Stundenplan-Screen: Studiengänge, Semester, Eventgruppen, Vorlesungen und Campus-Events.  
@@ -27,22 +27,22 @@ Alle Filter sind optional – ohne Parameter wird der komplette Datensatz zurüc
 
 ### Query-Parameter (alle optional)
 
-| Parameter     | Typ      | Beschreibung                                                         | Beispiel                     |
-|---------------|----------|----------------------------------------------------------------------|------------------------------|
-| `building`    | `string` | Filtert Vorlesungen **und** Events nach Gebäude (exakter Match)      | `?building=Building+B`       |
-| `room`        | `string` | Filtert Vorlesungen nach Raum (Partial-Match, case-insensitiv)       | `?room=B+2`                  |
-| `professor`   | `string` | Filtert Vorlesungen nach Dozent (Partial-Match, case-insensitiv)     | `?professor=Müller`          |
-| `course`      | `string` | Filtert nach `courseOfStudyId`, mehrere mit Komma                    | `?course=cs_b3,me_b1`        |
-| `semester`    | `string` | Filtert nach `semesterId`, mehrere mit Komma                         | `?semester=sem_3,sem_4`      |
-| `event_group` | `string` | Filtert Events nach `groupId`, mehrere mit Komma                     | `?event_group=sports,career` |
-| `date_from`   | `string` | Nur Einträge ab diesem Datum (`YYYY-MM-DD`)                          | `?date_from=2026-04-14`      |
-| `date_to`     | `string` | Nur Einträge bis zu diesem Datum (`YYYY-MM-DD`)                      | `?date_to=2026-04-20`        |
-| `recurrence`  | `string` | Filtert Vorlesungen nach Typ: `weekly` oder `once`                   | `?recurrence=weekly`         |
+| Parameter     | Typ      | Beschreibung                                                                    | Beispiel                        |
+|---------------|----------|---------------------------------------------------------------------------------|---------------------------------|
+| `building`    | `string` | Filtert Vorlesungen **und** Events nach Gebäude-Kürzel (exakter Match)          | `?building=G2`                  |
+| `room`        | `string` | Filtert Vorlesungen nach Raum (Partial-Match, case-insensitiv)                  | `?room=G2+1`                    |
+| `professor`   | `string` | Filtert Vorlesungen nach Dozent (Partial-Match, case-insensitiv)                | `?professor=Müller`             |
+| `course`      | `string` | Filtert nach `courseOfStudyId` (= StarPlan-Code), mehrere mit Komma             | `?course=INF+S1%2B2,INF+S3%2B4` |
+| `semester`    | `string` | Filtert nach `semesterId`, mehrere mit Komma                                    | `?semester=sem_3,sem_4`         |
+| `event_group` | `string` | Filtert Events nach `groupId`, mehrere mit Komma                                | `?event_group=sports,career`    |
+| `date_from`   | `string` | Nur Einträge ab diesem Datum (`YYYY-MM-DD`)                                     | `?date_from=2026-04-14`         |
+| `date_to`     | `string` | Nur Einträge bis zu diesem Datum (`YYYY-MM-DD`, inklusive)                      | `?date_to=2026-04-20`           |
+| `recurrence`  | `string` | Filtert Vorlesungen nach Typ: `weekly` oder `once`                              | `?recurrence=weekly`            |
 
 **Kombinierbar:** Alle Parameter können kombiniert werden.  
 Beispiel – alle wöchentlichen Vorlesungen in Building B, Semester 3:
 ```
-GET /api/timetable?building=Building+B&semester=sem_3&recurrence=weekly
+GET /api/v1/timetable?building=Building+B&semester=sem_3&recurrence=weekly
 ```
 
 > **Hinweis:** Die App filtert aktuell noch client-seitig. Die Query-Parameter sind für spätere Performance-Optimierung und direkte API-Nutzung vorgesehen – das Response-Format bleibt identisch, nur die zurückgegebenen Einträge werden reduziert.
@@ -174,7 +174,7 @@ GET /api/timetable?building=Building+B&semester=sem_3&recurrence=weekly
 
 ---
 
-## 2. `GET /api/settings`
+## 2. `GET /api/v1/settings`
 
 ### Beschreibung
 Lädt die gespeicherten Nutzereinstellungen. Wird beim App-Start aufgerufen.
@@ -212,7 +212,7 @@ Lädt die gespeicherten Nutzereinstellungen. Wird beim App-Start aufgerufen.
 
 ---
 
-## 3. `PUT /api/settings`
+## 3. `PUT /api/v1/settings`
 
 ### Beschreibung
 Speichert die aktuellen Nutzereinstellungen. Wird aufgerufen, wenn der Nutzer in der App Einstellungen ändert.
@@ -243,7 +243,7 @@ Oder HTTP `200 OK` ohne Body – beides wird von der App akzeptiert.
 
 ---
 
-## 4. `GET /api/street-view-graph`
+## 4. `GET /api/v1/streetview/graph`
 
 ### Beschreibung
 Liefert den 360°-Navigationsgraph des Campus für den Street-View-Screen. Die App lädt diesen Graphen separat (in `lib/models/graph_node.dart`).
@@ -324,7 +324,7 @@ Liefert den 360°-Navigationsgraph des Campus für den Street-View-Screen. Die A
 
 ---
 
-## 5. `GET /api/buildings`
+## 5. `GET /api/v1/buildings`
 
 ### Beschreibung
 Liefert alle Gebäude des Campus mit den darin enthaltenen Räumen. Die Daten werden aus Vorlesungen und Events aggregiert.  
@@ -375,7 +375,7 @@ Nützlich für Dropdown-Filter in der App oder für eine Raumsuche.
 
 ---
 
-## 6. `GET /api/rooms`
+## 6. `GET /api/v1/rooms`
 
 ### Beschreibung
 Liefert eine flache Liste aller Räume. Optional nach Gebäude gefiltert.  
@@ -422,8 +422,8 @@ Mit `?building=Building+B`:
 | `room`     | `string` | Ja      | Raumbezeichnung, identisch mit `room`-Feld in Lectures |
 | `building` | `string` | Ja      | Gebäude, in dem der Raum liegt                      |
 
-> **Kombination mit `/api/timetable`:** Wenn der Nutzer einen Raum auswählt, kann anschließend  
-> `GET /api/timetable?building=Building+B&room=B+204` gerufen werden, um alle Vorlesungen in diesem Raum zu laden.
+> **Kombination mit `/api/v1/timetable`:** Wenn der Nutzer einen Raum auswählt, kann anschließend  
+> `GET /api/v1/timetable?building=Building+B&room=B+204` gerufen werden, um alle Vorlesungen in diesem Raum zu laden.
 
 ---
 
@@ -486,12 +486,12 @@ Der Kommentar in `app_data_service.dart` Zeile 7 bestätigt das:
 
 Die App benötigt **6 Endpunkte**:
 
-1. **`GET /api/timetable`** → alle Stundenplan- und Eventdaten, mit optionalen Filtern
-2. **`GET /api/settings`** → Nutzereinstellungen (beim Start geladen)
-3. **`PUT /api/settings`** → Nutzereinstellungen speichern (bei jeder Änderung)
-4. **`GET /api/street-view-graph`** → Campus-Navigationsgraph mit 360°-Bildern
-5. **`GET /api/buildings`** → alle Gebäude mit ihren Räumen
-6. **`GET /api/rooms`** → Räumeliste, optional nach Gebäude oder Suchbegriff gefiltert
+1. **`GET /api/v1/timetable`** → alle Stundenplan- und Eventdaten, mit optionalen Filtern
+2. **`GET /api/v1/settings`** → Nutzereinstellungen (beim Start geladen)
+3. **`PUT /api/v1/settings`** → Nutzereinstellungen speichern (bei jeder Änderung)
+4. **`GET /api/v1/streetview/graph`** → Campus-Navigationsgraph mit 360°-Bildern
+5. **`GET /api/v1/buildings`** → alle Gebäude mit ihren Räumen
+6. **`GET /api/v1/rooms`** → Räumeliste, optional nach Gebäude oder Suchbegriff gefiltert
 
 ### Filter-Übersicht für `/api/timetable`
 

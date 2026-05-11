@@ -12,6 +12,12 @@ import requests
 
 logger = logging.getLogger(__name__)
 
+# Entfernt führende Titel ("Prof. Dr.", "Dipl.-Ing.", etc.)
+_TITLE_STRIP_RE = re.compile(r'^(?:(?:Prof|Dr|Dipl)\.?\s+)+', re.IGNORECASE)
+# Prüft ob ein einzelnes Wort wie ein Namens-Token aussieht:
+# Startet mit Großbuchstabe, mindestens ein Kleinbuchstabe, kann Bindestriche enthalten
+_NAME_WORD_RE = re.compile(r'^[A-ZÄÖÜ][a-zäöüß][a-zäöüßA-ZÄÖÜ\-]*$')
+
 
 class IcalParser:
     """Parser for iCal files to extract lecture information."""
@@ -22,16 +28,7 @@ class IcalParser:
         source_type: str = "room",
         source_id: str | None = None,
     ) -> list[dict[str, Any]]:
-        """Load and parse iCal file from URL.
-
-        Args:
-            url: URL to the iCal file
-            source_type: 'room' or 'course'
-            source_id: Room-ID or Course-ID
-
-        Returns:
-            List of lecture dictionaries
-        """
+        """Lädt und parst eine iCal-Datei von einer URL."""
         try:
             logger.info(f"Fetching iCal from {url}...")
             response = requests.get(url, timeout=15)
@@ -50,10 +47,7 @@ class IcalParser:
             return lectures
 
         except Exception as e:
-            logger.error(
-                f"Error parsing iCal from {url}: {e}",
-                exc_info=True,
-            )
+            logger.error(f"Error parsing iCal from {url}: {e}", exc_info=True)
             return []
 
     @staticmethod
@@ -62,109 +56,93 @@ class IcalParser:
         source_type: str = "room",
         source_id: str | None = None,
     ) -> dict[str, Any] | None:
-        """Extract lecture data from iCal event.
-
-        Args:
-            component: iCalendar event component
-            source_type: 'room' or 'course'
-            source_id: Room-ID or Course-ID
-
-        Returns:
-            Dictionary with lecture data or None on error
-        """
+        """Extrahiert Vorlesungsdaten aus einem iCal-VEVENT."""
         try:
-            # Extract base information
-            summary = str(component.get("summary", "N/A"))
+            summary     = str(component.get("summary", ""))
             description = str(component.get("description", ""))
-            location = str(component.get("location", ""))
-            start_time = component.decoded("dtstart")
-            end_time = component.decoded("dtend")
-            uid = str(component.get("uid", ""))
+            raw_location = str(component.get("location", ""))
+            start_time  = component.decoded("dtstart")
+            end_time    = component.decoded("dtend")
+            uid         = str(component.get("uid", ""))
 
-            # Parse additional information from summary/description
-            professor = IcalParser._extract_professor(summary, description)
+            # Location: StarPlan hängt manchmal ", Canvas" oder andere Plattformen an –
+            # nur der erste Teil (der echte Raum) ist relevant.
+            location = raw_location.split(",")[0].strip()
+
+            professor   = IcalParser._extract_professor(description)
             module_name = IcalParser._extract_module_name(summary)
-            courses = IcalParser._extract_courses(description)
+            module_id   = IcalParser._extract_module_id(summary)
 
-            # Calculate duration
             duration = end_time - start_time if end_time and start_time else None
-            duration_minutes = duration.total_seconds() / 60 if duration else 90
+            duration_minutes = int(duration.total_seconds() / 60) if duration else 90
 
-            # Day of week
-            day_of_week = start_time.strftime("%A") if start_time else "Unknown"
-
-            event = {
-                "lecture_id": uid or f"{location}_{start_time.isoformat()}",
-                "summary": summary,
-                "room_number": location,
-                "professor": professor,
-                "module_name": module_name,
-                "courses": courses,  # List of course codes
-                "description": description,
-                "start_time": start_time,
-                "end_time": end_time,
-                "day_of_week": day_of_week,
-                "duration_minutes": int(duration_minutes),
-                "source_type": source_type,
-                "source_id": source_id,
-                "created_at": datetime.now(),
+            return {
+                "lecture_id":       uid or f"{location}_{start_time.isoformat()}",
+                "summary":          summary,
+                "module_name":      module_name,
+                "module_id":        module_id,
+                "room_number":      location,
+                "professor":        professor,
+                "description":      description,
+                "start_time":       start_time,
+                "end_time":         end_time,
+                "day_of_week":      start_time.strftime("%A") if start_time else "Unknown",
+                "duration_minutes": duration_minutes,
+                "source_type":      source_type,
+                "source_id":        source_id,
+                "created_at":       datetime.now(),
             }
-
-            logger.debug(f"Extracted: {module_name} in {location} ({start_time})")
-            return event
 
         except Exception as e:
             logger.warning(f"Error extracting event: {e}")
             return None
 
     @staticmethod
-    def _extract_professor(summary: str, _description: str) -> str | None:
-        """Extract professor name from summary/description.
+    def _extract_professor(description: str) -> str | None:
+        """Extrahiert den Dozentennamen aus der Description.
 
-        Args:
-            summary: Event summary
-            _description: Event description
+        StarPlan-Description-Struktur (Zeilen getrennt durch \\n):
+          1. Modulname (ggf. mit Modulnummer)
+          2. Dozent (wenn vorhanden)
+          3. Planungsgruppe (z. B. "IN S1")
+          4. Optional: Canvas-URL o. ä.
 
-        Returns:
-            Professor name or None
+        Es wird ab Zeile 2 nach einem Namen gesucht, der dem Muster
+        „Vorname Nachname" entspricht.
         """
-        patterns = [
-            r"([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s*\(.*\)",
-            r"^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)",
-        ]
-
-        for pattern in patterns:
-            match = re.search(pattern, summary)
-            if match:
-                return match.group(1)
-
+        lines = [ln.strip() for ln in description.split("\n") if ln.strip()]
+        # Zeile 0 = Modulname überspringen
+        for line in lines[1:]:
+            # Sobald wir die Planungsgruppe ("XX S1") erreichen, abbrechen
+            if re.match(r'^[A-Z]{2,6}\s+S\d', line):
+                break
+            if _NAME_RE.match(line):
+                return line
         return None
 
     @staticmethod
     def _extract_module_name(summary: str) -> str:
-        """Extract module name from summary.
+        """Extrahiert den sauberen Modulnamen ohne Modulnummer.
 
-        Args:
-            summary: Event summary
-
-        Returns:
-            Module name without parentheses content
+        Beispiel: "Rechnerarchitektur (31-57103)" → "Rechnerarchitektur"
         """
-        module = re.sub(r"\s*\([^)]*\)\s*", " ", summary)
-        return module.strip()
+        name = re.sub(r"\s*\(\d[\d\-]*\)\s*", " ", summary).strip()
+        return name or summary
+
+    @staticmethod
+    def _extract_module_id(summary: str) -> str | None:
+        """Extrahiert die Modulnummer aus dem Summary.
+
+        Beispiel: "Rechnerarchitektur (31-57103)" → "31-57103"
+        """
+        match = re.search(r"\((\d[\d\-]+)\)", summary)
+        return match.group(1) if match else None
 
     @staticmethod
     def _extract_courses(description: str) -> list[str]:
-        """Extract course codes from description.
+        """Extrahiert Planungsgruppen-Kürzel aus der Description.
 
-        Pattern: "IN S1", "AI S2+3", "ETI S4", etc.
-
-        Args:
-            description: Event description
-
-        Returns:
-            List of unique course codes
+        Beispiele: "IN S1", "AI S2+3", "ETI S4"
         """
-        course_pattern = r"\b([A-Z]{2,3}\s+S\d+(?:\+\d+)?)\b"
-        courses = re.findall(course_pattern, description)
-        return list(set(courses))  # Unique courses
+        pattern = r"\b([A-Z]{2,6}\s+S\d+(?:\+\d+)*)\b"
+        return list(set(re.findall(pattern, description)))
