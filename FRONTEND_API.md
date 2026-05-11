@@ -68,7 +68,6 @@ GET /api/v1/timetable?course=IN&semester=sem_1&date_from=2026-05-11
     { "id": "sem_2", "label": "Semester 2" },
     { "id": "sem_3", "label": "Semester 3" },
     { "id": "sem_4", "label": "Semester 4" },
-    { "id": "sem_5", "label": "Semester 5" },
     { "id": "sem_6", "label": "Semester 6" },
     { "id": "sem_7", "label": "Semester 7" }
   ],

@@ -77,7 +77,6 @@ GET /api/v1/timetable?building=Building+B&semester=sem_3&recurrence=weekly
     { "id": "sem_2", "label": "Semester 2" },
     { "id": "sem_3", "label": "Semester 3" },
     { "id": "sem_4", "label": "Semester 4" },
-    { "id": "sem_5", "label": "Semester 5" },
     { "id": "sem_6", "label": "Semester 6" },
     { "id": "sem_7", "label": "Semester 7" }
   ],

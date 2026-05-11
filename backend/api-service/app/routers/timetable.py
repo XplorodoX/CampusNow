@@ -1,5 +1,6 @@
 """Timetable router – kombinierter Endpunkt wie timetable.json für das Frontend."""
 
+import hashlib
 import logging
 from datetime import datetime
 from typing import Any
@@ -83,20 +84,33 @@ def _lecture_to_frontend(lec: dict) -> dict:
     }
 
 
-def _event_to_frontend(evt: dict) -> dict:
+def _event_to_frontend(evt: dict, mock_rooms: list[dict] | None = None) -> dict:
     """Mappt ein DB-Event-Dokument auf das timetable.json-Format."""
     group_id = _CATEGORY_TO_GROUP.get((evt.get("groupId") or "").lower(), "social")
     event_id = str(evt.get("_id", ""))
     image_url = evt.get("image_url") or f"https://picsum.photos/seed/{event_id}/800/450"
+
+    # building/room: echte Daten bevorzugen, sonst deterministisch aus Pool wählen
+    building = evt.get("building") or ""
+    room = evt.get("room") or ""
+    if (not building or not room) and mock_rooms:
+        idx = int(hashlib.md5(event_id.encode()).hexdigest(), 16) % len(mock_rooms)
+        mock = mock_rooms[idx]
+        building = building or mock.get("building_id") or ""
+        room = room or mock.get("room_number") or ""
+
     result: dict = {
         "id":        event_id,
         "title":     evt.get("title", ""),
         "groupId":   group_id,
+        "color":     _GROUP_COLORS.get(group_id, "#95A5A6"),
         "startTime": _to_iso(evt.get("start_time")),
         "endTime":   _to_iso(evt.get("end_time")),
         "is_public": evt.get("is_public", True),
         "detail_url": evt.get("detail_url"),
-        "image_url": image_url,
+        "image_url":  image_url,
+        "building":   building,
+        "room":       room,
     }
     # Optionale Felder nur wenn vorhanden (von Detailseite)
     for field in ("description", "organizer", "registration_url", "registration_deadline"):
@@ -108,18 +122,15 @@ def _event_to_frontend(evt: dict) -> dict:
 
 @router.get(
     "",
-    summary="Stundenplan abrufen – timetable.json-Format",
-    response_description="Kombinierte Struktur mit courses_of_study, semesters, event_groups, lectures und events",
+    summary="Stundenplan abrufen",
+    response_description="Gefilterte Vorlesungen und Events",
     responses={
         200: {
             "content": {
                 "application/json": {
                     "example": {
-                        "courses_of_study": [{"id": "INF S1+2", "label": "Informatik Sem. 1+2"}],
-                        "semesters": [{"id": "sem_3", "label": "Semester 3"}],
-                        "event_groups": [{"id": "sports", "label": "Sports & Fitness"}],
                         "lectures": [{"id": "lec_001", "title": "Algorithmen & Datenstrukturen"}],
-                        "events": [{"id": "evt_001", "title": "Campus Run 5K"}],
+                        "events":   [{"id": "evt_001", "title": "Campus Run 5K"}],
                     }
                 }
             }
@@ -168,9 +179,9 @@ async def get_timetable(
     limit_lectures: int = Query(200, ge=1, le=1000, description="Max. Vorlesungen"),
     limit_events: int = Query(50, ge=1, le=200, description="Max. Events"),
 ) -> dict[str, Any]:
-    """Gibt alle Daten zurück, die das Frontend für die Timetable-Ansicht benötigt.
+    """Gibt gefilterte Vorlesungen und Events zurück.
 
-    Entspricht exakt der Struktur von `timetable.json`.
+    Metadaten (courses_of_study, semesters, event_groups) kommen einmalig von `GET /api/v1/settings`.
     Alle Filter-Parameter sind optional und kombinierbar.
     """
     try:
@@ -253,9 +264,25 @@ async def get_timetable(
                 evt_clauses.append({"start_time": {"$lte": date_to + "T23:59:59"}})
 
             evt_query: dict[str, Any] = {"$and": evt_clauses} if evt_clauses else {}
-            events = [_event_to_frontend(e) for e in serialize_docs(list(db.events.find(evt_query).limit(limit_events)))]
+            raw_events = serialize_docs(list(db.events.find(evt_query).limit(limit_events)))
+            mock_rooms = list(db.rooms.find(
+                {"room_number": {"$exists": True}, "building_id": {"$exists": True}},
+                {"room_number": 1, "building_id": 1, "_id": 0},
+            ))
+            events = [_event_to_frontend(e, mock_rooms or None) for e in raw_events]
+
+        # Fetch study programs from DB for courses_of_study
+        db = mongo_client.get_db()
+        study_progs = serialize_docs(list(db.studiengaenge.find().sort("code", 1)))
+        courses_of_study = [
+            {"id": prog.get("code"), "label": prog.get("name", prog.get("code"))}
+            for prog in study_progs
+        ]
 
         return {
+            "courses_of_study": courses_of_study,
+            "semesters": _SEMESTERS,
+            "event_groups": _EVENT_GROUPS,
             "lectures": lectures,
             "events": events,
         }
