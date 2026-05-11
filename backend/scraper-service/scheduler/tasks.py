@@ -479,28 +479,24 @@ class ScraperTasks:
                     end_iso = None
 
                 doc = {
-                    "title": raw["title"],
-                    "description": None,
-                    "category": "Hochschule",
-                    "start_time": start_iso,
-                    "end_time": end_iso,
-                    "location_text": None,
-                    "location": None,
-                    "building_id": None,
-                    "building": None,
-                    "room_id": None,
-                    "organizer": None,
-                    "is_public": True,
-                    "color": None,
-                    "image_url": None,
-                    "imageUrl": None,
-                    "groupId": None,
-                    "detail_url": raw.get("detail_url"),
-                    "source": "hs-aalen-website",
-                    "source_slug": slug,
-                    "scraped_at": raw.get("scraped_at"),
-                    "updated_at": started_at,
+                    "title":                 raw["title"],
+                    "start_time":            start_iso,
+                    "end_time":              end_iso,
+                    "groupId":               "social",
+                    "is_public":             True,
+                    "detail_url":            raw.get("detail_url"),
+                    "source":                "hs-aalen-website",
+                    "source_slug":           slug,
+                    "scraped_at":            raw.get("scraped_at"),
+                    "updated_at":            started_at,
+                    # Von der Detailseite – nur wenn vorhanden
+                    "description":           raw.get("description"),
+                    "organizer":             raw.get("organizer"),
+                    "registration_url":      raw.get("registration_url"),
+                    "registration_deadline": raw.get("registration_deadline"),
                 }
+                # None-Felder nicht speichern
+                doc = {k: v for k, v in doc.items() if v is not None}
 
                 result = db.events.update_one(
                     {"source_slug": slug},

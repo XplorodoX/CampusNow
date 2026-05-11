@@ -17,7 +17,6 @@ from app.routers import (
     events,
     images,
     rooms,
-    schedule,
     scheduler,
     settings,
     streetview,
@@ -55,7 +54,6 @@ Interaktive Campus-Navigations- und Stundenplan-API für die **Hochschule Aalen*
 - **Gebäude** – Alle Gebäude der HS Aalen (`GET /api/v1/buildings`)
 - **Räume** – Räumeliste mit Filter (`GET /api/v1/rooms`)
 - **Events** – Campus-Events mit Gäste-Modus (`public_only=true`)
-- **iCal-Import** – Persönlichen StarPlan-Link einfügen → Stundenplan sofort verfügbar
 - **Scheduler** – Scraper-Status und Logs aus der Datenbank
 
 ### Datenquelle
@@ -128,13 +126,6 @@ Vorlesungsdaten werden täglich um **06:00 Uhr** automatisch aus dem
         },
         # ── Import & Automatisierung ────────────────────────────────────
         {
-            "name": "schedule",
-            "description": (
-                "Persönlichen Stundenplan per StarPlan-iCal-URL importieren (`POST /sync`). "
-                "Parst die `.ics`-Datei und reichert Einträge mit Raum- und Gebäude-IDs aus der DB an."
-            ),
-        },
-        {
             "name": "scheduler",
             "description": (
                 "Scraper-Scheduler Steuerung. `GET /status` zeigt den letzten Job-Lauf aus der DB. "
@@ -174,7 +165,6 @@ app.include_router(timetable.router)
 app.include_router(streetview.router)
 app.include_router(settings.router)
 app.include_router(images.router)
-app.include_router(schedule.router)
 app.include_router(scheduler.router)
 
 # Tools (static single-page utilities)

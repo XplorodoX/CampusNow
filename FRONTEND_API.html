@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CampusNow – API-Dokumentation</title>
+<style>
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #1a1a1a;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 30px 40px;
+}
+h1 { font-size: 24px; border-bottom: 3px solid #0078D4; padding-bottom: 8px; margin: 24px 0 16px; }
+h2 { font-size: 19px; border-bottom: 1.5px solid #ccc; padding-bottom: 5px; margin: 28px 0 12px; color: #0078D4; }
+h3 { font-size: 15px; margin: 20px 0 8px; color: #333; }
+h4 { font-size: 13px; margin: 14px 0 6px; color: #555; font-weight: 600; }
+p { margin: 8px 0; }
+a { color: #0078D4; text-decoration: none; }
+code {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 12px;
+    background: #f0f4f8;
+    border: 1px solid #dde3ea;
+    border-radius: 3px;
+    padding: 1px 5px;
+}
+pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    border-radius: 6px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 10px 0;
+}
+pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    color: inherit;
+    font-size: 12px;
+}
+blockquote {
+    border-left: 4px solid #0078D4;
+    background: #f0f7ff;
+    padding: 8px 14px;
+    margin: 10px 0;
+    border-radius: 0 4px 4px 0;
+}
+blockquote p { margin: 2px 0; }
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 10px 0;
+    font-size: 12px;
+}
+th {
+    background: #0078D4;
+    color: white;
+    padding: 6px 10px;
+    text-align: left;
+    font-weight: 600;
+}
+td { padding: 5px 10px; border: 1px solid #dde; }
+tr:nth-child(even) td { background: #f7f9fc; }
+ul, ol { margin: 8px 0 8px 22px; }
+li { margin: 3px 0; }
+hr { border: none; border-top: 1px solid #ddd; margin: 20px 0; }
+strong { font-weight: 700; }
+em { font-style: italic; }
+.toc { background: #f7f9fc; border: 1px solid #dde; border-radius: 6px; padding: 14px 20px; margin: 16px 0; }
+.toc ol { margin-left: 18px; }
+@media print {
+    body { max-width: 100%; padding: 15px 20px; font-size: 11px; }
+    h1 { font-size: 20px; }
+    h2 { font-size: 16px; }
+    pre { font-size: 10px; }
+    a { color: #0078D4; }
+    tr:nth-child(even) td { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+</style>
+</head>
+<body>
+<h1 id='campusnow--api-dokumentation-für-frontend-entwickler'>CampusNow – API-Dokumentation für Frontend-Entwickler</h1>
+<blockquote><p><strong>Base URL:</strong> <code>http://&lt;host&gt;:6058</code><br><strong>Interaktive Docs:</strong> <code>http://&lt;host&gt;:6058/docs</code> (Swagger UI)<br>**Alle Endpunkte beginnen mit <code>/api/v1/</code>**</p></blockquote>
+<hr>
+<h2 id='inhaltsverzeichnis'>Inhaltsverzeichnis</h2>
+<ol><li><a href="#1-timetable">Timetable</a> ← <strong>Hauptendpunkt für das Frontend</strong></li><li><a href="#2-settings">Settings</a></li><li><a href="#3-street-view-graph">Street View Graph</a></li><li><a href="#4-buildings">Buildings</a></li><li><a href="#5-rooms">Rooms</a></li><li><a href="#6-events">Events</a></li><li><a href="#7-images-360">Images (360°)</a></li><li><a href="#auth-header">Auth-Header</a></li><li><a href="#fehler-codes">Fehler-Codes</a></li><li><a href="#datenmodelle-im-überblick">Datenmodelle im Überblick</a></li></ol>
+
+<hr>
+<h2 id='1-timetable'>1. Timetable</h2>
+<blockquote><p>Dieser eine Endpunkt liefert alles, was die Stundenplan-Ansicht braucht:<br>Studiengänge, Semester, Event-Gruppen, Vorlesungen und Events – in einem Call.</p></blockquote>
+<h3 id='get-apiv1timetable'><code>GET /api/v1/timetable</code></h3>
+<p><strong>Ohne Filter:</strong> gibt alles zurück (bis zu 200 Vorlesungen + 50 Events). <strong>Mit Filtern:</strong> beliebig kombinierbar.</p>
+<h4 id='query-parameter'>Query-Parameter</h4>
+<table><thead><tr><th>Parameter</th><th>Typ</th><th>Beispiel</th><th>Beschreibung</th></tr></thead><tr><td><code>course</code></td><td>string</td><td><code>IN</code></td><td>Studiengang-Code (aus <code>courses_of_study[].id</code>). Mehrere mit Komma: <code>IN,ET</code></td></tr><tr><td><code>semester</code></td><td>string</td><td><code>sem_1</code></td><td>Semester-ID. Mehrere: <code>sem_1,sem_2</code></td></tr><tr><td><code>event_group</code></td><td>string</td><td><code>sports</code></td><td>Event-Gruppe. Mehrere: <code>sports,career</code></td></tr><tr><td><code>building</code></td><td>string</td><td><code>G2</code></td><td>Exakter Gebäude-Code</td></tr><tr><td><code>room</code></td><td>string</td><td><code>G2 1</code></td><td>Partial-Match auf Raumnummer (case-insensitiv)</td></tr><tr><td><code>professor</code></td><td>string</td><td><code>Müller</code></td><td>Partial-Match auf Dozentenname</td></tr><tr><td><code>date_from</code></td><td>string</td><td><code>2026-05-11</code></td><td>Vorlesungen/Events ab diesem Datum (YYYY-MM-DD)</td></tr><tr><td><code>date_to</code></td><td>string</td><td><code>2026-07-31</code></td><td>Vorlesungen/Events bis zu diesem Datum (inkl.)</td></tr><tr><td><code>recurrence</code></td><td>string</td><td><code>weekly</code></td><td><code>weekly</code> oder <code>once</code></td></tr><tr><td><code>public_only</code></td><td>bool</td><td><code>true</code></td><td>Nur öffentliche Events (Gäste-Modus ohne Login)</td></tr><tr><td><code>limit_lectures</code></td><td>int</td><td><code>200</code></td><td>Max. Vorlesungen (1–1000, default 200)</td></tr><tr><td><code>limit_events</code></td><td>int</td><td><code>50</code></td><td>Max. Events (1–200, default 50)</td></tr></table>
+<h4 id='beispiel-request'>Beispiel-Request</h4>
+<pre><code>GET /api/v1/timetable?course=IN&amp;semester=sem_1&amp;date_from=2026-05-11</code></pre>
+<h4 id='response-struktur'>Response-Struktur</h4>
+<pre><code class="language-json">{
+  &quot;courses_of_study&quot;: [
+    { &quot;id&quot;: &quot;IN&quot;,  &quot;label&quot;: &quot;Informatik&quot; },
+    { &quot;id&quot;: &quot;ET&quot;,  &quot;label&quot;: &quot;Elektrotechnik&quot; },
+    { &quot;id&quot;: &quot;ETI&quot;, &quot;label&quot;: &quot;Technische Informatik / Embedded Systems&quot; }
+  ],
+  &quot;semesters&quot;: [
+    { &quot;id&quot;: &quot;sem_1&quot;, &quot;label&quot;: &quot;Semester 1&quot; },
+    { &quot;id&quot;: &quot;sem_2&quot;, &quot;label&quot;: &quot;Semester 2&quot; },
+    { &quot;id&quot;: &quot;sem_3&quot;, &quot;label&quot;: &quot;Semester 3&quot; },
+    { &quot;id&quot;: &quot;sem_4&quot;, &quot;label&quot;: &quot;Semester 4&quot; },
+    { &quot;id&quot;: &quot;sem_5&quot;, &quot;label&quot;: &quot;Semester 5&quot; },
+    { &quot;id&quot;: &quot;sem_6&quot;, &quot;label&quot;: &quot;Semester 6&quot; },
+    { &quot;id&quot;: &quot;sem_7&quot;, &quot;label&quot;: &quot;Semester 7&quot; }
+  ],
+  &quot;event_groups&quot;: [
+    { &quot;id&quot;: &quot;sports&quot;,  &quot;label&quot;: &quot;Sports &amp; Fitness&quot; },
+    { &quot;id&quot;: &quot;culture&quot;, &quot;label&quot;: &quot;Culture &amp; Arts&quot; },
+    { &quot;id&quot;: &quot;career&quot;,  &quot;label&quot;: &quot;Career &amp; Networking&quot; },
+    { &quot;id&quot;: &quot;social&quot;,  &quot;label&quot;: &quot;Social Events&quot; }
+  ],
+  &quot;lectures&quot;: [ ... ],
+  &quot;events&quot;:   [ ... ]
+}</code></pre>
+<h4 id='lecture-objekt'>Lecture-Objekt</h4>
+<pre><code class="language-json">{
+  &quot;id&quot;:              &quot;6643f1a2e4b0a1c2d3e4f5a6&quot;,
+  &quot;title&quot;:           &quot;Rechnerarchitektur&quot;,
+  &quot;moduleId&quot;:        &quot;31-57103&quot;,
+  &quot;courseOfStudyId&quot;: &quot;IN&quot;,
+  &quot;semesterId&quot;:      &quot;sem_1&quot;,
+  &quot;semesterIds&quot;:     [&quot;sem_1&quot;],
+  &quot;room&quot;:            &quot;G2 1.44&quot;,
+  &quot;building&quot;:        &quot;G2&quot;,
+  &quot;professor&quot;:       &quot;Prof. Dr. Müller&quot;,
+  &quot;startTime&quot;:       &quot;2026-05-11T08:00:00&quot;,
+  &quot;endTime&quot;:         &quot;2026-05-11T09:30:00&quot;,
+  &quot;dayOfWeek&quot;:       &quot;Monday&quot;,
+  &quot;durationMinutes&quot;: 90,
+  &quot;color&quot;:           &quot;#4A90D9&quot;,
+  &quot;recurrence&quot;:      &quot;weekly&quot;
+}</code></pre>
+<table><thead><tr><th>Feld</th><th>Typ</th><th>Beschreibung</th></tr></thead><tr><td><code>id</code></td><td>string</td><td>MongoDB-ID der Vorlesung</td></tr><tr><td><code>title</code></td><td>string</td><td>Modulname (bereinigt, ohne Modulnummer)</td></tr><tr><td><code>moduleId</code></td><td>string\</td><td>null</td><td>Modulnummer aus StarPlan, z. B. <code>&quot;31-57103&quot;</code></td></tr><tr><td><code>courseOfStudyId</code></td><td>string</td><td>Studiengangs-Code, z. B. <code>&quot;IN&quot;</code> – passt zu <code>courses_of_study[].id</code></td></tr><tr><td><code>semesterId</code></td><td>string</td><td>Primäres Semester, z. B. <code>&quot;sem_1&quot;</code></td></tr><tr><td><code>semesterIds</code></td><td>string[]</td><td>Alle Semester dieser Vorlesung (z. B. <code>[&quot;sem_1&quot;,&quot;sem_2&quot;]</code> bei gemeinsamen VL)</td></tr><tr><td><code>room</code></td><td>string</td><td>Raumnummer, z. B. <code>&quot;G2 1.44&quot;</code></td></tr><tr><td><code>building</code></td><td>string</td><td>Gebäude-Code, z. B. <code>&quot;G2&quot;</code> – passt zu <code>buildings[].code</code></td></tr><tr><td><code>professor</code></td><td>string</td><td>Dozent(in), kann leer sein</td></tr><tr><td><code>startTime</code></td><td>string (ISO 8601)</td><td>Startzeit</td></tr><tr><td><code>endTime</code></td><td>string (ISO 8601)</td><td>Endzeit</td></tr><tr><td><code>dayOfWeek</code></td><td>string</td><td>Englischer Wochentag: <code>&quot;Monday&quot;</code>, <code>&quot;Tuesday&quot;</code>, …</td></tr><tr><td><code>durationMinutes</code></td><td>int</td><td>Dauer in Minuten (meist 90)</td></tr><tr><td><code>color</code></td><td>string</td><td>Hex-Farbe pro Studiengang (deterministisch, z. B. <code>&quot;#4A90D9&quot;</code>)</td></tr><tr><td><code>recurrence</code></td><td>string</td><td><code>&quot;weekly&quot;</code> – alle Vorlesungen aus StarPlan sind wöchentlich</td></tr></table>
+<h4 id='event-objekt'>Event-Objekt</h4>
+<pre><code class="language-json">{
+  &quot;id&quot;:        &quot;6623a1f2e4b0a1c2d3e4f5a6&quot;,
+  &quot;title&quot;:     &quot;Karrieremesse Aalen 2026&quot;,
+  &quot;groupId&quot;:   &quot;career&quot;,
+  &quot;startTime&quot;: &quot;2026-05-20T18:00:00&quot;,
+  &quot;endTime&quot;:   &quot;2026-05-20T21:00:00&quot;,
+  &quot;color&quot;:     &quot;#2ECC71&quot;,
+  &quot;is_public&quot;: true,
+  &quot;detail_url&quot;: &quot;https://www.hs-aalen.de/aktuelles/veranstaltungen/karrieremesse-aalen-2026&quot;,
+
+  &quot;description&quot;:           &quot;Über 80 Unternehmen stellen sich vor...&quot;,
+  &quot;organizer&quot;:             &quot;Transferzentrum HS Aalen&quot;,
+  &quot;registration_url&quot;:      &quot;https://www.hs-aalen.de/.../anmeldung&quot;,
+  &quot;registration_deadline&quot;: &quot;15. Mai 2026&quot;
+}</code></pre>
+<blockquote><p><strong>Hinweis:</strong> <code>description</code>, <code>organizer</code>, <code>registration_url</code> und <code>registration_deadline</code> sind <strong>optional</strong> –<br>sie sind nur vorhanden wenn der Scraper sie auf der Detail-Seite gefunden hat.<br>Das Frontend muss diese Felder mit null-check behandeln.</p></blockquote>
+<table><thead><tr><th>Feld</th><th>Typ</th><th>Beschreibung</th></tr></thead><tr><td><code>id</code></td><td>string</td><td>MongoDB-ID</td></tr><tr><td><code>title</code></td><td>string</td><td>Titel des Events</td></tr><tr><td><code>groupId</code></td><td>string</td><td><code>&quot;sports&quot;</code>, <code>&quot;culture&quot;</code>, <code>&quot;career&quot;</code> oder <code>&quot;social&quot;</code></td></tr><tr><td><code>startTime</code></td><td>string (ISO 8601)</td><td>Startzeit</td></tr><tr><td><code>endTime</code></td><td>string\</td><td>null</td><td>Endzeit (kann fehlen bei Ganztagsevents)</td></tr><tr><td><code>color</code></td><td>string</td><td>Hex-Farbe nach <code>groupId</code>: sports=<code>#F39C12</code>, culture=<code>#9B59B6</code>, career=<code>#2ECC71</code>, social=<code>#3498DB</code></td></tr><tr><td><code>is_public</code></td><td>bool</td><td><code>true</code> = ohne Login sichtbar</td></tr><tr><td><code>detail_url</code></td><td>string\</td><td>null</td><td>Link zur Event-Seite auf hs-aalen.de</td></tr><tr><td><code>description</code></td><td>string</td><td>(optional) Beschreibungstext von der Detail-Seite</td></tr><tr><td><code>organizer</code></td><td>string</td><td>(optional) Veranstalter / Trainer</td></tr><tr><td><code>registration_url</code></td><td>string</td><td>(optional) Anmeldelink</td></tr><tr><td><code>registration_deadline</code></td><td>string</td><td>(optional) Anmeldefrist als Text, z. B. <code>&quot;28. Juli 2026&quot;</code></td></tr></table>
+<h4 id='farben-der-event-gruppen'>Farben der Event-Gruppen</h4>
+<pre><code class="language-dart">const eventGroupColors = {
+  &#x27;sports&#x27;:  &#x27;#F39C12&#x27;,
+  &#x27;culture&#x27;: &#x27;#9B59B6&#x27;,
+  &#x27;career&#x27;:  &#x27;#2ECC71&#x27;,
+  &#x27;social&#x27;:  &#x27;#3498DB&#x27;,
+};</code></pre>
+<hr>
+<h2 id='2-settings'>2. Settings</h2>
+<h3 id='get-apiv1settings'><code>GET /api/v1/settings</code></h3>
+<p>Gibt die gespeicherten Nutzereinstellungen zurück. Entspricht <code>settings.json</code>.</p>
+<pre><code class="language-json">{
+  &quot;notificationLeadMinutes&quot;: 15,
+  &quot;defaultCourseOfStudyIds&quot;: [&quot;IN&quot;],
+  &quot;defaultSemesterIds&quot;:      [&quot;sem_1&quot;],
+  &quot;defaultEventGroupIds&quot;:    [&quot;career&quot;, &quot;sports&quot;],
+  &quot;savedLectureIds&quot;:         [],
+  &quot;savedEventIds&quot;:           [],
+  &quot;theme&quot;:                   &quot;system&quot;
+}</code></pre>
+<table><thead><tr><th>Feld</th><th>Typ</th><th>Beschreibung</th></tr></thead><tr><td><code>notificationLeadMinutes</code></td><td>int</td><td>Vorlaufzeit für Push-Benachrichtigungen in Minuten</td></tr><tr><td><code>defaultCourseOfStudyIds</code></td><td>string[]</td><td>Standard-Studiengänge für die Timetable-Filterung</td></tr><tr><td><code>defaultSemesterIds</code></td><td>string[]</td><td>Standard-Semester</td></tr><tr><td><code>defaultEventGroupIds</code></td><td>string[]</td><td>Standard Event-Gruppen</td></tr><tr><td><code>savedLectureIds</code></td><td>string[]</td><td>Vom Nutzer gespeicherte Vorlesungs-IDs</td></tr><tr><td><code>savedEventIds</code></td><td>string[]</td><td>Vom Nutzer gespeicherte Event-IDs</td></tr><tr><td><code>theme</code></td><td>string</td><td><code>&quot;light&quot;</code>, <code>&quot;dark&quot;</code> oder <code>&quot;system&quot;</code></td></tr></table>
+<hr>
+<h3 id='put-apiv1settings'><code>PUT /api/v1/settings</code></h3>
+<p>Speichert alle Einstellungen (vollständiges Überschreiben). Benötigt API-Key-Header.</p>
+<p><strong>Request Body:</strong> gleiche Struktur wie GET-Response.</p>
+<pre><code class="language-json">{
+  &quot;notificationLeadMinutes&quot;: 10,
+  &quot;defaultCourseOfStudyIds&quot;: [&quot;IN&quot;],
+  &quot;defaultSemesterIds&quot;: [&quot;sem_2&quot;],
+  &quot;defaultEventGroupIds&quot;: [&quot;social&quot;],
+  &quot;savedLectureIds&quot;: [],
+  &quot;savedEventIds&quot;: [],
+  &quot;theme&quot;: &quot;dark&quot;
+}</code></pre>
+<p><strong>Response:</strong> die gespeicherten Einstellungen (gleiche Struktur).</p>
+<hr>
+<h2 id='3-street-view-graph'>3. Street View Graph</h2>
+<h3 id='get-apiv1streetviewgraph'><code>GET /api/v1/streetview/graph</code></h3>
+<p>Gibt den 360°-Navigationsgraphen zurück. Entspricht <code>street_view_graph.json</code>.</p>
+<pre><code class="language-json">{
+  &quot;startNode&quot;: &quot;node0&quot;,
+  &quot;nodes&quot;: [
+    {
+      &quot;id&quot;:      &quot;node0&quot;,
+      &quot;image&quot;:   &quot;/api/v1/images/rooms/G2-0.01/2026-04-15-083000-panorama.jpg&quot;,
+      &quot;building&quot;: &quot;G2&quot;,
+      &quot;room&quot;:    &quot;G2 0.01&quot;,
+      &quot;heading&quot;: 12,
+      &quot;exits&quot;: {
+        &quot;front&quot;: &quot;node1&quot;,
+        &quot;right&quot;: &quot;node2&quot;,
+        &quot;left&quot;:  null
+      },
+      &quot;spots&quot;: [
+        {
+          &quot;name&quot;:        &quot;Hörsaal H1&quot;,
+          &quot;longitude&quot;:   45,
+          &quot;latitude&quot;:    0,
+          &quot;description&quot;: &quot;Eingang Hörsaal H1&quot;
+        }
+      ]
+    },
+    {
+      &quot;id&quot;:      &quot;node1&quot;,
+      &quot;image&quot;:   &quot;/api/v1/images/rooms/G2-1.44/2026-04-15-090000-panorama.jpg&quot;,
+      &quot;building&quot;: &quot;G2&quot;,
+      &quot;room&quot;:    &quot;G2 1.44&quot;,
+      &quot;heading&quot;: 0,
+      &quot;exits&quot;: {
+        &quot;back&quot;: &quot;node0&quot;
+      },
+      &quot;spots&quot;: []
+    }
+  ]
+}</code></pre>
+<table><thead><tr><th>Feld</th><th>Typ</th><th>Beschreibung</th></tr></thead><tr><td><code>startNode</code></td><td>string</td><td>ID des Einstiegs-Knotens</td></tr><tr><td><code>nodes[].id</code></td><td>string</td><td>Eindeutige Knoten-ID</td></tr><tr><td><code>nodes[].image</code></td><td>string</td><td>URL zum 360°-Bild (relativ, über <code>/api/v1/images/...</code> abrufbar)</td></tr><tr><td><code>nodes[].building</code></td><td>string</td><td>Gebäude-Code</td></tr><tr><td><code>nodes[].room</code></td><td>string</td><td>Raumnummer</td></tr><tr><td><code>nodes[].heading</code></td><td>int</td><td>Startausrichtung der Kamera in Grad (0–359)</td></tr><tr><td><code>nodes[].exits</code></td><td>object</td><td>Richtungs-Map → Knoten-ID (<code>&quot;front&quot;</code>, <code>&quot;back&quot;</code>, <code>&quot;left&quot;</code>, <code>&quot;right&quot;</code>)</td></tr><tr><td><code>nodes[].spots</code></td><td>array</td><td>Klickbare Informationspunkte im 360°-Bild</td></tr><tr><td><code>spots[].longitude</code></td><td>int</td><td>Horizontale Position im Panorama (0–360)</td></tr><tr><td><code>spots[].latitude</code></td><td>int</td><td>Vertikale Position (-90 bis 90)</td></tr></table>
+<blockquote><p><strong>Navigation im Frontend:</strong> Das Frontend traversiert den Graphen selbst.<br><code>node.exits[&quot;front&quot;]</code> liefert die ID des nächsten Knotens in dieser Richtung.<br>Es gibt keine server-seitige Routing-Berechnung.</p></blockquote>
+<hr>
+<h2 id='4-buildings'>4. Buildings</h2>
+<h3 id='get-apiv1buildings'><code>GET /api/v1/buildings</code></h3>
+<pre><code>GET /api/v1/buildings
+GET /api/v1/buildings?campus=Burren</code></pre>
+<p><strong>Parameter:</strong></p>
+<table><thead><tr><th>Parameter</th><th>Typ</th><th>Beispiel</th><th>Beschreibung</th></tr></thead><tr><td><code>campus</code></td><td>string</td><td><code>Burren</code> oder <code>Main</code></td><td>Filtert nach Campus-Standort</td></tr><tr><td><code>skip</code></td><td>int</td><td><code>0</code></td><td>Pagination</td></tr><tr><td><code>limit</code></td><td>int</td><td><code>100</code></td><td>Max. Ergebnisse (default 100)</td></tr></table>
+<p><strong>Response:</strong></p>
+<pre><code class="language-json">[
+  {
+    &quot;_id&quot;:                 &quot;G2&quot;,
+    &quot;code&quot;:                &quot;G2&quot;,
+    &quot;name&quot;:                &quot;Gebäude G2&quot;,
+    &quot;description&quot;:         &quot;Hier befinden sich die Räumlichkeiten der Fakultät Elektronik und Informatik.&quot;,
+    &quot;campus&quot;:              &quot;Burren&quot;,
+    &quot;address&quot;:             &quot;Anton-Huber-Straße 25&quot;,
+    &quot;floors&quot;:              [0, 1, 2],
+    &quot;room_count&quot;:          18,
+    &quot;street_view_enabled&quot;: true,
+    &quot;created_at&quot;:          &quot;2026-01-01T00:00:00&quot;
+  }
+]</code></pre>
+<p><strong>Verfügbare Gebäude (HS Aalen):</strong></p>
+<table><thead><tr><th>Code</th><th>Name</th><th>Campus</th></tr></thead><tr><td><code>G1</code></td><td>Gebäude G1 (Optik &amp; Mechatronik)</td><td>Burren</td></tr><tr><td><code>G2</code></td><td>Gebäude G2 (Elektronik &amp; Informatik)</td><td>Burren</td></tr><tr><td><code>G3</code></td><td>Gebäude G3 (Bibliothek)</td><td>Burren</td></tr><tr><td><code>G4</code></td><td>Gebäude G4 (Augenoptik &amp; Hörakustik)</td><td>Burren</td></tr><tr><td><code>IZ</code></td><td>Innovationszentrum</td><td>Burren</td></tr><tr><td><code>M</code></td><td>Mensa</td><td>Burren</td></tr><tr><td><code>E</code></td><td>Physikzentrum</td><td>Burren</td></tr><tr><td><code>AH</code></td><td>Anton-Huber-Straße (Aula)</td><td>Burren</td></tr><tr><td><code>BS1</code></td><td>Beethovenstraße 1 (Verwaltung)</td><td>Main</td></tr><tr><td><code>S46</code></td><td>Stuttgarter Straße 46</td><td>Main</td></tr><tr><td><code>WIN</code></td><td>Wirtschaftswissenschaften</td><td>Main</td></tr><tr><td><code>DIS</code></td><td>Digital Innovation Space</td><td>Main</td></tr><tr><td><code>NM</code></td><td>Neue Mensa</td><td>Main</td></tr><tr><td><code>SW</code></td><td>Studentenwohnheim</td><td>Main</td></tr></table>
+<hr>
+<h2 id='5-rooms'>5. Rooms</h2>
+<h3 id='get-apiv1rooms'><code>GET /api/v1/rooms</code></h3>
+<pre><code>GET /api/v1/rooms
+GET /api/v1/rooms?building=G2
+GET /api/v1/rooms?building=G2&amp;floor=1
+GET /api/v1/rooms?search=1.4</code></pre>
+<p><strong>Parameter:</strong></p>
+<table><thead><tr><th>Parameter</th><th>Typ</th><th>Beispiel</th><th>Beschreibung</th></tr></thead><tr><td><code>building</code></td><td>string</td><td><code>G2</code></td><td>Filtert nach Gebäude-Code</td></tr><tr><td><code>floor</code></td><td>int</td><td><code>1</code></td><td>Filtert nach Stockwerk (0 = EG, 1 = 1. OG, …)</td></tr><tr><td><code>search</code></td><td>string</td><td><code>G2 1</code></td><td>Partial-Match auf Raumnummer</td></tr><tr><td><code>skip</code></td><td>int</td><td><code>0</code></td><td>Pagination</td></tr><tr><td><code>limit</code></td><td>int</td><td><code>100</code></td><td>Max. Ergebnisse (max. 1000)</td></tr></table>
+<p><strong>Response:</strong></p>
+<pre><code class="language-json">[
+  {
+    &quot;_id&quot;:                 &quot;abc123&quot;,
+    &quot;room_number&quot;:         &quot;G2 1.44&quot;,
+    &quot;room_id&quot;:             &quot;42&quot;,
+    &quot;building&quot;:            &quot;G2&quot;,
+    &quot;building_id&quot;:         &quot;G2&quot;,
+    &quot;floor&quot;:               1,
+    &quot;capacity&quot;:            30,
+    &quot;has_video&quot;:           true,
+    &quot;has_projector&quot;:       true,
+    &quot;street_view_enabled&quot;: true,
+    &quot;ical_url&quot;:            &quot;https://vorlesungen.htw-aalen.de/splan/ical?type=room&amp;roomid=42&quot;,
+    &quot;last_scraped&quot;:        &quot;2026-05-11T06:00:00&quot;,
+    &quot;created_at&quot;:          &quot;2026-01-01T00:00:00&quot;
+  }
+]</code></pre>
+<blockquote><p><strong>Tipp:</strong> <code>room_number</code> aus dem Timetable-Endpunkt (z. B. <code>&quot;G2 1.44&quot;</code>) kann direkt<br>zum Lookup in dieser Liste verwendet werden.</p></blockquote>
+<hr>
+<h2 id='6-events'>6. Events</h2>
+<p>Die Events-Endpunkte liefern detailliertere Filter-Möglichkeiten als der Timetable-Endpunkt. Für die Stundenplan-Ansicht reicht der Timetable-Endpunkt. Diese Endpunkte sind für eine dedizierte Event-Übersichtsseite oder ein Event-Detail-View sinnvoll.</p>
+<h3 id='get-apiv1events'><code>GET /api/v1/events</code></h3>
+<pre><code>GET /api/v1/events?public_only=true
+GET /api/v1/events?date_from=2026-05-11T00:00:00&amp;date_to=2026-05-31T23:59:59</code></pre>
+<p><strong>Parameter:</strong></p>
+<table><thead><tr><th>Parameter</th><th>Typ</th><th>Beschreibung</th></tr></thead><tr><td><code>category</code></td><td>string</td><td><code>Hochschule</code>, <code>Sport</code>, <code>Kultur</code>, <code>Mensa</code>, <code>Vortrag</code>, <code>Sonstiges</code></td></tr><tr><td><code>date_from</code></td><td>string</td><td>ISO 8601, z. B. <code>2026-05-01T00:00:00</code></td></tr><tr><td><code>date_to</code></td><td>string</td><td>ISO 8601</td></tr><tr><td><code>public_only</code></td><td>bool</td><td>Nur öffentliche Events (default <code>false</code>)</td></tr><tr><td><code>skip</code> / <code>limit</code></td><td>int</td><td>Pagination (max. 200)</td></tr></table>
+<p><strong>Response:</strong> Array von Event-Objekten (gleiche Felder wie im Timetable-Endpunkt).</p>
+<hr>
+<h3 id='get-apiv1eventsupcoming'><code>GET /api/v1/events/upcoming</code></h3>
+<p>Gibt Events der nächsten N Tage zurück (sortiert nach Startzeit).</p>
+<pre><code>GET /api/v1/events/upcoming?days=7&amp;public_only=true</code></pre>
+<table><thead><tr><th>Parameter</th><th>Default</th><th>Beschreibung</th></tr></thead><tr><td><code>days</code></td><td>7</td><td>Zeitraum ab heute (1–90)</td></tr><tr><td><code>public_only</code></td><td>false</td><td>Nur öffentliche Events</td></tr></table>
+<hr>
+<h3 id='get-apiv1eventsevent_id'><code>GET /api/v1/events/{event_id}</code></h3>
+<p>Gibt ein einzelnes Event anhand seiner MongoDB-ID zurück.</p>
+<pre><code>GET /api/v1/events/6623a1f2e4b0a1c2d3e4f5a6</code></pre>
+<p><strong>404</strong> wenn nicht gefunden.</p>
+<hr>
+<h3 id='post-apiv1events-admin'><code>POST /api/v1/events</code> <em>(Admin)</em></h3>
+<p>Legt ein neues Event an. Benötigt API-Key-Header.</p>
+<pre><code class="language-json">{
+  &quot;title&quot;:      &quot;Workshop Flutter&quot;,
+  &quot;start_time&quot;: &quot;2026-06-01T09:00:00&quot;,
+  &quot;end_time&quot;:   &quot;2026-06-01T17:00:00&quot;,
+  &quot;category&quot;:   &quot;Vortrag&quot;,
+  &quot;is_public&quot;:  true
+}</code></pre>
+<p><strong>Response:</strong> <code>{ &quot;id&quot;: &quot;6623a1f2e4b0a1c2d3e4f5a6&quot; }</code></p>
+<hr>
+<h3 id='put-apiv1eventsevent_id-admin'><code>PUT /api/v1/events/{event_id}</code> <em>(Admin)</em></h3>
+<p>Vollständiges Ersetzen eines Events. Gleiche Felder wie POST.</p>
+<hr>
+<h3 id='delete-apiv1eventsevent_id-admin'><code>DELETE /api/v1/events/{event_id}</code> <em>(Admin)</em></h3>
+<pre><code>DELETE /api/v1/events/6623a1f2e4b0a1c2d3e4f5a6</code></pre>
+<p><strong>Response:</strong> <code>{ &quot;message&quot;: &quot;Event deleted successfully&quot; }</code></p>
+<hr>
+<h2 id='7-images-360'>7. Images (360°)</h2>
+<h3 id='get-apiv1imagesroomsroom_id'><code>GET /api/v1/images/rooms/{room_id}</code></h3>
+<p>Liste aller 360°-Bilder für einen Raum.</p>
+<pre><code>GET /api/v1/images/rooms/G2-1.44</code></pre>
+<p><strong>Response:</strong></p>
+<pre><code class="language-json">{
+  &quot;room_id&quot;: &quot;G2-1.44&quot;,
+  &quot;total_count&quot;: 2,
+  &quot;images&quot;: [
+    {
+      &quot;_id&quot;:            &quot;6623a1f2e4b0a1c2d3e4f5a6&quot;,
+      &quot;room_id&quot;:        &quot;G2-1.44&quot;,
+      &quot;image_filename&quot;: &quot;2026-04-15-083000-panorama.jpg&quot;,
+      &quot;file_size_mb&quot;:   4.2,
+      &quot;image_type&quot;:     &quot;360_panoramic&quot;,
+      &quot;uploaded_at&quot;:    &quot;2026-04-15T08:30:00&quot;,
+      &quot;image_url_api&quot;:  &quot;/api/v1/images/rooms/G2-1.44/2026-04-15-083000-panorama.jpg&quot;
+    }
+  ]
+}</code></pre>
+<hr>
+<h3 id='get-apiv1imagesroomsroom_idlatest'><code>GET /api/v1/images/rooms/{room_id}/latest</code></h3>
+<p>Gibt das neueste Bild eines Raums zurück (Metadaten-Objekt, kein Bild-Binary).</p>
+<hr>
+<h3 id='get-apiv1imagesroomsroom_idfilename'><code>GET /api/v1/images/rooms/{room_id}/{filename}</code></h3>
+<p>Liefert die Bilddatei selbst (JPEG/PNG/WEBP).</p>
+<p><strong>Optionale Transform-Parameter:</strong></p>
+<table><thead><tr><th>Parameter</th><th>Beispiel</th><th>Beschreibung</th></tr></thead><tr><td><code>size</code></td><td><code>thumbnail</code></td><td><code>original</code>, <code>medium</code> (1600px), <code>thumbnail</code> (640px)</td></tr><tr><td><code>width</code></td><td><code>800</code></td><td>Zielbreite in Pixeln</td></tr><tr><td><code>height</code></td><td><code>600</code></td><td>Zielhöhe in Pixeln</td></tr><tr><td><code>crop</code></td><td><code>100,200,400,300</code></td><td>Ausschnitt: <code>x,y,width,height</code> oder <code>width,height</code> (zentriert)</td></tr></table>
+<pre><code>GET /api/v1/images/rooms/G2-1.44/2026-04-15-083000-panorama.jpg?size=thumbnail
+GET /api/v1/images/rooms/G2-1.44/2026-04-15-083000-panorama.jpg?width=1600
+GET /api/v1/images/rooms/G2-1.44/2026-04-15-083000-panorama.jpg?crop=50%,50%</code></pre>
+<blockquote><p>Diese URL kann direkt als <code>Image</code>-Source in Flutter verwendet werden.</p></blockquote>
+<hr>
+<h3 id='post-apiv1imagesroomsroom_idupload-admin'><code>POST /api/v1/images/rooms/{room_id}/upload</code> <em>(Admin)</em></h3>
+<p>Upload eines 360°-Panoramabilds. <code>multipart/form-data</code>, Feld <code>file</code>. Max. 20 MB. Erlaubte Typen: JPEG, PNG, WEBP.</p>
+<p><strong>Response:</strong></p>
+<pre><code class="language-json">{
+  &quot;message&quot;:  &quot;Image uploaded successfully&quot;,
+  &quot;filename&quot;: &quot;2026-04-15-083000-panorama.jpg&quot;
+}</code></pre>
+<hr>
+<h3 id='delete-apiv1imagesroomsroom_idfilename-admin'><code>DELETE /api/v1/images/rooms/{room_id}/{filename}</code> <em>(Admin)</em></h3>
+<p>Löscht Bilddatei und Metadaten-Eintrag.</p>
+<hr>
+<h2 id='auth-header'>Auth-Header</h2>
+<p>Einige Endpunkte sind mit <em>(Admin)</em> markiert und benötigen einen API-Key:</p>
+<pre><code>X-API-Key: &lt;api_key&gt;</code></pre>
+<p>Der Key wird über die Umgebungsvariable <code>API_KEY</code> gesetzt. <strong>Lese-Endpunkte (GET) benötigen keinen Key.</strong></p>
+<hr>
+<h2 id='fehler-codes'>Fehler-Codes</h2>
+<table><thead><tr><th>HTTP Code</th><th>Bedeutung</th></tr></thead><tr><td><code>200</code></td><td>OK</td></tr><tr><td><code>400</code></td><td>Ungültige Parameter (z. B. falsches Crop-Format)</td></tr><tr><td><code>404</code></td><td>Ressource nicht gefunden</td></tr><tr><td><code>413</code></td><td>Bild zu groß (&gt; 20 MB)</td></tr><tr><td><code>415</code></td><td>Nicht unterstützter Dateityp</td></tr><tr><td><code>422</code></td><td>Fehlende Pflichtfelder im Request Body</td></tr><tr><td><code>500</code></td><td>Interner Fehler (DB nicht erreichbar o. Ä.)</td></tr></table>
+<p>Alle Fehler haben den Body: <code>{ &quot;detail&quot;: &quot;&lt;Fehlerbeschreibung&gt;&quot; }</code></p>
+<hr>
+<h2 id='datenmodelle-im-überblick'>Datenmodelle im Überblick</h2>
+<h3 id='lecture-vorlesung'>Lecture (Vorlesung)</h3>
+<p>Wird <strong>ausschließlich</strong> vom Scraper aus StarPlan befüllt (täglich 06:00 Uhr). Jede Vorlesung ist einer Planungsgruppe zugeordnet (<code>course_code = &quot;IN S1 AI&quot;</code>) und einem Studiengang (<code>courseOfStudyId = &quot;IN&quot;</code>).</p>
+<pre><code>lecture_id       → iCal UID aus StarPlan (eindeutig)
+module_name      → bereinigter Modulname
+module_id        → Modulnummer aus StarPlan
+room_number      → Raumnummer aus iCal LOCATION (z. B. &quot;G2 1.44&quot;)
+building         → Gebäude-Code (aus room_number extrahiert)
+professor        → aus iCal DESCRIPTION geparst
+start_time       → datetime (UTC)
+end_time         → datetime (UTC)
+day_of_week      → &quot;Monday&quot; … &quot;Sunday&quot;
+duration_minutes → Dauer in Minuten
+courseOfStudyId  → Studiengangs-Code (z. B. &quot;IN&quot;)
+semesterIds      → [&quot;sem_1&quot;] – Array, da VL für S1+S2 → [&quot;sem_1&quot;,&quot;sem_2&quot;]
+color            → Hex-Farbe (deterministisch per MD5 des Studiengangs-Codes)
+recurrence       → immer &quot;weekly&quot;
+source_type      → immer &quot;course&quot;</code></pre>
+<h3 id='event'>Event</h3>
+<p>Wird wöchentlich von der HS-Aalen-Website gescrapt. <strong>Kein physischer Raum</strong> – HS Aalen Events haben keine Raum-Angabe.</p>
+<pre><code>title                 → Titel
+start_time            → ISO-String
+end_time              → ISO-String (optional)
+groupId               → &quot;social&quot; (alle HS-Aalen-Events)
+is_public             → immer true
+detail_url            → Link zur hs-aalen.de Seite
+source_slug           → eindeutiger Slug aus der URL (Upsert-Key)
+description           → optional, von Detailseite
+organizer             → optional, von Detailseite
+registration_url      → optional, Anmeldelink
+registration_deadline → optional, Frist als Text</code></pre>
+<h3 id='studiengang'>Studiengang</h3>
+<pre><code>_id      → Studiengangs-Code (z. B. &quot;IN&quot;)
+code     → gleich wie _id
+name     → &quot;Informatik&quot;
+semesters → [1,2,3,4,5,6,7]
+color    → Hex-Farbe</code></pre>
+<h3 id='building'>Building</h3>
+<pre><code>_id                → Gebäude-Code (z. B. &quot;G2&quot;)
+code               → gleich wie _id
+name               → &quot;Gebäude G2&quot;
+campus             → &quot;Burren&quot; oder &quot;Main&quot;
+address            → Straße
+floors             → [0,1,2]
+room_count         → Anzahl bekannter Räume
+street_view_enabled → bool</code></pre>
+<h3 id='settings-singleton'>Settings (Singleton)</h3>
+<p>Aktuell <strong>ein globales</strong> Settings-Dokument – keine User-Authentifizierung. Im Produktivbetrieb müsste das pro Device-ID aufgeteilt werden.</p>
+<hr>
+<h2 id='typische-flutter-flows'>Typische Flutter-Flows</h2>
+<h3 id='app-start'>App-Start</h3>
+<pre><code>1. GET /api/v1/settings
+   → defaultCourseOfStudyIds, defaultSemesterIds laden
+
+2. GET /api/v1/timetable?course=IN&amp;semester=sem_1
+   → courses_of_study, semesters, lectures, events
+
+3. Filter-UI mit courses_of_study[] und semesters[] befüllen</code></pre>
+<h3 id='stundenplan-filter-ändern'>Stundenplan-Filter ändern</h3>
+<pre><code>GET /api/v1/timetable?course=IN,ET&amp;semester=sem_2&amp;date_from=2026-05-11</code></pre>
+<h3 id='gebäude-navigation-öffnen'>Gebäude-Navigation öffnen</h3>
+<pre><code>1. GET /api/v1/streetview/graph
+   → startNode + nodes[] laden
+   
+2. nodes[startNode].image als 360°-Bild anzeigen
+   → URL direkt als Image-Source nutzbar
+
+3. Bei Tap auf Exit &quot;front&quot;:
+   → nextNodeId = nodes[currentId].exits[&quot;front&quot;]
+   → nodes[nextNodeId].image anzeigen</code></pre>
+<h3 id='event-detail-anzeigen'>Event-Detail anzeigen</h3>
+<pre><code>GET /api/v1/events/{id}
+→ description, organizer, registration_url, registration_deadline prüfen (können fehlen!)
+→ detail_url als &quot;Mehr auf hs-aalen.de&quot; Link anzeigen</code></pre>
+<h3 id='360-bild-in-bestimmter-auflösung-laden'>360°-Bild in bestimmter Auflösung laden</h3>
+<pre><code class="language-dart">// Thumbnail für Raumvorschau
+final thumbUrl = &#x27;/api/v1/images/rooms/$roomId/$filename?size=thumbnail&#x27;;
+
+// Vollbild für 360°-Viewer
+final fullUrl  = &#x27;/api/v1/images/rooms/$roomId/$filename&#x27;;</code></pre>
+</body>
+</html>

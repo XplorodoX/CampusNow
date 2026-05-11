@@ -86,21 +86,23 @@ def _lecture_to_frontend(lec: dict) -> dict:
 
 def _event_to_frontend(evt: dict) -> dict:
     """Mappt ein DB-Event-Dokument auf das timetable.json-Format."""
-    raw_group = evt.get("groupId") or evt.get("category") or ""
-    group_id = _CATEGORY_TO_GROUP.get(raw_group.lower(), "social")
-    return {
-        "id": str(evt.get("_id", "")),
-        "title": evt.get("title", ""),
-        "groupId": group_id,
-        "location": evt.get("location") or evt.get("location_text") or "",
-        "building": evt.get("building") or evt.get("building_id") or "",
-        "organizer": evt.get("organizer") or "",
-        "startTime": _to_iso(evt.get("startTime") or evt.get("start_time")),
-        "endTime": _to_iso(evt.get("endTime") or evt.get("end_time")),
-        "color": evt.get("color") or _GROUP_COLORS.get(group_id, "#3498DB"),
-        "description": evt.get("description") or "",
-        "imageUrl": evt.get("imageUrl") or evt.get("image_url"),
+    group_id = _CATEGORY_TO_GROUP.get((evt.get("groupId") or "").lower(), "social")
+    result: dict = {
+        "id":        str(evt.get("_id", "")),
+        "title":     evt.get("title", ""),
+        "groupId":   group_id,
+        "startTime": _to_iso(evt.get("start_time")),
+        "endTime":   _to_iso(evt.get("end_time")),
+        "color":     _GROUP_COLORS.get(group_id, "#3498DB"),
+        "is_public": evt.get("is_public", True),
+        "detail_url": evt.get("detail_url"),
     }
+    # Optionale Felder nur wenn vorhanden (von Detailseite)
+    for field in ("description", "organizer", "registration_url", "registration_deadline"):
+        val = evt.get(field)
+        if val:
+            result[field] = val
+    return result
 
 
 @router.get(

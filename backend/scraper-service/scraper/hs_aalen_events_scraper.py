@@ -37,6 +37,16 @@ _DATE_PATTERN = re.compile(
 # Matches "13:00 bis 15:00 Uhr" or "18:00 Uhr"
 _TIME_RANGE_PATTERN = re.compile(r"(\d{1,2}:\d{2})(?:\s+bis\s+(\d{1,2}:\d{2}))?\s+Uhr")
 
+# Label-Schlüssel auf der Detailseite → Feldname
+_DETAIL_LABELS: list[tuple[re.Pattern, str]] = [
+    (re.compile(r"trainer(?:in)?", re.I),          "organizer"),
+    (re.compile(r"referent(?:in)?", re.I),          "organizer"),
+    (re.compile(r"dozent(?:in)?", re.I),            "organizer"),
+    (re.compile(r"veranstalter",   re.I),            "organizer"),
+    (re.compile(r"anmeldefrist",   re.I),            "registration_deadline"),
+    (re.compile(r"anmeldeschluss", re.I),            "registration_deadline"),
+]
+
 
 def _parse_german_date(text: str, fallback_year: int | None = None) -> datetime | None:
     """Parse a German date token like '24. März 2026' or '4. Apr.'."""
@@ -124,7 +134,7 @@ class HsAalenEventsScraper:
         )
 
     def scrape_events(self) -> list[dict[str, Any]]:
-        """Fetch all events across all pages. Returns a list of event dicts."""
+        """Fetch all events (listing + detail pages). Returns a list of event dicts."""
         all_events: list[dict[str, Any]] = []
 
         for page in range(1, self.MAX_PAGES + 1):
@@ -144,6 +154,12 @@ class HsAalenEventsScraper:
             if not events:
                 logger.info("No events on page %d — stopping", page)
                 break
+
+            # Detail-Seite jedes Events abrufen für Beschreibung / Veranstalter / Anmeldefrist
+            for evt in events:
+                if evt.get("detail_url"):
+                    extra = self.fetch_detail(evt["detail_url"])
+                    evt.update(extra)
 
             all_events.extend(events)
             logger.info("Page %d: %d events found", page, len(events))
@@ -175,7 +191,6 @@ class HsAalenEventsScraper:
         href = card.get("href", "")
         detail_url = href if href.startswith("http") else f"{self.BASE_URL}{href}"
 
-        # Title
         title_tag = card.find("h3", class_="headline") or card.find(re.compile(r"^h[1-6]$"))
         if not title_tag:
             return None
@@ -183,32 +198,90 @@ class HsAalenEventsScraper:
         if not title:
             return None
 
-        # Date field: <div class="event-card-information-date">
         date_div = card.find("div", class_="event-card-information-date")
         raw_date = date_div.get_text(strip=True) if date_div else ""
         start_date, end_date = _parse_date_field(raw_date) if raw_date else (None, None)
 
-        # Time field: <div class="event-card-information-time">
         time_div = card.find("div", class_="event-card-information-time")
         raw_time = time_div.get_text(strip=True) if time_div else ""
         start_time, end_time = _parse_time_field(raw_time) if raw_time else (None, None)
 
-        # Derive a stable unique key from the detail URL slug
         slug = detail_url.rstrip("/").rsplit("/", 1)[-1]
 
         return {
-            "slug": slug,
-            "title": title,
+            "slug":       slug,
+            "title":      title,
             "detail_url": detail_url,
             "start_date": start_date,
-            "end_date": end_date,
+            "end_date":   end_date,
             "start_time": start_time,
-            "end_time": end_time,
-            "raw_date": raw_date,
-            "raw_time": raw_time,
-            "source": "hs-aalen-website",
+            "end_time":   end_time,
+            "source":     "hs-aalen-website",
             "scraped_at": datetime.now(),
         }
+
+    def fetch_detail(self, detail_url: str) -> dict[str, Any]:
+        """Ruft die Detailseite ab und extrahiert Beschreibung, Veranstalter, Anmeldeinfos.
+
+        HS Aalen TYPO3-Detailseite (Beispielstruktur):
+          - Sidebar-Felder: "Trainer:", "Anmeldefrist:", "Verfügbarkeit:"
+          - "Jetzt anmelden"-Link → registration_url
+          - Haupttext → description (erster aussagekräftiger Absatz)
+
+        Gibt ein leeres Dict zurück bei Fehler – Listing-Daten bleiben erhalten.
+        """
+        extra: dict[str, Any] = {}
+        try:
+            resp = self.session.get(detail_url, timeout=15)
+            resp.raise_for_status()
+            soup = BeautifulSoup(resp.content, "html.parser")
+
+            # Sidebar-Metadaten: alle Text-Knoten nach bekannten Labels durchsuchen
+            found_labels: set[str] = set()
+            for node in soup.find_all(string=True):
+                text = node.strip()
+                if not text or ":" not in text:
+                    continue
+                label_raw, _, value_raw = text.partition(":")
+                label = label_raw.strip().lower()
+                value = value_raw.strip()
+                if not value:
+                    # Wert steht evtl. im nächsten Geschwister-Element
+                    sibling = node.parent and node.parent.find_next_sibling()
+                    if sibling:
+                        value = sibling.get_text(strip=True)
+                if not value or len(value) > 300:
+                    continue
+                for pattern, field in _DETAIL_LABELS:
+                    if field not in found_labels and pattern.search(label):
+                        extra[field] = value
+                        found_labels.add(field)
+
+            # Anmeldelink: <a> mit "anmeld" im Text oder href
+            for a in soup.find_all("a", href=True):
+                link_text = a.get_text(strip=True).lower()
+                if "anmeld" in link_text or "registrier" in link_text:
+                    href = a["href"]
+                    extra["registration_url"] = (
+                        href if href.startswith("http") else f"{self.BASE_URL}{href}"
+                    )
+                    break
+
+            # Beschreibung: längster zusammenhängender Textblock im <main>-Bereich
+            main = soup.find("main") or soup.find("div", class_=re.compile(r"content|bodytext", re.I))
+            if main:
+                paragraphs = [
+                    p.get_text(" ", strip=True)
+                    for p in main.find_all("p")
+                    if len(p.get_text(strip=True)) > 60
+                ]
+                if paragraphs:
+                    extra["description"] = " ".join(paragraphs)[:1500]
+
+        except Exception as exc:
+            logger.debug("Detail fetch failed for %s: %s", detail_url, exc)
+
+        return extra
 
     def _has_next_page(self, soup: BeautifulSoup) -> bool:
         """Return True when a 'nächste' pagination link exists."""
