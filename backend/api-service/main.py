@@ -39,27 +39,29 @@ app = FastAPI(
     description="""
 ## CampusNow REST API
 
-Interaktive Campus-Navigations- und Stundenplan-API für die **Hochschule Aalen**.
+REST-API für die **Hochschule Aalen** – Stundenplan, Campus-Navigation und Events.
 
-### Frontend-Endpunkte (direkt konsumierbar)
+### Frontend-Endpunkte
 
-| Endpunkt | Beschreibung | Entspricht |
-|---|---|---|
-| `GET /api/v1/timetable` | Stundenplan komplett | `timetable.json` |
-| `GET /api/v1/streetview/graph` | 360°-Navigationsgraph | `street_view_graph.json` |
-| `GET /api/v1/settings` | Nutzereinstellungen | `settings.json` |
+| Endpunkt | Beschreibung |
+|---|---|
+| `GET /api/v1/settings` | App-Init: Nutzereinstellungen + Metadaten (Studiengänge, Semester, Event-Gruppen) |
+| `GET /api/v1/timetable` | Stundenplan: gefilterte Vorlesungen und Events |
+| `GET /api/v1/streetview/graph` | 360°-Navigationsgraph mit Knoten und Verbindungen |
 
-### Weitere Endpunkte
+> **Empfohlene Reihenfolge:** `GET /settings` einmalig beim App-Start, dann `GET /timetable` pro Ansicht.
 
-- **Gebäude** – Alle Gebäude der HS Aalen (`GET /api/v1/buildings`)
-- **Räume** – Räumeliste mit Filter (`GET /api/v1/rooms`)
-- **Events** – Campus-Events mit Gäste-Modus (`public_only=true`)
-- **Scheduler** – Scraper-Status und Logs aus der Datenbank
+### Authentifizierung
 
-### Datenquelle
+Write-Endpunkte (`POST`, `PUT`, `DELETE`) erfordern einen API-Key im Header:
+```
+X-API-Key: <key>
+```
 
-Vorlesungsdaten werden täglich um **06:00 Uhr** automatisch aus dem
-[STARplan-System](https://vorlesungen.htw-aalen.de) der HS Aalen gescrapt.
+### Datenpflege
+
+Vorlesungen und Events werden täglich um **06:00 Uhr** automatisch gescrapt.
+Manuell anstoßen über `POST /api/v1/scheduler/trigger`.
 """,
     version=os.getenv("API_VERSION", "1.0.0"),
     docs_url="/docs",
@@ -76,8 +78,10 @@ Vorlesungsdaten werden täglich um **06:00 Uhr** automatisch aus dem
         {
             "name": "timetable",
             "description": (
-                "**Frontend-Endpunkt.** Liefert Vorlesungen, Events, Studiengänge, Semester und "
-                "Event-Gruppen in einem einzigen Call – entspricht exakt `timetable.json`."
+                "**Frontend-Endpunkt.** Liefert gefilterte Vorlesungen und Events. "
+                "Filter: `course` (Studiengangs-ID), `semester`, `event_group`, `building`, `room`, "
+                "`professor`, `date_from`/`date_to`, `recurrence`, `public_only`. "
+                "Metadaten (Studiengänge, Semester, Event-Gruppen) kommen einmalig von `GET /api/v1/settings`."
             ),
         },
         {
@@ -90,8 +94,9 @@ Vorlesungsdaten werden täglich um **06:00 Uhr** automatisch aus dem
         {
             "name": "settings",
             "description": (
-                "**Frontend-Endpunkt.** Nutzer-Einstellungen lesen (`GET`), vollständig überschreiben (`PUT`) "
-                "oder teilweise aktualisieren (`PATCH`). Entspricht `settings.json`."
+                "**App-Init-Endpunkt.** `GET` liefert Nutzereinstellungen **und** einmalig benötigte Metadaten "
+                "(Studiengänge mit Farben, Semester-Liste, Event-Gruppen). Einmalig pro Session aufrufen. "
+                "`PUT` überschreibt alle Einstellungen vollständig, `PATCH` aktualisiert einzelne Felder."
             ),
         },
         # ── Kern-Daten ──────────────────────────────────────────────────
@@ -112,9 +117,10 @@ Vorlesungsdaten werden täglich um **06:00 Uhr** automatisch aus dem
         {
             "name": "events",
             "description": (
-                "Campus-Events anlegen, bearbeiten und löschen. "
-                "`GET /upcoming` liefert Events der nächsten N Tage. "
-                "Mit `public_only=true` für den Gäste-Modus (ohne Login) filtern."
+                "Campus-Events abrufen, anlegen, aktualisieren und löschen. "
+                "Filter: `groupId` (sports, workshops, academic, culture, alumni, international, career, social), "
+                "`building`, `date_from`/`date_to` und `public_only` für den Gäste-Modus. "
+                "Write-Operationen erfordern API-Key."
             ),
         },
         {
