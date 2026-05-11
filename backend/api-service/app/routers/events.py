@@ -54,6 +54,7 @@ def _resolve_event_times(doc: dict[str, Any]) -> tuple[str, str]:
 @router.get(
     "",
     response_model=list[EventResponse],
+    response_model_exclude_none=True,
     summary="Alle Events abrufen",
     response_description="Liste der gefilterten Campus-Events",
     responses={
@@ -141,6 +142,7 @@ async def get_events(
 @router.get(
     "/upcoming",
     response_model=list[EventResponse],
+    response_model_exclude_none=True,
     summary="Kommende Events (nächste 7 Tage)",
     response_description="Events der nächsten 7 Tage, sortiert nach Startzeit",
     responses={
@@ -181,6 +183,7 @@ async def get_upcoming_events(
 @router.get(
     "/{event_id}",
     response_model=EventResponse,
+    response_model_exclude_none=True,
     summary="Einzelnes Event abrufen",
     response_description="Das gefundene Event",
     responses={
