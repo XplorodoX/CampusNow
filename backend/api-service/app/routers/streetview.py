@@ -438,6 +438,36 @@ async def get_graph_map(building_id: str) -> StreamingResponse:
 
 
 @router.get(
+    "/floorplan/{building_id}",
+    summary="Rohen Grundriss als SVG liefern",
+    responses={200: {"content": {"image/svg+xml": {}}}, 404: {"description": "Kein Floorplan vorhanden"}},
+)
+async def get_floorplan(building_id: str) -> StreamingResponse:
+    """Gibt den reinen Grundriss-SVG zurück (ohne Node-Overlay), für den Editor."""
+    svg_path = _FLOORPLAN_DIR / f"{building_id}.svg"
+    if not svg_path.exists():
+        raise HTTPException(status_code=404, detail=f"No floorplan for '{building_id}'")
+    return StreamingResponse(
+        io.BytesIO(svg_path.read_bytes()), media_type="image/svg+xml"
+    )
+
+
+@router.get(
+    "/floorplan/{building_id}/rooms",
+    summary="Raumkoordinaten aus Grundriss",
+    response_description="Dict room_suffix → {x, y} in SVG-Koordinaten",
+)
+async def get_floorplan_rooms(building_id: str) -> dict:
+    """Gibt alle Raumkoordinaten aus dem Floorplan-SVG zurück.
+    room_suffix = z. B. '2.35' (ohne Gebäude-Prefix)."""
+    svg_path = _FLOORPLAN_DIR / f"{building_id}.svg"
+    if not svg_path.exists():
+        raise HTTPException(status_code=404, detail=f"No floorplan for '{building_id}'")
+    coords = _parse_room_coords(svg_path)
+    return {k: {"x": v[0], "y": v[1]} for k, v in coords.items()}
+
+
+@router.get(
     "/route/building/{building_id}",
     summary="Weg zu einem Raum berechnen",
     response_description="Geordnete Schrittliste (Dijkstra) zum Zielraum",
