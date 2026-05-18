@@ -38,10 +38,18 @@ select = [
 ignore = [
     "E501",
     "W605",
+    "RUF001",
+    "RUF002",
+    "RUF003",
+    "B008",
+    "B904",
+    "SIM105",
+    "ARG004",
 ]
 
 [lint.per-file-ignores]
 "__init__.py" = ["F401"]
+"**/tests/**/*.py" = ["ARG", "RUF002", "RUF003"]
 
 [lint.isort]
 known-first-party = ["app", "scraper", "db", "scheduler"]

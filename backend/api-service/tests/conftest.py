@@ -1,12 +1,10 @@
 """Shared test fixtures for CampusNow API tests."""
 
-import io
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
-
 
 # ---------------------------------------------------------------------------
 # In-memory fake MongoDB collections
@@ -57,8 +55,8 @@ def _make_fake_db():
         "studiengang_id": "INF",
         "professor": "Prof. Müller",
         "module_name": "Algorithmen",
-        "start_time": datetime(2024, 4, 15, 8, 0, tzinfo=timezone.utc),
-        "end_time": datetime(2024, 4, 15, 9, 30, tzinfo=timezone.utc),
+        "start_time": datetime(2024, 4, 15, 8, 0, tzinfo=UTC),
+        "end_time": datetime(2024, 4, 15, 9, 30, tzinfo=UTC),
         "day_of_week": "Monday",
         "duration_minutes": 90,
         "semester": "SS2024",
@@ -76,8 +74,8 @@ def _make_fake_db():
         "program_code": "INF-B",
         "program_name": "Bachelor Informatik",
         "lecture_count": 12,
-        "last_scraped": datetime(2024, 4, 15, 6, 0, tzinfo=timezone.utc),
-        "created_at": datetime(2024, 1, 1, tzinfo=timezone.utc),
+        "last_scraped": datetime(2024, 4, 15, 6, 0, tzinfo=UTC),
+        "created_at": datetime(2024, 1, 1, tzinfo=UTC),
         "related_courses": [],
     }
     db.studiengaenge.find.return_value = [sg_doc]
@@ -92,8 +90,8 @@ def _make_fake_db():
         "location": "Campus Hauptgebäude",
         "building_id": "Z",
         "organizer": "Hochschulsport",
-        "start_time": datetime(2024, 4, 20, 10, 0, tzinfo=timezone.utc),
-        "end_time": datetime(2024, 4, 20, 12, 0, tzinfo=timezone.utc),
+        "start_time": datetime(2024, 4, 20, 10, 0, tzinfo=UTC),
+        "end_time": datetime(2024, 4, 20, 12, 0, tzinfo=UTC),
         "description": "Laufevent auf dem Campus",
         "is_public": True,
         "color": "#F39C12",
@@ -108,8 +106,8 @@ def _make_fake_db():
     log_doc = {
         "_id": ObjectId(),
         "status": "success",
-        "started_at": datetime(2024, 4, 15, 6, 0, tzinfo=timezone.utc),
-        "finished_at": datetime(2024, 4, 15, 6, 5, tzinfo=timezone.utc),
+        "started_at": datetime(2024, 4, 15, 6, 0, tzinfo=UTC),
+        "finished_at": datetime(2024, 4, 15, 6, 5, tzinfo=UTC),
         "studiengaenge_scraped": 20,
         "lectures_upserted": 300,
         "rooms_upserted": 50,
@@ -129,7 +127,7 @@ def _make_fake_db():
         "mime_type": "image/jpeg",
         "file_size_mb": 4.2,
         "image_type": "360_panoramic",
-        "uploaded_at": datetime(2024, 4, 15, 8, 30, tzinfo=timezone.utc),
+        "uploaded_at": datetime(2024, 4, 15, 8, 30, tzinfo=UTC),
         "image_url_api": "/api/v1/images/rooms/Z106/2024-04-15-083000-panorama.jpg",
     }
     db.image_metadata.find.return_value = [image_doc]
@@ -152,7 +150,7 @@ def _make_fake_db():
                 "spots": [],
             }
         ],
-        "saved_at": datetime(2024, 4, 15, tzinfo=timezone.utc),
+        "saved_at": datetime(2024, 4, 15, tzinfo=UTC),
     }
     db.streetview_graphs.find.return_value = _chainable([graph_doc])
     db.streetview_graphs.find_one.return_value = graph_doc

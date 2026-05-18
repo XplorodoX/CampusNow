@@ -6,7 +6,7 @@ Runs once on container start (idempotent – uses upsert).
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from pymongo import MongoClient
 
@@ -45,7 +45,7 @@ _G2_ROOMS: list[tuple[int, str]] = [
 
 
 def main() -> None:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     client = MongoClient(MONGO_URI)
     db = client[MONGO_DB]
 

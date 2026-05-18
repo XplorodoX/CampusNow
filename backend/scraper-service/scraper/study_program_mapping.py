@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 STUDY_PROGRAM_NAME_BY_CODE: dict[str, str] = {
     # Fakultaet Wirtschaftswissenschaften
     "B": "Betriebswirtschaft fuer kleine und mittlere Unternehmen",

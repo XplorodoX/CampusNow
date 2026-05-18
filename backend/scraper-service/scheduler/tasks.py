@@ -1,5 +1,6 @@
 """Scraper tasks for scheduled execution."""
 
+import contextlib
 import hashlib
 import logging
 import re
@@ -173,10 +174,8 @@ class ScraperTasks:
                         room_set["floor"] = floor
                     capacity = room.get("capacity")
                     if capacity is not None:
-                        try:
+                        with contextlib.suppress(ValueError, TypeError):
                             room_set["capacity"] = int(capacity)
-                        except (ValueError, TypeError):
-                            pass
 
                     db.rooms.update_one(
                         {"room_number": room_number},

@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import os
 import shutil
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from pymongo import MongoClient
@@ -57,7 +57,7 @@ def _ensure_mock_image(base_image_dir: Path, room_id: str) -> tuple[str | None, 
 
 
 def main() -> None:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     client = MongoClient(MONGO_URI)
     db = client[MONGO_DB]
 
@@ -358,7 +358,7 @@ def main() -> None:
     # endpoint returns non-empty data immediately after seeding.
     in_color = _course_color("IN")
     # SoSe 2026: pick a stable Monday as anchor so dates don't drift
-    _monday = datetime(2026, 5, 11, tzinfo=timezone.utc)
+    _monday = datetime(2026, 5, 11, tzinfo=UTC)
 
     sample_lectures = [
         {

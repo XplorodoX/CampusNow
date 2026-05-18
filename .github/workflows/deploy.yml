@@ -1,14 +1,16 @@
 name: Deploy CampusNow
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_run:
+    workflows: ["Release & Deployment"]
+    types:
+      - completed
   workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     
     steps:
       - name: Deploy to Server via SSH

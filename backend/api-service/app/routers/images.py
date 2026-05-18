@@ -1,7 +1,7 @@
 """Images router for CampusNow REST API."""
 
-import logging
 import io
+import logging
 import mimetypes
 import os
 import re
@@ -34,12 +34,12 @@ def _parse_crop_value(value: str, total: int) -> int:
     raw = value.strip()
     if raw.endswith("%"):
         percent = float(raw[:-1])
-        return int(round((percent / 100.0) * total))
+        return round((percent / 100.0) * total)
 
     numeric = float(raw)
     if 0.0 <= numeric <= 1.0:
-        return int(round(numeric * total))
-    return int(round(numeric))
+        return round(numeric * total)
+    return round(numeric)
 
 
 def _parse_crop(crop: str, image_width: int, image_height: int) -> tuple[int, int, int, int]:

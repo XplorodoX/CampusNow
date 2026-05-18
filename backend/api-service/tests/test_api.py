@@ -6,10 +6,9 @@ Run with:  pytest backend/api-service/tests/ -v
 
 import io
 import os
-from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
+from datetime import UTC, datetime
+from unittest.mock import patch
 
-import pytest
 from PIL import Image
 
 from tests.conftest import AUTH
@@ -78,6 +77,7 @@ def test_get_building_rooms(client, fake_db):
 
 def test_get_building_schedule(client, fake_db):
     from bson import ObjectId
+
     from tests.conftest import _chainable
 
     lec = {
@@ -129,6 +129,7 @@ def test_get_room_not_found(client, fake_db):
 
 def test_get_room_schedule(client, fake_db):
     from bson import ObjectId
+
     from tests.conftest import _chainable
 
     lec = {"_id": ObjectId(), "lecture_id": "L1", "room_id": "Z106"}
@@ -209,6 +210,7 @@ def test_get_studiengang_not_found(client, fake_db):
 
 def test_get_studiengang_lectures(client, fake_db):
     from bson import ObjectId
+
     from tests.conftest import _chainable
 
     lec = {"_id": ObjectId(), "lecture_id": "L1", "studiengang_id": "INF-B-6"}
@@ -219,6 +221,7 @@ def test_get_studiengang_lectures(client, fake_db):
 
 def test_get_studiengang_lectures_filtered_by_semester(client, fake_db):
     from bson import ObjectId
+
     from tests.conftest import _chainable
 
     lec = {"_id": ObjectId(), "lecture_id": "L1", "studiengang_id": "INF-B-6", "semesterId": "sem_3"}
@@ -229,6 +232,7 @@ def test_get_studiengang_lectures_filtered_by_semester(client, fake_db):
 
 def test_get_studiengang_timetable(client, fake_db):
     from bson import ObjectId
+
     from tests.conftest import _chainable
 
     lec = {"_id": ObjectId(), "studiengang_id": "INF-B-6", "semesterId": "sem_3", "module_name": "Algo"}
@@ -280,8 +284,8 @@ def test_get_upcoming_events(client, fake_db):
     evt = {
         "_id": ObjectId(),
         "title": "Campus Run",
-        "start_time": datetime(2024, 5, 1, 10, tzinfo=timezone.utc),
-        "end_time": datetime(2024, 5, 1, 12, tzinfo=timezone.utc),
+        "start_time": datetime(2024, 5, 1, 10, tzinfo=UTC),
+        "end_time": datetime(2024, 5, 1, 12, tzinfo=UTC),
         "is_public": True,
         "color": "#F39C12",
     }
@@ -346,6 +350,7 @@ def test_delete_event(client, fake_db):
 
 def test_get_timetable(client, fake_db):
     from bson import ObjectId
+
     from tests.conftest import _chainable
 
     lec = {
@@ -355,8 +360,8 @@ def test_get_timetable(client, fake_db):
         "semesterId": "sem_3",
         "room_id": "Z106",
         "building_id": "Z",
-        "start_time": datetime(2024, 4, 15, 8, tzinfo=timezone.utc),
-        "end_time": datetime(2024, 4, 15, 9, 30, tzinfo=timezone.utc),
+        "start_time": datetime(2024, 4, 15, 8, tzinfo=UTC),
+        "end_time": datetime(2024, 4, 15, 9, 30, tzinfo=UTC),
     }
     sg = {"_id": "INF-B-6", "name": "Informatik", "code": "INF"}
     fake_db.studiengaenge.find.return_value = [sg]
@@ -418,7 +423,7 @@ def test_get_streetview_graph(client, fake_db):
         "_id": ObjectId(),
         "startNode": "node_01",
         "nodes": [node],
-        "saved_at": datetime(2024, 4, 15, tzinfo=timezone.utc),
+        "saved_at": datetime(2024, 4, 15, tzinfo=UTC),
     }
     fake_db.streetview_graphs.find.return_value = _chainable([graph])
     r = client.get("/api/v1/streetview/graph")
@@ -702,15 +707,14 @@ def test_get_image_crop_out_of_bounds_is_clamped(client, tmp_path):
 
 
 def test_scheduler_status(client, fake_db):
-    from tests.conftest import _chainable
 
     from bson import ObjectId
 
     log = {
         "_id": ObjectId(),
         "status": "success",
-        "started_at": datetime(2024, 4, 15, 6, tzinfo=timezone.utc),
-        "finished_at": datetime(2024, 4, 15, 6, 5, tzinfo=timezone.utc),
+        "started_at": datetime(2024, 4, 15, 6, tzinfo=UTC),
+        "finished_at": datetime(2024, 4, 15, 6, 5, tzinfo=UTC),
         "studiengaenge_scraped": 20,
         "lectures_upserted": 300,
         "rooms_upserted": 50,
@@ -731,13 +735,14 @@ def test_scheduler_status_no_logs(client, fake_db):
 
 
 def test_scheduler_logs(client, fake_db):
-    from tests.conftest import _chainable
     from bson import ObjectId
+
+    from tests.conftest import _chainable
 
     log = {
         "_id": ObjectId(),
         "status": "success",
-        "started_at": datetime(2024, 4, 15, 6, tzinfo=timezone.utc),
+        "started_at": datetime(2024, 4, 15, 6, tzinfo=UTC),
     }
     fake_db.scheduler_logs.find.return_value = _chainable([log])
     r = client.get("/scheduler/logs")
@@ -773,8 +778,8 @@ def test_schedule_sync_success(client, fake_db):
         ScheduleEntry(
             uid="evt-1",
             summary="Algorithmen",
-            dtstart=datetime(2024, 4, 15, 8, tzinfo=timezone.utc),
-            dtend=datetime(2024, 4, 15, 9, 30, tzinfo=timezone.utc),
+            dtstart=datetime(2024, 4, 15, 8, tzinfo=UTC),
+            dtend=datetime(2024, 4, 15, 9, 30, tzinfo=UTC),
             location="Z106",
             description="",
             room_id="Z106",

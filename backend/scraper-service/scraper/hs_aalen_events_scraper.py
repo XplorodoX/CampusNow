@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import re
 from datetime import datetime
@@ -147,10 +148,8 @@ def _parse_date_field(raw: str) -> tuple[datetime | None, datetime | None]:
     if start is None and end is not None:
         day_match = re.match(r"^(\d{1,2})\.?\s*$", left)
         if day_match:
-            try:
+            with contextlib.suppress(ValueError):
                 start = datetime(end.year, end.month, int(day_match.group(1)))
-            except ValueError:
-                pass
 
     return start, end
 

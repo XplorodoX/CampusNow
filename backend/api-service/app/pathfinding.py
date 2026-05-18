@@ -17,10 +17,7 @@ class _State:
 
 def _node_has_room(node: dict, target_room: str) -> bool:
     """True if this node provides access to target_room."""
-    for r in node.get("nearby_rooms", []):
-        if r.get("room_id") == target_room:
-            return True
-    return False
+    return any(r.get("room_id") == target_room for r in node.get("nearby_rooms", []))
 
 
 def _room_direction(node: dict, target_room: str) -> str | None:

@@ -1,6 +1,6 @@
 """Unit tests for iCal import helpers and service logic."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
 import pytest
@@ -43,7 +43,7 @@ BEGIN:VTODO
 SUMMARY:Ignored
 END:VTODO
 END:VCALENDAR
-""".encode("utf-8")
+""".encode()
 
     response = MagicMock()
     response.content = ics
@@ -72,8 +72,8 @@ def test_parse_vevent_extracts_expected_fields() -> None:
     event.add("summary", "Algorithmen und Datenstrukturen (Prof. Mueller)")
     event.add("location", " Z106 ")
     event.add("description", "Pflichtveranstaltung")
-    event.add("dtstart", datetime(2026, 4, 23, 8, 0, tzinfo=timezone.utc))
-    event.add("dtend", datetime(2026, 4, 23, 9, 30, tzinfo=timezone.utc))
+    event.add("dtstart", datetime(2026, 4, 23, 8, 0, tzinfo=UTC))
+    event.add("dtend", datetime(2026, 4, 23, 9, 30, tzinfo=UTC))
 
     parsed = ical_import._parse_vevent(event)
 

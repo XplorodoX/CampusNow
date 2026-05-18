@@ -1,6 +1,5 @@
 """Unit tests for Dijkstra pathfinding (app.pathfinding)."""
 
-import pytest
 
 from app.pathfinding import find_route
 
@@ -131,7 +130,8 @@ def test_step_fields_present():
 
 def test_shortest_path_preferred():
     """Dijkstra must pick the shortest (fewest hops) path when alternatives exist."""
-    nr = lambda rid: [{"room_id": rid, "direction": "geradeaus"}]
+    def nr(rid):
+        return [{"room_id": rid, "direction": "geradeaus"}]
     graph = {
         "startNode": "node0",
         "nodes": [
