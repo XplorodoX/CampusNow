@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Floorplan-Editor – CampusNow StreetView</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--surface:#161b22;--surface2:#1c2128;--surface3:#22272e;
+  --border:#30363d;--accent:#4f8ef7;--accent2:#7c3aed;--danger:#f85149;
+  --success:#3fb950;--warn:#d29922;--text:#e6edf3;--text2:#7d8590;--text3:#484f58;
+  --c-corridor:#4f8ef7;--c-entrance:#d29922;--c-staircase:#bc4cf7;--c-elevator:#3dd68c;
+}
+body{background:var(--bg);color:var(--text);font:13px/1.5 system-ui,sans-serif;
+  height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* ── TOOLBAR ── */
+#toolbar{display:flex;align-items:center;gap:6px;padding:6px 12px;
+  background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+#toolbar h1{font-size:13px;font-weight:700;color:var(--accent);white-space:nowrap;margin-right:4px}
+.sep{width:1px;height:20px;background:var(--border);margin:0 2px;flex-shrink:0}
+.btn{padding:4px 11px;border-radius:6px;border:1px solid var(--border);
+  background:var(--surface2);color:var(--text);cursor:pointer;font-size:12px;
+  transition:background .12s,border-color .12s;white-space:nowrap}
+.btn:hover{background:var(--surface3);border-color:#484f58}
+.btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.danger{border-color:var(--danger);color:var(--danger)}
+.btn.danger:hover{background:var(--danger);color:#fff}
+.btn.ok{background:#1a6e35;border-color:var(--success);color:var(--success)}
+.btn.ok:hover{background:#2a8e45}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.tb-inp{padding:4px 8px;border-radius:6px;border:1px solid var(--border);
+  background:var(--surface2);color:var(--text);font-size:12px}
+#inp-api{width:180px}#inp-key{width:120px}#inp-bld{width:60px}
+#mode-label{font-size:11px;color:var(--warn);font-weight:600;display:none}
+#status{font-size:11px;color:var(--text2);margin-left:auto}
+
+/* ── LAYOUT ── */
+#main{display:flex;flex:1;overflow:hidden}
+
+/* ── SIDEBAR ── */
+#sidebar{width:270px;min-width:270px;background:var(--surface);
+  border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+.panel{padding:12px;border-bottom:1px solid var(--border)}
+.ph{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);
+  margin-bottom:10px;font-weight:600}
+.field{display:flex;flex-direction:column;gap:3px;margin-bottom:8px}
+.field:last-child{margin-bottom:0}
+.field label{font-size:11px;color:var(--text2)}
+.field input,.field select{padding:5px 8px;border-radius:5px;border:1px solid var(--border);
+  background:var(--surface2);color:var(--text);font-size:12px;width:100%}
+.field input:focus,.field select:focus{outline:none;border-color:var(--accent)}
+.hint{font-size:10px;color:var(--text3);margin-top:2px}
+
+/* exits / rooms list */
+.list-row{display:flex;align-items:center;gap:5px;padding:4px 7px;
+  border-radius:5px;background:var(--surface2);margin-bottom:4px;font-size:11px}
+.list-row .dir{color:var(--accent);font-weight:700;min-width:44px;font-family:monospace}
+.list-row .tgt{color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.del-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 2px;line-height:1;margin-left:auto}
+.del-btn:hover{color:var(--danger)}
+.empty{font-size:11px;color:var(--text3);text-align:center;padding:6px 0}
+
+/* room badges */
+.room-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border-radius:4px;
+  background:var(--surface2);font-size:11px;margin:2px;border:1px solid var(--border)}
+.room-badge .room-id{color:var(--accent2);font-weight:600}
+
+#no-sel{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:var(--text2);font-size:12px;text-align:center;padding:24px 16px;gap:8px}
+#no-sel .icon{font-size:36px}
+
+/* ── CANVAS ── */
+#canvas-wrap{flex:1;position:relative;overflow:hidden;background:#111;cursor:default}
+#svg-canvas{position:absolute;top:0;left:0;transform-origin:0 0;cursor:crosshair}
+#svg-canvas.mode-connect{cursor:cell}
+
+/* node circles */
+.node-circle{cursor:pointer;transition:filter .1s}
+.node-circle:hover{filter:brightness(1.25)}
+.node-circle.selected circle{stroke-width:3!important;filter:drop-shadow(0 0 6px rgba(79,142,247,.8))}
+.node-circle.connect-src circle{stroke:#7c3aed!important;stroke-width:3!important;
+  filter:drop-shadow(0 0 8px rgba(124,58,237,.9))}
+
+/* edge */
+.edge{cursor:pointer}
+.edge:hover .edge-line{stroke:#f85149;stroke-width:2.5}
+.edge:hover .edge-lbl{fill:#f85149}
+
+/* zoom btns */
+#zoom-ctrl{position:absolute;bottom:12px;right:12px;display:flex;flex-direction:column;gap:4px}
+.zbtn{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);
+  background:var(--surface);color:var(--text);cursor:pointer;font-size:16px;
+  display:flex;align-items:center;justify-content:center;transition:background .12s}
+.zbtn:hover{background:var(--surface2)}
+#zoom-val{font-size:10px;color:var(--text2);text-align:center;padding:2px 0}
+
+/* tooltip */
+#tooltip{position:fixed;background:rgba(22,27,34,.95);border:1px solid var(--border);
+  border-radius:6px;padding:5px 9px;font-size:11px;color:var(--text);pointer-events:none;
+  display:none;z-index:999;max-width:240px}
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <h1>Floorplan-Editor</h1>
+  <div class="sep"></div>
+  <input id="inp-api" class="tb-inp" value="http://localhost:6058" placeholder="API URL">
+  <input id="inp-key" class="tb-inp" value="" placeholder="X-API-Key">
+  <input id="inp-bld" class="tb-inp" value="G2" placeholder="Gebäude">
+  <button class="btn" onclick="loadAll()">↓ Laden</button>
+  <div class="sep"></div>
+  <button id="btn-connect" class="btn" onclick="toggleConnect()" title="Shift+C">🔗 Verbinden</button>
+  <span id="mode-label">— Klick auf Ziel-Node</span>
+  <div class="sep"></div>
+  <button class="btn ok" onclick="saveGraph()">↑ Speichern</button>
+  <div class="sep"></div>
+  <span id="status">Nicht geladen</span>
+</div>
+
+<div id="main">
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div id="no-sel">
+      <div class="icon">🗺</div>
+      <div>Node anklicken<br>zum Bearbeiten</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:8px">
+        Shift+Klick → Verbindung ziehen<br>
+        Klick auf Pfeil → Verbindung löschen
+      </div>
+    </div>
+    <div id="prop-panel" style="display:none">
+      <div class="panel">
+        <div class="ph">Node-Eigenschaften</div>
+        <div class="field"><label>ID</label>
+          <input id="p-id" readonly style="color:var(--accent);font-family:monospace"></div>
+        <div class="field"><label>Typ</label>
+          <select id="p-type" onchange="applyProp()">
+            <option value="corridor">corridor – Gang / Flur</option>
+            <option value="staircase">staircase – Treppe</option>
+            <option value="elevator">elevator – Aufzug</option>
+            <option value="entrance">entrance – Eingang</option>
+          </select></div>
+        <div class="field"><label>Etage</label>
+          <input id="p-floor" type="number" onchange="applyProp()"></div>
+        <div class="field"><label>Heading (°)</label>
+          <input id="p-heading" type="number" min="0" max="359" onchange="applyProp()"></div>
+        <div class="field"><label>Bild-URL</label>
+          <input id="p-img" onchange="applyProp()" placeholder="/api/v1/images/rooms/...">
+          <div class="hint">Pfad zum 360°-Panorama</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="ph">Durchgangene Räume
+          <span style="font-size:9px;color:var(--text3);text-transform:none">
+            Räume die durch diesen Node passiert werden können</span>
+        </div>
+        <div id="rooms-list"></div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <input id="add-room" class="tb-inp" style="flex:1;font-size:11px" placeholder="G2 2.35">
+          <button class="btn" style="padding:4px 8px" onclick="addRoom()">+</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="ph">Verbindungen (Exits)
+          <span style="font-size:9px;color:var(--text3);text-transform:none">
+            Klick auf Pfeil im Plan löscht, 🔗-Button fügt hinzu</span>
+        </div>
+        <div id="exits-list"></div>
+      </div>
+
+      <div class="panel">
+        <button class="btn danger" style="width:100%" onclick="deleteNode()">Node löschen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CANVAS -->
+  <div id="canvas-wrap">
+    <svg id="svg-canvas" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <polygon points="0,0 7,3.5 0,7" fill="#5b7fa8" opacity="0.9"/>
+        </marker>
+        <marker id="arr-sel" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <polygon points="0,0 7,3.5 0,7" fill="#f85149"/>
+        </marker>
+      </defs>
+      <g id="layer-bg"></g>
+      <g id="layer-edges"></g>
+      <g id="layer-nodes"></g>
+    </svg>
+    <div id="zoom-ctrl">
+      <button class="zbtn" onclick="zoom(1.2)">+</button>
+      <div id="zoom-val">100%</div>
+      <button class="zbtn" onclick="zoom(1/1.2)">−</button>
+      <button class="zbtn" onclick="fitView()" title="Fit">⊡</button>
+    </div>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let graph = null;           // {startNode, nodes:[]}
+let roomCoords = {};        // "2.35" → {x,y}
+let positions = {};         // nodeId → {x,y}  (computed)
+let selectedId = null;
+let connectMode = false;
+let connectSrc = null;
+let scale = 1;
+let panX = 0, panY = 0;
+let isPanning = false, panStart = null;
+const FP_W = 723, FP_H = 682;
+
+// Korridor-Geometrie (aus SVG-Analyse)
+const NORTH_Y = 543, SOUTH_Y = 630, WEST_X_MAX = 65, EAST_X_MIN = 640, NORTH_MAX_Y = 587;
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+const api  = () => document.getElementById('inp-api').value.replace(/\/+$/,'');
+const key  = () => document.getElementById('inp-key').value;
+const bld  = () => document.getElementById('inp-bld').value;
+const $    = id  => document.getElementById(id);
+const setStatus = (msg, col='var(--text2)') => {
+  $('status').textContent = msg;
+  $('status').style.color = col;
+};
+
+function nodeById(id){ return graph?.nodes.find(n=>n.id===id); }
+
+// ── Positionierung (gleiche Logik wie Python _node_xy) ─────────────────────
+function computePositions(){
+  positions = {};
+  if(!graph) return;
+  const BUILDING = bld();
+  for(const node of graph.nodes){
+    const raw = (node.nearby_rooms||[])
+      .map(r => { const s = r.room_id.replace(BUILDING+' ',''); return roomCoords[s]; })
+      .filter(Boolean);
+    if(!raw.length){ positions[node.id]=null; continue; }
+    const avgX = raw.reduce((a,c)=>a+c.x,0)/raw.length;
+    const avgY = raw.reduce((a,c)=>a+c.y,0)/raw.length;
+
+    let x, y;
+    if(avgX < WEST_X_MAX){       x = avgX+18; y = avgY; }
+    else if(avgX > EAST_X_MIN){  x = avgX-18; y = avgY; }
+    else {
+      const north = raw.filter(r=>r.y < NORTH_MAX_Y).length;
+      const south = raw.length - north;
+      x = avgX;
+      y = north >= south ? NORTH_Y : SOUTH_Y;
+    }
+    positions[node.id] = {x, y};
+  }
+}
+
+// ── Load ───────────────────────────────────────────────────────────────────
+async function loadAll(){
+  setStatus('Lade…');
+  try{
+    // Grundriss laden
+    const fpRes = await fetch(`${api()}/api/v1/streetview/floorplan/${bld()}`);
+    if(!fpRes.ok) throw new Error('Kein Floorplan für '+bld());
+    const fpSvg = await fpRes.text();
+    const b64   = btoa(unescape(encodeURIComponent(fpSvg)));
+
+    // Raumkoordinaten laden
+    const rcRes = await fetch(`${api()}/api/v1/streetview/floorplan/${bld()}/rooms`);
+    roomCoords  = rcRes.ok ? await rcRes.json() : {};
+    // Werte normalisieren: {x,y} Objekte
+    for(const k in roomCoords){
+      const v = roomCoords[k];
+      if(typeof v.x==='undefined') roomCoords[k]={x:v[0],y:v[1]};
+    }
+
+    // Graph laden
+    const gRes = await fetch(`${api()}/api/v1/streetview/graph/building/${bld()}`);
+    if(!gRes.ok) throw new Error('Kein Graph für '+bld());
+    graph = await gRes.json();
+
+    computePositions();
+    renderAll(b64);
+    setStatus(`${graph.nodes.length} Nodes geladen`, 'var(--success)');
+    fitView();
+  }catch(e){ setStatus('Fehler: '+e.message,'var(--danger)'); console.error(e); }
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+const TYPE_FILL   = {corridor:'#3a5a8a',staircase:'#7c4fa0',elevator:'#2a7a52',entrance:'#8a3a2a'};
+const TYPE_STROKE = {corridor:'#5b9bd5',staircase:'#bc4cf7',elevator:'#3dd68c',entrance:'#e05252'};
+
+function renderAll(b64){
+  const svg = $('svg-canvas');
+  svg.setAttribute('width',  FP_W);
+  svg.setAttribute('height', FP_H + 45);
+  svg.setAttribute('viewBox',`0 0 ${FP_W} ${FP_H+45}`);
+
+  // Hintergrund
+  $('layer-bg').innerHTML =
+    `<image href="data:image/svg+xml;base64,${b64}" x="0" y="0" width="${FP_W}" height="${FP_H}"/>` +
+    `<rect x="0" y="0" width="${FP_W}" height="${FP_H}" fill="white" opacity="0.12"/>` +
+    // Korridor-Hilfslinien
+    `<line x1="40" y1="${NORTH_Y}" x2="660" y2="${NORTH_Y}" stroke="#5b9bd5" stroke-width=".5" stroke-dasharray="4 4" opacity=".3"/>` +
+    `<line x1="40" y1="${SOUTH_Y}" x2="660" y2="${SOUTH_Y}" stroke="#5b9bd5" stroke-width=".5" stroke-dasharray="4 4" opacity=".3"/>` +
+    `<text x="4" y="${NORTH_Y-4}" font-size="8" fill="#5b9bd5" opacity=".5">Nordkorridor</text>` +
+    `<text x="4" y="${SOUTH_Y-4}" font-size="8" fill="#5b9bd5" opacity=".5">Südkorridor</text>`;
+
+  renderEdges();
+  renderNodes();
+}
+
+function renderEdges(){
+  const layer = $('layer-edges');
+  if(!graph){ layer.innerHTML=''; return; }
+  let html = '';
+  const drawn = new Set();
+  for(const node of graph.nodes){
+    const p = positions[node.id];
+    if(!p) continue;
+    for(const [dir, tgt] of Object.entries(node.exits||{})){
+      const q = positions[tgt];
+      if(!q) continue;
+      const key = [node.id,tgt].sort().join('|');
+      if(drawn.has(key)) continue;
+      drawn.add(key);
+      // Mittelpunkt für Label
+      const mx=(p.x+q.x)/2, my=(p.y+q.y)/2;
+      html += `<g class="edge" data-src="${esc(node.id)}" data-tgt="${esc(tgt)}" data-dir="${esc(dir)}"
+        onclick="clickEdge(event,this)">
+        <title>Klick → Verbindung löschen</title>
+        <line class="edge-line" x1="${p.x.toFixed(1)}" y1="${p.y.toFixed(1)}"
+          x2="${q.x.toFixed(1)}" y2="${q.y.toFixed(1)}"
+          stroke="#3a6090" stroke-width="1.8" marker-end="url(#arr)" opacity=".75"/>
+        <rect class="edge-label-bg" x="${(mx-12).toFixed(1)}" y="${(my-7).toFixed(1)}" width="24" height="13" rx="3"
+          fill="rgba(22,27,34,.8)"/>
+        <text class="edge-lbl" x="${mx.toFixed(1)}" y="${(my+4).toFixed(1)}"
+          text-anchor="middle" font-size="8" fill="#7d8590" font-family="monospace">${esc(dir)}</text>
+      </g>`;
+    }
+  }
+  layer.innerHTML = html;
+}
+
+function renderNodes(){
+  const layer = $('layer-nodes');
+  if(!graph){ layer.innerHTML=''; return; }
+  let html = '';
+  for(const node of graph.nodes){
+    const p = positions[node.id];
+    if(!p){ /* orphan: skip */ continue; }
+    const fill   = TYPE_FILL[node.node_type]   || '#333';
+    const stroke = TYPE_STROKE[node.node_type] || '#888';
+    const isStart = node.id === graph.startNode;
+    const R = 10;
+    const sw = isStart ? 3 : 1.8;
+
+    // Rooms-Tooltip
+    const rooms = (node.nearby_rooms||[]).map(r=>r.room_id).join(', ');
+    const tip = `${node.id}\n${node.node_type}${rooms?'\n'+rooms:''}`;
+
+    // Treppenpfeil (runter/auf/hoch/rauf)
+    let arrow = '';
+    const lid = node.id.toLowerCase();
+    if(node.node_type==='staircase'){
+      const up   = /(_auf_|_hoch_|_rauf_|_auf$)/.test(lid);
+      const down = /(_runter_|_runter$)/.test(lid);
+      if(up)   arrow=`<polygon points="${p.x},${p.y-R-10} ${p.x-6},${p.y-R-2} ${p.x+6},${p.y-R-2}"
+        fill="${stroke}" opacity=".9" pointer-events="none"/>`;
+      if(down) arrow=`<polygon points="${p.x},${p.y+R+10} ${p.x-6},${p.y+R+2} ${p.x+6},${p.y+R+2}"
+        fill="${stroke}" opacity=".9" pointer-events="none"/>`;
+      if(!up&&!down) // unbekannte Richtung: beide
+        arrow=`<polygon points="${p.x},${p.y-R-10} ${p.x-5},${p.y-R-3} ${p.x+5},${p.y-R-3}"
+          fill="${stroke}" opacity=".9" pointer-events="none"/>
+          <polygon points="${p.x},${p.y+R+10} ${p.x-5},${p.y+R+3} ${p.x+5},${p.y+R+3}"
+          fill="${stroke}" opacity=".9" pointer-events="none"/>`;
+    }
+
+    // Korridor-Durchgang: zeige Raumzähler als kleines Badge
+    const roomCount = (node.nearby_rooms||[]).length;
+    const badge = roomCount > 1
+      ? `<circle cx="${p.x+R-1}" cy="${p.y-R+1}" r="6" fill="${stroke}" opacity=".9"/>
+         <text x="${p.x+R-1}" y="${p.y-R+5}" font-size="7" text-anchor="middle" fill="white"
+           font-weight="bold">${roomCount}</text>`
+      : '';
+
+    html += `<g class="node-circle${node.id===selectedId?' selected':''}"
+      id="nc-${esc(node.id)}"
+      data-id="${esc(node.id)}"
+      onclick="clickNode(event,'${esc(node.id)}')"
+      onmouseenter="showTip(event,'${esc(tip)}')"
+      onmouseleave="hideTip()">
+      <title>${esc(tip)}</title>
+      ${arrow}
+      <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${R}"
+        fill="${fill}" stroke="${stroke}" stroke-width="${sw}" opacity=".93"/>
+      ${isStart ? `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${R+4}"
+        fill="none" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="3 2" opacity=".6"/>` : ''}
+      ${badge}
+      <text x="${p.x.toFixed(1)}" y="${(p.y-R-3).toFixed(1)}"
+        font-size="7.5" text-anchor="middle" fill="white" font-weight="bold"
+        paint-order="stroke" stroke="rgba(0,0,0,.7)" stroke-width="2.5"
+        pointer-events="none">${esc(node.id.replace(/_/g,' '))}</text>
+    </g>`;
+  }
+
+  // Orphan-Liste
+  const orphans = graph.nodes.filter(n=>!positions[n.id]);
+  if(orphans.length){
+    html += `<text x="6" y="${FP_H+16}" font-size="8" fill="#888" font-style="italic">
+      Ohne Koordinate: ${orphans.map(n=>n.id).join(', ')}</text>`;
+  }
+
+  layer.innerHTML = html;
+}
+
+// ── Interaction ────────────────────────────────────────────────────────────
+function clickNode(e, id){
+  e.stopPropagation();
+  if(connectMode && connectSrc){
+    if(connectSrc === id){ endConnect(); return; }
+    const dir = prompt(`Richtung von "${connectSrc}" nach "${id}"\n(front / back / left / right / up / down oder eigene):`, 'front');
+    if(dir){
+      const src = nodeById(connectSrc);
+      if(src){ if(!src.exits) src.exits={}; src.exits[dir] = id; }
+    }
+    endConnect();
+    renderEdges(); renderNodes();
+    return;
+  }
+  selectNode(id);
+}
+
+function clickEdge(e, el){
+  e.stopPropagation();
+  const src = el.dataset.src, dir = el.dataset.dir;
+  if(!confirm(`Verbindung "${src}" → ${dir} löschen?`)) return;
+  const node = nodeById(src);
+  if(node) delete node.exits[dir];
+  renderEdges();
+}
+
+function selectNode(id){
+  selectedId = id;
+  // Alle de-highlight
+  document.querySelectorAll('.node-circle').forEach(g=>{
+    g.classList.toggle('selected', g.dataset.id===id);
+    g.classList.remove('connect-src');
+  });
+  showProps(id);
+}
+
+function showProps(id){
+  const node = nodeById(id);
+  if(!node){ $('no-sel').style.display='flex'; $('prop-panel').style.display='none'; return; }
+  $('no-sel').style.display='none';
+  $('prop-panel').style.display='block';
+  $('p-id').value      = node.id;
+  $('p-type').value    = node.node_type || 'corridor';
+  $('p-floor').value   = node.floor ?? '';
+  $('p-heading').value = node.heading ?? 0;
+  $('p-img').value     = node.image || '';
+  renderRoomsList(node);
+  renderExitsList(node);
+}
+
+function renderRoomsList(node){
+  const rooms = node.nearby_rooms || [];
+  let html = '';
+  if(!rooms.length) html = '<div class="empty">Keine Räume</div>';
+  rooms.forEach((r,i)=>{
+    html += `<div class="list-row">
+      <span class="dir">${esc(r.direction||'–')}</span>
+      <span class="tgt">${esc(r.room_id)}</span>
+      <button class="del-btn" onclick="removeRoom(${i})" title="Entfernen">×</button>
+    </div>`;
+  });
+  $('rooms-list').innerHTML = html;
+}
+
+function renderExitsList(node){
+  const exits = node.exits || {};
+  let html = '';
+  const entries = Object.entries(exits);
+  if(!entries.length) html = '<div class="empty">Keine Exits</div>';
+  entries.forEach(([dir,tgt])=>{
+    html += `<div class="list-row">
+      <span class="dir">${esc(dir)}</span>
+      <span class="tgt">${esc(tgt)}</span>
+      <button class="del-btn" onclick="removeExit('${esc(dir)}')" title="Löschen">×</button>
+    </div>`;
+  });
+  $('exits-list').innerHTML = html;
+}
+
+function applyProp(){
+  const node = nodeById(selectedId);
+  if(!node) return;
+  node.node_type = $('p-type').value;
+  node.floor     = parseInt($('p-floor').value) || node.floor;
+  node.heading   = parseFloat($('p-heading').value) || 0;
+  node.image     = $('p-img').value;
+  renderNodes();
+  renderProps();
+}
+
+function renderProps(){ if(selectedId) showProps(selectedId); }
+
+function addRoom(){
+  const node = nodeById(selectedId);
+  if(!node) return;
+  const rid = $('add-room').value.trim();
+  if(!rid) return;
+  if(!node.nearby_rooms) node.nearby_rooms=[];
+  node.nearby_rooms.push({room_id:rid, direction:null});
+  $('add-room').value='';
+  renderRoomsList(node);
+}
+
+function removeRoom(idx){
+  const node = nodeById(selectedId);
+  if(!node) return;
+  node.nearby_rooms.splice(idx,1);
+  renderRoomsList(node);
+}
+
+function removeExit(dir){
+  const node = nodeById(selectedId);
+  if(!node) return;
+  delete node.exits[dir];
+  renderEdges(); renderExitsList(node);
+}
+
+function deleteNode(){
+  if(!selectedId || !confirm(`Node "${selectedId}" wirklich löschen?`)) return;
+  // Alle Referenzen in exits bereinigen
+  for(const n of graph.nodes)
+    for(const [d,t] of Object.entries(n.exits||{}))
+      if(t===selectedId) delete n.exits[d];
+  graph.nodes = graph.nodes.filter(n=>n.id!==selectedId);
+  delete positions[selectedId];
+  selectedId = null;
+  $('no-sel').style.display='flex'; $('prop-panel').style.display='none';
+  renderEdges(); renderNodes();
+}
+
+// ── Connect mode ───────────────────────────────────────────────────────────
+function toggleConnect(){
+  connectMode = !connectMode;
+  $('btn-connect').classList.toggle('active', connectMode);
+  $('mode-label').style.display = connectMode ? '' : 'none';
+  $('svg-canvas').classList.toggle('mode-connect', connectMode);
+  if(!connectMode) endConnect();
+}
+
+function endConnect(){
+  connectSrc = null;
+  connectMode = false;
+  $('btn-connect').classList.remove('active');
+  $('mode-label').style.display='none';
+  $('svg-canvas').classList.remove('mode-connect');
+  document.querySelectorAll('.connect-src').forEach(g=>g.classList.remove('connect-src'));
+}
+
+// ── Save ───────────────────────────────────────────────────────────────────
+async function saveGraph(){
+  if(!graph){ alert('Nichts geladen.'); return; }
+  setStatus('Speichern…','var(--warn)');
+  try{
+    const res = await fetch(`${api()}/api/v1/streetview/graph`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-API-Key':key()},
+      body: JSON.stringify({building_id: bld(), graph})
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail||res.statusText);
+    setStatus('Gespeichert ✓','var(--success)');
+  }catch(e){ setStatus('Fehler: '+e.message,'var(--danger)'); }
+}
+
+// ── Zoom / Pan ─────────────────────────────────────────────────────────────
+function applyTransform(){
+  $('svg-canvas').style.transform = `translate(${panX}px,${panY}px) scale(${scale})`;
+  $('zoom-val').textContent = Math.round(scale*100)+'%';
+}
+
+function zoom(f){
+  const wrap = $('canvas-wrap');
+  const cx = wrap.clientWidth/2, cy = wrap.clientHeight/2;
+  panX = cx - f*(cx-panX);
+  panY = cy - f*(cy-panY);
+  scale = Math.min(8, Math.max(.1, scale*f));
+  applyTransform();
+}
+
+function fitView(){
+  const wrap = $('canvas-wrap');
+  const sx = wrap.clientWidth / FP_W;
+  const sy = wrap.clientHeight / (FP_H+45);
+  scale = Math.min(sx, sy) * 0.95;
+  panX = (wrap.clientWidth  - FP_W*(scale)) / 2;
+  panY = (wrap.clientHeight - (FP_H+45)*scale) / 2;
+  applyTransform();
+}
+
+// Wheel zoom
+$('canvas-wrap').addEventListener('wheel', e=>{
+  e.preventDefault();
+  const f = e.deltaY < 0 ? 1.12 : 1/1.12;
+  const rect = $('canvas-wrap').getBoundingClientRect();
+  const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
+  panX = cx - f*(cx-panX);
+  panY = cy - f*(cy-panY);
+  scale = Math.min(8, Math.max(.08, scale*f));
+  applyTransform();
+},{passive:false});
+
+// Middle-click / right-drag pan
+$('canvas-wrap').addEventListener('mousedown', e=>{
+  if(e.button===1||e.button===2){ e.preventDefault(); isPanning=true; panStart={x:e.clientX-panX,y:e.clientY-panY}; }
+});
+window.addEventListener('mousemove', e=>{
+  if(isPanning){ panX=e.clientX-panStart.x; panY=e.clientY-panStart.y; applyTransform(); }
+});
+window.addEventListener('mouseup', ()=>{ isPanning=false; });
+$('canvas-wrap').addEventListener('contextmenu',e=>e.preventDefault());
+
+// Click on empty canvas → deselect
+$('svg-canvas').addEventListener('click', e=>{
+  if(e.target.id==='svg-canvas'||e.target.closest('#layer-bg')){
+    selectedId=null;
+    document.querySelectorAll('.node-circle').forEach(g=>g.classList.remove('selected'));
+    $('no-sel').style.display='flex'; $('prop-panel').style.display='none';
+  }
+});
+
+// Keyboard
+window.addEventListener('keydown', e=>{
+  if(e.key==='c'&&e.shiftKey) toggleConnect();
+  if(e.key==='Escape') endConnect();
+  if(e.key==='+'||e.key==='=') zoom(1.2);
+  if(e.key==='-') zoom(1/1.2);
+  if(e.key==='0') fitView();
+});
+
+// ── Tooltip ────────────────────────────────────────────────────────────────
+function showTip(e, txt){
+  const t=$('tooltip');
+  t.textContent=txt.replace(/\\n/g,'\n');
+  t.style.whiteSpace='pre';
+  t.style.display='block';
+  moveTip(e);
+}
+function hideTip(){ $('tooltip').style.display='none'; }
+document.addEventListener('mousemove', moveTip);
+function moveTip(e){
+  const t=$('tooltip'); if(t.style.display==='none') return;
+  t.style.left=(e.clientX+14)+'px'; t.style.top=(e.clientY+10)+'px';
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+// Auto-load
+window.addEventListener('load', ()=>{ fitView(); });
+</script>
+</body>
+</html>

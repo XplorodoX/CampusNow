@@ -227,11 +227,11 @@ _FLOORPLAN_DIR = Path("/app/data/floorplans")
 # Nordkorridor: Türöffnungen bei y≈406, Raumlabels bei y≈504
 # Südkorridor: Türöffnungen bei y≈645, Raumlabels bei y≈664
 # Westverbindung: x≈30–80,  Ostverbindung: x≈640–720
-_NORTH_DOOR_Y = 420.0   # Korridor-y für Nordseitenräume (vor den Türen)
-_SOUTH_DOOR_Y = 638.0   # Korridor-y für Südseitenräume (vor den Türen)
+_NORTH_DOOR_Y = 543.0   # Korridor-y für Nordseitenräume (Raum-Labels bei y≈503-529)
+_SOUTH_DOOR_Y = 630.0   # Korridor-y für Südseitenräume (Raum-Labels bei y≈646-664)
 _WEST_X_THRESH = 65.0   # x < dieser Wert → Westseite des Gebäudes
 _EAST_X_THRESH = 640.0  # x > dieser Wert → Ostseite des Gebäudes
-_NORTH_ROOM_MAX_Y = 540.0  # Raumlabels mit y < 540 gelten als Nordseite
+_NORTH_ROOM_MAX_Y = 587.0  # Schwelle Nord/Süd (Mitte zwischen y≈529 und y≈646)
 
 
 def _parse_room_coords(svg_path: Path) -> dict[str, tuple[float, float]]:
@@ -251,8 +251,8 @@ def _node_xy(
     """Positioniert einen Node VOR den Türen im Korridor, nicht im Raumzentrum.
 
     Logik (abgeleitet aus der SVG-Geometrie des G2):
-    - Nordseitenräume (Raumlabel y≈504): Node landet bei y=_NORTH_DOOR_Y ≈ 420
-    - Südseitenräume (Raumlabel y≈664): Node landet bei y=_SOUTH_DOOR_Y ≈ 638
+    - Nordseitenräume (Raumlabel y≈503-529): Node landet bei y=_NORTH_DOOR_Y ≈ 543
+    - Südseitenräume (Raumlabel y≈646-664): Node landet bei y=_SOUTH_DOOR_Y ≈ 630
     - Westseite (x < 65): x bleibt, y wird auf den nächsten Korridor-y geclippt
     - Ostseite (x > 640): x bleibt, y wird auf den nächsten Korridor-y geclippt
     - Gemischte Nodes (Räume aus Nord + Süd): Mehrheitsvote entscheidet die Seite
