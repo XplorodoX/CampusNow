@@ -220,7 +220,7 @@ _SVG_COLORS = {
     "elevator":  "#6abf69",
     "entrance":  "#e05252",
 }
-_SVG_DEFAULT   = "#aaaaaa"
+_SVG_DEFAULT = "#aaaaaa"
 _FLOORPLAN_DIR = Path("/app/data/floorplans")
 
 # ── Korridor-Geometrie G2 (aus SVG-Analyse) ──────────────────────────────────

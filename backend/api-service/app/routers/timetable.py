@@ -195,7 +195,7 @@ async def get_timetable(
         has_evt_filter = bool(event_group or public_only)
         # If only one side's filters are active, skip the other side entirely.
         skip_lectures = has_evt_filter and not has_lec_filter
-        skip_events   = has_lec_filter and not has_evt_filter
+        skip_events = has_lec_filter and not has_evt_filter
 
         # ── Lecture-Query aufbauen ──────────────────────────────────────
         lectures: list[dict] = []

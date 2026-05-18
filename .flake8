@@ -22,6 +22,8 @@ exclude =
 # Ignore codes
 ignore =
     E203,
+    E221,
+    E241,
     E501,
     W503,
     W605
