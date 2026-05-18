@@ -11,9 +11,13 @@ Endpunkte, die graph-editor.html, die Tests und die App erwarten:
   GET    /route/building/{bid}?to_room=...   Wegfindung (Dijkstra)
 """
 
+import base64
+import html
 import io
 import logging
+import re
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
@@ -209,172 +213,207 @@ async def patch_node(
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-# ── Farben pro node_type ─────────────────────────────────────────────────────
-_TYPE_COLOR = {
-    "corridor":  (100, 160, 220),
-    "staircase": (240, 180,  60),
-    "elevator":  (140, 200, 140),
-    "entrance":  (220,  90,  90),
+# ── Farben pro node_type (SVG hex) ───────────────────────────────────────────
+_SVG_COLORS = {
+    "corridor":  "#5b9bd5",
+    "staircase": "#f0b429",
+    "elevator":  "#6abf69",
+    "entrance":  "#e05252",
 }
-_DEFAULT_COLOR   = (180, 180, 180)
-_BG              = (245, 245, 245)
-_FLOOR_BG        = (220, 220, 230)
-_EDGE_COLOR      = (80,  80,  80)
-_EDGE_COLOR_DARK = (40,  40,  40)
-_TEXT_COLOR      = (20,  20,  20)
-_NODE_W, _NODE_H = 160, 68
-_GAP_X, _GAP_Y   = 14, 12
-_MARGIN          = 18
-_FLOOR_HDR_H     = 26
-_FLOOR_PAD_BOT   = 20   # Abstand zwischen Etagen-Sektionen
+_SVG_DEFAULT   = "#aaaaaa"
+_FLOORPLAN_DIR = Path("/app/data/floorplans")
+
+# ── Korridor-Geometrie G2 (aus SVG-Analyse) ──────────────────────────────────
+# Nordkorridor: Türöffnungen bei y≈406, Raumlabels bei y≈504
+# Südkorridor: Türöffnungen bei y≈645, Raumlabels bei y≈664
+# Westverbindung: x≈30–80,  Ostverbindung: x≈640–720
+_NORTH_DOOR_Y = 420.0   # Korridor-y für Nordseitenräume (vor den Türen)
+_SOUTH_DOOR_Y = 638.0   # Korridor-y für Südseitenräume (vor den Türen)
+_WEST_X_THRESH = 65.0   # x < dieser Wert → Westseite des Gebäudes
+_EAST_X_THRESH = 640.0  # x > dieser Wert → Ostseite des Gebäudes
+_NORTH_ROOM_MAX_Y = 540.0  # Raumlabels mit y < 540 gelten als Nordseite
 
 
-def _load_fonts() -> tuple:
-    paths = [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-        "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
-    ]
-    bold_paths = [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-        "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
-    ]
-    from PIL import ImageFont
-    def _try(paths, size):
-        for p in paths:
-            try:
-                return ImageFont.truetype(p, size)
-            except OSError:
-                pass
-        return ImageFont.load_default()
-    return _try(paths, 12), _try(paths, 10), _try(bold_paths, 13)
+def _parse_room_coords(svg_path: Path) -> dict[str, tuple[float, float]]:
+    """Liest alle <text x=".." y="..">ROOM_NR</text> aus dem Floorplan-SVG."""
+    text = svg_path.read_text(encoding="utf-8")
+    coords: dict[str, tuple[float, float]] = {}
+    for m in re.finditer(
+        r'<text\s+x="([\d.]+)"\s+y="([\d.]+)"[^>]*>([\d.]+)</text>', text
+    ):
+        coords[m.group(3)] = (float(m.group(1)), float(m.group(2)))
+    return coords
 
 
-def _render_graph_png(graph: dict, cols_per_row: int = 8) -> bytes:
-    """Erzeugt ein PNG: Etagen als Sektionen, Nodes in Gitter mit Umbruch."""
-    import math
+def _node_xy(
+    node: dict, room_coords: dict[str, tuple[float, float]]
+) -> tuple[float, float] | None:
+    """Positioniert einen Node VOR den Türen im Korridor, nicht im Raumzentrum.
 
-    from PIL import Image, ImageDraw
+    Logik (abgeleitet aus der SVG-Geometrie des G2):
+    - Nordseitenräume (Raumlabel y≈504): Node landet bei y=_NORTH_DOOR_Y ≈ 420
+    - Südseitenräume (Raumlabel y≈664): Node landet bei y=_SOUTH_DOOR_Y ≈ 638
+    - Westseite (x < 65): x bleibt, y wird auf den nächsten Korridor-y geclippt
+    - Ostseite (x > 640): x bleibt, y wird auf den nächsten Korridor-y geclippt
+    - Gemischte Nodes (Räume aus Nord + Süd): Mehrheitsvote entscheidet die Seite
+    """
+    raw: list[tuple[float, float]] = []
+    for r in node.get("nearby_rooms", []):
+        suffix = r.get("room_id", "").removeprefix("G2 ")
+        if suffix in room_coords:
+            raw.append(room_coords[suffix])
+    if not raw:
+        return None
+
+    avg_x = sum(c[0] for c in raw) / len(raw)
+    avg_y = sum(c[1] for c in raw) / len(raw)
+
+    # Ost-/Westseite: x beibehalten, y auf nächsten Korridor snappen
+    if avg_x < _WEST_X_THRESH:
+        # Westverbindungskorridor – y interpoliert zwischen Nord und Süd
+        return avg_x + 18, avg_y   # leicht nach innen versetzt
+    if avg_x > _EAST_X_THRESH:
+        return avg_x - 18, avg_y   # leicht nach innen versetzt
+
+    # Nord vs. Süd per Mehrheitsvote
+    north = sum(1 for _, cy in raw if cy < _NORTH_ROOM_MAX_Y)
+    south = len(raw) - north
+    if north >= south:
+        return avg_x, _NORTH_DOOR_Y
+    return avg_x, _SOUTH_DOOR_Y
+
+
+def _render_graph_svg(graph: dict, svg_path: Path) -> str:
+    """SVG mit Floorplan-Hintergrund + Nodes als farbige Kreise + Exit-Linien."""
+    room_coords = _parse_room_coords(svg_path)
+
+    fp_bytes = svg_path.read_bytes()
+    fp_b64 = base64.b64encode(fp_bytes).decode()
+    fp_data = f"data:image/svg+xml;base64,{fp_b64}"
+
+    fp_text = fp_bytes.decode("utf-8", errors="replace")
+    vb_m = re.search(r'viewBox="([^"]+)"', fp_text)
+    vb = vb_m.group(1) if vb_m else "0 0 723 682"
+    vb_w, vb_h = (float(v) for v in vb.split()[2:4])
+
+    legend_h = 40.0
+    total_h = vb_h + legend_h
 
     nodes: list[dict] = graph.get("nodes", [])
-    if not nodes:
-        img = Image.new("RGB", (400, 80), _BG)
-        ImageDraw.Draw(img).text((10, 28), "Kein Graph vorhanden", fill=_TEXT_COLOR)
-        buf = io.BytesIO()
-        img.save(buf, format="PNG")
-        return buf.getvalue()
+    start_node = graph.get("startNode", "")
 
-    font_sm, font_xs, font_hdr = _load_fonts()
-
-    # Nodes nach Etage gruppieren, sortiert nach ID
-    by_floor: dict[int, list[dict]] = {}
-    for n in nodes:
-        by_floor.setdefault(n.get("floor", 0), []).append(n)
-    floors = sorted(by_floor.keys(), reverse=True)  # oben = höhere Etage
-
-    cell_w = _NODE_W + _GAP_X
-    cell_h = _NODE_H + _GAP_Y
-
-    # Canvas-Breite: cols_per_row Nodes + Ränder
-    img_w = _MARGIN + cols_per_row * cell_w - _GAP_X + _MARGIN
-
-    # Canvas-Höhe: pro Etage Header + Zeilen + unterer Abstand
-    img_h = _MARGIN
-    floor_y: dict[int, int] = {}   # Etage -> y-Startposition der Sektion
-    for floor in floors:
-        floor_y[floor] = img_h
-        n_nodes = len(by_floor[floor])
-        rows = math.ceil(n_nodes / cols_per_row)
-        img_h += _FLOOR_HDR_H + rows * cell_h - _GAP_Y + _FLOOR_PAD_BOT
-    img_h += _MARGIN + 24  # Platz für Legende
-
-    img = Image.new("RGB", (img_w, img_h), _BG)
-    draw = ImageDraw.Draw(img)
-
-    # Positions-Map node_id -> Mittelpunkt (für Exit-Linien)
-    centers: dict[str, tuple[int, int]] = {}
-
-    for floor in floors:
-        floor_nodes = sorted(by_floor[floor], key=lambda n: n["id"])
-        fy = floor_y[floor]
-
-        # Etagen-Kopfzeile (farbiger Balken)
-        draw.rectangle([_MARGIN, fy, img_w - _MARGIN, fy + _FLOOR_HDR_H - 2], fill=_FLOOR_BG, outline=_EDGE_COLOR)
-        label = f"  Etage {floor}  ({len(floor_nodes)} Nodes)"
-        draw.text((_MARGIN + 6, fy + 5), label, fill=_EDGE_COLOR_DARK, font=font_hdr)
-
-        nodes_y = fy + _FLOOR_HDR_H + 4
-
-        for idx, node in enumerate(floor_nodes):
-            row = idx // cols_per_row
-            col = idx % cols_per_row
-            x = _MARGIN + col * cell_w
-            y = nodes_y + row * cell_h
-
-            color = _TYPE_COLOR.get(node.get("node_type", "corridor"), _DEFAULT_COLOR)
-            draw.rectangle([x, y, x + _NODE_W, y + _NODE_H], fill=color, outline=_EDGE_COLOR_DARK, width=1)
-
-            nid = node.get("id", "?")
-            ntype = node.get("node_type", "corridor")
-            rooms = [r.get("room_id", "") for r in node.get("nearby_rooms", [])]
-            room_txt = ", ".join(rooms[:2]) + (" +…" if len(rooms) > 2 else "")
-
-            draw.text((x + 5, y + 4),  nid[:21],        fill=_TEXT_COLOR,     font=font_sm)
-            draw.text((x + 5, y + 22), ntype,            fill=(60, 60, 60),    font=font_xs)
-            if room_txt:
-                draw.text((x + 5, y + 36), room_txt[:24], fill=(40, 40, 40), font=font_xs)
-
-            exits = node.get("exits", {})
-            exit_txt = "→ " + ", ".join(exits.keys()) if exits else "kein Exit"
-            draw.text((x + 5, y + 52), exit_txt[:24], fill=(80, 80, 80), font=font_xs)
-
-            centers[nid] = (x + _NODE_W // 2, y + _NODE_H // 2)
-
-    # Exit-Linien (nach allen Nodes zeichnen, damit sie über den Kästen liegen)
+    positions: dict[str, tuple[float, float]] = {}
     for node in nodes:
-        src = node.get("id")
-        if src not in centers:
+        pos = _node_xy(node, room_coords)
+        if pos:
+            positions[node["id"]] = pos
+
+    p: list[str] = []
+    p.append(
+        f'<svg xmlns="http://www.w3.org/2000/svg" '
+        f'viewBox="0 0 {vb_w} {total_h}" width="{vb_w}" height="{total_h}" '
+        f'style="background:#f5f5f5;font-family:Helvetica,Arial,sans-serif">'
+    )
+    p.append("""  <defs>
+    <marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#1a1a2e" opacity="0.75"/>
+    </marker>
+  </defs>""")
+
+    # Grundriss
+    p.append(
+        f'  <image href="{fp_data}" x="0" y="0" '
+        f'width="{vb_w}" height="{vb_h}" preserveAspectRatio="xMidYMid meet"/>'
+    )
+    # leichte weiße Aufhellung für bessere Lesbarkeit der Overlays
+    p.append(
+        f'  <rect x="0" y="0" width="{vb_w}" height="{vb_h}" fill="white" opacity="0.2"/>'
+    )
+
+    # Exit-Linien (zuerst, damit Kreise darüber liegen)
+    drawn: set[tuple[str, str]] = set()
+    for node in nodes:
+        src = node["id"]
+        if src not in positions:
             continue
-        sx, sy = centers[src]
-        for _direction, dst in node.get("exits", {}).items():
-            if dst not in centers:
+        sx, sy = positions[src]
+        for dst in node.get("exits", {}).values():
+            if dst not in positions:
                 continue
-            dx, dy = centers[dst]
-            draw.line([(sx, sy), (dx, dy)], fill=_EDGE_COLOR_DARK, width=2)
-            # kleiner Pfeilkopf am Ziel
-            draw.ellipse([dx - 4, dy - 4, dx + 4, dy + 4], fill=_EDGE_COLOR_DARK)
+            key = (min(src, dst), max(src, dst))
+            if key in drawn:
+                continue
+            drawn.add(key)
+            dx, dy = positions[dst]
+            p.append(
+                f'  <line x1="{sx:.1f}" y1="{sy:.1f}" x2="{dx:.1f}" y2="{dy:.1f}" '
+                f'stroke="#1a1a2e" stroke-width="1.5" opacity="0.55" '
+                f'marker-end="url(#arr)"/>'
+            )
+
+    # Nodes
+    R = 9
+    for node in nodes:
+        nid = node["id"]
+        if nid not in positions:
+            continue
+        cx, cy = positions[nid]
+        ntype = node.get("node_type", "corridor")
+        fill = _SVG_COLORS.get(ntype, _SVG_DEFAULT)
+        sw = 3 if nid == start_node else 1.5
+        rooms = [r.get("room_id", "") for r in node.get("nearby_rooms", [])]
+        tip = html.escape(f"{ntype}: {', '.join(rooms)}" if rooms else ntype)
+        label = html.escape(nid.replace("_", " "))
+
+        p.append(
+            f'  <g><title>{tip}</title>'
+            f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{R}" '
+            f'fill="{fill}" stroke="#1a1a2e" stroke-width="{sw}" opacity="0.93"/>'
+            f'<text x="{cx:.1f}" y="{cy - R - 2:.1f}" '
+            f'font-size="8" text-anchor="middle" fill="#1a1a2e" font-weight="bold" '
+            f'paint-order="stroke" stroke="white" stroke-width="2.5">{label}</text></g>'
+        )
+
+    # Nodes ohne Koordinate → kleiner Hinweis
+    orphans = [n["id"] for n in nodes if n["id"] not in positions]
+    if orphans:
+        p.append(
+            f'  <text x="4" y="{vb_h - 5}" font-size="7.5" fill="#666" '
+            f'font-style="italic">Ohne Koordinate: {html.escape(", ".join(orphans))}</text>'
+        )
 
     # Legende
-    legend_y = img_h - _MARGIN - 14
-    lx = _MARGIN
-    for ntype, color in _TYPE_COLOR.items():
-        draw.rectangle([lx, legend_y, lx + 13, legend_y + 13], fill=color, outline=_EDGE_COLOR)
-        draw.text((lx + 17, legend_y + 1), ntype, fill=_TEXT_COLOR, font=font_xs)
-        lx += 110
+    ly = vb_h + 8
+    p.append(f'  <text x="8" y="{ly + 12}" font-size="11" font-weight="bold" fill="#333">Legende:</text>')
+    lx = 75.0
+    for ntype, fill in _SVG_COLORS.items():
+        p.append(
+            f'  <circle cx="{lx + 7}" cy="{ly + 7}" r="7" fill="{fill}" stroke="#333" stroke-width="1"/>'
+            f'  <text x="{lx + 18}" y="{ly + 12}" font-size="10" fill="#333">{ntype}</text>'
+        )
+        lx += 95
+    p.append(
+        f'  <circle cx="{lx + 7}" cy="{ly + 7}" r="7" fill="#5b9bd5" stroke="#1a1a2e" stroke-width="3"/>'
+        f'  <text x="{lx + 18}" y="{ly + 12}" font-size="10" fill="#333">= Startnode</text>'
+    )
 
-    buf = io.BytesIO()
-    img.save(buf, format="PNG")
-    return buf.getvalue()
+    p.append("</svg>")
+    return "\n".join(p)
 
 
 @router.get(
     "/graph/building/{building_id}/map",
-    summary="Navigationsgraph als PNG visualisieren",
-    response_description="PNG-Bild mit Nodes nach Etagen, farblich nach Typ",
+    summary="Navigationsgraph auf Floorplan visualisieren",
+    response_description="SVG mit Grundriss-Hintergrund und Nodes als Overlay",
     responses={
-        200: {"content": {"image/png": {}}},
-        404: {"description": "Kein Graph für dieses Gebäude vorhanden"},
+        200: {"content": {"image/svg+xml": {}}},
+        404: {"description": "Kein Graph oder kein Floorplan-SVG vorhanden"},
         500: {"description": "Fehler beim Rendern"},
     },
 )
-async def get_graph_map(
-    building_id: str,
-    cols: int = Query(8, ge=1, le=20, description="Nodes pro Zeile (Standard: 8)"),
-) -> StreamingResponse:
-    """Gibt eine PNG-Übersicht zurück: Etagen als Sektionen, Nodes in Gitter mit
-    Umbruch nach `cols` Spalten. Farben: blau=corridor, orange=staircase,
-    grün=elevator, rot=entrance. Exit-Verbindungen als Linien."""
+async def get_graph_map(building_id: str) -> StreamingResponse:
+    """SVG: Grundriss als Hintergrund, Nodes als farbige Kreise, Exits als Linien.
+    Benötigt /app/data/floorplans/{building_id}.svg im Container."""
     try:
         db = mongo_client.get_db()
         doc = db.streetview_graphs.find_one({"building_id": building_id})
@@ -383,8 +422,14 @@ async def get_graph_map(
                 status_code=404,
                 detail=f"No street view graph for building '{building_id}'",
             )
-        png = _render_graph_png(_unwrap(doc), cols_per_row=cols)
-        return StreamingResponse(io.BytesIO(png), media_type="image/png")
+        svg_path = _FLOORPLAN_DIR / f"{building_id}.svg"
+        if not svg_path.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"No floorplan SVG at {svg_path}",
+            )
+        svg = _render_graph_svg(_unwrap(doc), svg_path)
+        return StreamingResponse(io.BytesIO(svg.encode()), media_type="image/svg+xml")
     except HTTPException:
         raise
     except Exception as e:

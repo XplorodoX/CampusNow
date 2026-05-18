@@ -73,7 +73,7 @@ def _validate_and_parse_samples(
     return valid_count, parsed_count
 
 
-def test_scraper_live() -> bool:
+def test_scraper_live() -> None:
     """Run a live integration-style test against HS Aalen StarPlan."""
     logger.info("=" * 70)
     logger.info("LIVE TEST: STARPLAN SCRAPER")
@@ -83,9 +83,7 @@ def test_scraper_live() -> bool:
 
     try:
         data = scraper.scrape_ical_links()
-        if not data:
-            logger.error("Scraper returned no data")
-            return False
+        assert data, "Scraper returned no data"
 
         rooms = data.get("raeume", [])
         courses = data.get("studiengaenge", [])
@@ -93,12 +91,8 @@ def test_scraper_live() -> bool:
         logger.info("Found %s rooms", len(rooms))
         logger.info("Found %s courses/planning groups", len(courses))
 
-        if not rooms:
-            logger.error("No rooms found")
-            return False
-        if not courses:
-            logger.error("No courses/planning groups found")
-            return False
+        assert rooms, "No rooms found"
+        assert courses, "No courses/planning groups found"
 
         logger.info("Testing sample room iCal links...")
         room_valid, room_parsed = _validate_and_parse_samples(
@@ -129,21 +123,17 @@ def test_scraper_live() -> bool:
             and course_valid >= 1
             and course_parsed >= 1
         )
-        if success:
-            logger.info("✅ LIVE TEST PASSED")
-        else:
-            logger.error("❌ LIVE TEST FAILED: insufficient valid/parsed samples")
-
-        return success
-
-    except Exception as exc:
-        logger.error("❌ Live test failed: %s", exc, exc_info=True)
-        return False
+        assert success, "LIVE TEST FAILED: insufficient valid/parsed samples"
+        logger.info("✅ LIVE TEST PASSED")
 
     finally:
         scraper.close()
 
 
 if __name__ == "__main__":
-    ok = test_scraper_live()
-    sys.exit(0 if ok else 1)
+    try:
+        test_scraper_live()
+        sys.exit(0)
+    except AssertionError as e:
+        logger.error(str(e))
+        sys.exit(1)

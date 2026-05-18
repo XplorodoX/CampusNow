@@ -212,19 +212,37 @@ def _scan() -> tuple[list[dict], list[str]]:
 
 
 def _auto_link(nodes: list[dict]) -> None:
-    """VORSCHLAG: pro Etage nach node-id sortieren und front/back verketten.
-    Treppen/Aufzüge werden nicht etagenübergreifend verbunden (zu unsicher) –
-    das machst du im Editor.
+    """VORSCHLAG: pro Etage nach node-id sortieren, front/back verketten
+    und dann den Ring schließen (letzter → erster Node), weil G2 ein
+    quadratisches Gebäude mit umlaufendem Korridor ist.
+    Treppen/Aufzüge werden nicht etagenübergreifend verbunden – im Editor setzen.
     """
     by_floor: dict[int, list[dict]] = {}
     for n in nodes:
         by_floor.setdefault(n["floor"], []).append(n)
 
     for floor_nodes in by_floor.values():
-        floor_nodes.sort(key=lambda n: n["id"])
-        for a, b in itertools.pairwise(floor_nodes):
+        # Nur Nicht-Treppennodes in den Ring einbeziehen
+        ring = [n for n in floor_nodes if n["node_type"] not in ("staircase", "elevator")]
+        ring.sort(key=lambda n: n["id"])
+
+        # Lineare Kette
+        for a, b in itertools.pairwise(ring):
             a["exits"]["front"] = b["id"]
             b["exits"]["back"] = a["id"]
+
+        # Ring schließen: letzter ↔ erster
+        if len(ring) >= 2:
+            ring[-1]["exits"]["front"] = ring[0]["id"]
+            ring[0]["exits"]["back"] = ring[-1]["id"]
+
+        # Treppen/Aufzüge am Ende einhängen (als Seitenabzweig, kein Ring)
+        stairs = [n for n in floor_nodes if n["node_type"] in ("staircase", "elevator")]
+        for s in stairs:
+            # Nächsten Ring-Node per Namensähnlichkeit suchen (erster passender)
+            nid = s["id"]
+            nearest = min(ring, key=lambda n: abs(ord(n["id"][0]) - ord(nid[0])))
+            s["exits"]["back"] = nearest["id"]
 
 
 def main() -> None:
