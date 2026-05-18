@@ -1,0 +1,34 @@
+name: Deploy CampusNow
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          passphrase: ${{ secrets.SERVER_SSH_PASSPHRASE }} # Optional, nur falls dein Key eins hat
+          port: ${{ secrets.SERVER_PORT || '22' }}
+          script: |
+            # Gehe in den Projektordner (Pfad ggf. anpassen)
+            cd /pfad/zum/repository/CampusNow
+            
+            # Neuesten Code pullen
+            git reset --hard
+            git pull origin main
+            
+            # Ausführrechte sicherstellen
+            chmod +x scripts/podman_reinit.sh
+            
+            # Re-Init Skript ausführen (Baut Images neu, restartet Container)
+            ./scripts/podman_reinit.sh
