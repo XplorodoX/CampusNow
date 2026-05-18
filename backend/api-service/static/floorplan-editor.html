@@ -112,8 +112,12 @@ body{background:var(--bg);color:var(--text);font:13px/1.5 system-ui,sans-serif;
   <input id="inp-bld" class="tb-inp" value="G2" placeholder="Gebäude">
   <button class="btn" onclick="loadAll()">↓ Laden</button>
   <div class="sep"></div>
-  <button id="btn-connect" class="btn" onclick="toggleConnect()" title="Shift+C">🔗 Verbinden</button>
-  <span id="mode-label">— Klick auf Ziel-Node</span>
+  <div class="tool-group" style="display:flex; border:1px solid var(--border); border-radius:4px; overflow:hidden">
+    <button class="btn active" id="tool-move" style="border-radius:0; border:none; border-right:1px solid var(--border)" onclick="setTool('move')">✋ Move</button>
+    <button class="btn" id="tool-connect" style="border-radius:0; border:none; border-right:1px solid var(--border)" onclick="setTool('connect')">🔗 Connect</button>
+    <button class="btn" id="tool-delete" style="border-radius:0; border:none;" onclick="setTool('delete')">🗑 Delete</button>
+  </div>
+  <span id="mode-label" style="display:none;"></span>
   <div class="sep"></div>
   <button class="btn ok" onclick="saveGraph()">↑ Speichern</button>
   <div class="sep"></div>
@@ -210,7 +214,7 @@ let graph = null;           // {startNode, nodes:[]}
 let roomCoords = {};        // "2.35" → {x,y}
 let positions = {};         // nodeId → {x,y}  (computed)
 let selectedId = null;
-let connectMode = false;
+let toolMode === 'connect' = false;
 let connectSrc = null;
 let scale = 1;
 let panX = 0, panY = 0;
@@ -418,21 +422,7 @@ function renderNodes(){
 }
 
 // ── Interaction ────────────────────────────────────────────────────────────
-function clickNode(e, id){
-  e.stopPropagation();
-  if(connectMode && connectSrc){
-    if(connectSrc === id){ endConnect(); return; }
-    const dir = prompt(`Richtung von "${connectSrc}" nach "${id}"\n(front / back / left / right / up / down oder eigene):`, 'front');
-    if(dir){
-      const src = nodeById(connectSrc);
-      if(src){ if(!src.exits) src.exits={}; src.exits[dir] = id; }
-    }
-    endConnect();
-    renderEdges(); renderNodes();
-    return;
-  }
-  selectNode(id);
-}
+// Removed clickNode locally, handling inside mousedown to allow drag and drop
 
 function clickEdge(e, el){
   e.stopPropagation();
@@ -547,18 +537,33 @@ function deleteNode(){
   renderEdges(); renderNodes();
 }
 
-// ── Connect mode ───────────────────────────────────────────────────────────
-function toggleConnect(){
-  connectMode = !connectMode;
-  $('btn-connect').classList.toggle('active', connectMode);
-  $('mode-label').style.display = connectMode ? '' : 'none';
-  $('svg-canvas').classList.toggle('mode-connect', connectMode);
-  if(!connectMode) endConnect();
+
+// ── TOOLS ──────────────────────────────────────────────────────────────
+let toolMode = 'move'; // move, connect, delete
+let drag = null;
+let activeConnectionLine = null;
+
+function setTool(tool) {
+  toolMode = tool;
+  connectSrc = null;
+  document.querySelectorAll('.tool-group .btn').forEach(b => b.classList.remove('active'));
+  $(`tool-${tool}`).classList.add('active');
+  
+  const ml = $('mode-label');
+  ml.style.display = 'inline-block';
+  if (tool === 'move') ml.textContent = '— Drag & Drop zum Verschieben';
+  else if (tool === 'connect') ml.textContent = '— Drag & Drop zum Verbinden';
+  else if (tool === 'delete') ml.textContent = '— Klick zum Löschen';
+  
+  $('svg-canvas').classList.toggle('mode-connect', tool === 'connect');
+  renderNodes();
 }
+
+// ── Connect mode ───────────────────────────────────────────────────────────
 
 function endConnect(){
   connectSrc = null;
-  connectMode = false;
+  toolMode === 'connect' = false;
   $('btn-connect').classList.remove('active');
   $('mode-label').style.display='none';
   $('svg-canvas').classList.remove('mode-connect');
@@ -637,9 +642,103 @@ $('svg-canvas').addEventListener('click', e=>{
   }
 });
 
+
+function onNodeMouseDown(e, id) {
+  e.stopPropagation();
+  if (e.button !== 0) return;
+  
+  selectNode(id);
+  
+  if (toolMode === 'delete') {
+    if(confirm(`Node "${id}" und alle Verbindungen löschen?`)) {
+      selectedId = id;
+      deleteNode();
+    }
+    return;
+  }
+  
+  const n = nodeById(id);
+  if (!n) return;
+  
+  if (toolMode === 'move') {
+    drag = { type: 'move', id, sx: e.clientX, sy: e.clientY, ox: n.x, oy: n.y };
+  } else if (toolMode === 'connect') {
+    connectSrc = id;
+    
+    // Create temporary line
+    activeConnectionLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    // We need to figure out coordinates. Usually n.x, n.y are relative to the floor plan.
+    // The SVGs coordinates:
+    const cx = n.x, cy = n.y;
+    activeConnectionLine.setAttribute('x1', cx);
+    activeConnectionLine.setAttribute('y1', cy);
+    activeConnectionLine.setAttribute('x2', cx);
+    activeConnectionLine.setAttribute('y2', cy);
+    activeConnectionLine.setAttribute('stroke', '#7c3aed');
+    activeConnectionLine.setAttribute('stroke-width', '4');
+    activeConnectionLine.setAttribute('stroke-dasharray', '5,5');
+    $('edges').appendChild(activeConnectionLine);
+    
+    drag = { type: 'connect', id, sx: e.clientX, sy: e.clientY };
+  }
+}
+
+window.addEventListener('mousemove', e => {
+  if (isPanning && !drag) {
+    // Existing pan logic is handled in window mousemove for 'canvas-wrap'. Wait, I'll merge my logic.
+  }
+  
+  if (!drag) return;
+  const n = nodeById(drag.id);
+  if (!n) return;
+  
+  if (drag.type === 'move') {
+    // Current transform: scale(transform.zoom) translate(transform.x, transform.y)
+    n.x = drag.ox + (e.clientX - drag.sx) / transform.zoom;
+    n.y = drag.oy + (e.clientY - drag.sy) / transform.zoom;
+    renderNodes();
+    renderEdges();
+  } else if (drag.type === 'connect' && activeConnectionLine) {
+    const svgLayer = $('svg-layer');
+    const pt = svgLayer.createSVGPoint();
+    pt.x = e.clientX; pt.y = e.clientY;
+    const cursorPt = pt.matrixTransform(svgLayer.getScreenCTM().inverse());
+    activeConnectionLine.setAttribute('x2', cursorPt.x);
+    activeConnectionLine.setAttribute('y2', cursorPt.y);
+  }
+});
+
+window.addEventListener('mouseup', e => {
+  if (drag) {
+    if (drag.type === 'connect' && activeConnectionLine) {
+      activeConnectionLine.remove();
+      activeConnectionLine = null;
+      
+      const targetGroup = e.target.closest('.node');
+      if (targetGroup) {
+        const targetId = targetGroup.dataset.id;
+        if (targetId && targetId !== drag.id) {
+          const dir = prompt(`Richtung von "${drag.id}" nach "${targetId}"\n(front / back / left / right / up / down):`, 'front');
+          if (dir) {
+            const srcNode = nodeById(drag.id);
+            if(srcNode) {
+              if(!srcNode.exits) srcNode.exits={};
+              srcNode.exits[dir] = targetId;
+              renderEdges();
+              renderNodes();
+            }
+          }
+        }
+      }
+      endConnect();
+    }
+    drag = null;
+  }
+});
+
 // Keyboard
 window.addEventListener('keydown', e=>{
-  if(e.key==='c'&&e.shiftKey) toggleConnect();
+  if(e.key==='c'&&e.shiftKey) setTool('connect');
   if(e.key==='Escape') endConnect();
   if(e.key==='+'||e.key==='=') zoom(1.2);
   if(e.key==='-') zoom(1/1.2);

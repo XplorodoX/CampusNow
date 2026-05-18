@@ -279,9 +279,12 @@ body {
   <h1>🗺 Graph Editor</h1>
   <div class="tb-sep"></div>
 
+  <div class="tool-group" style="display:flex; border:1px solid var(--border); border-radius:4px; overflow:hidden">
+    <button class="btn active" id="tool-move" style="border-radius:0; border:none; border-right:1px solid var(--border)" title="Knoten verschieben">✋ Move</button>
+    <button class="btn" id="tool-connect" style="border-radius:0; border:none; border-right:1px solid var(--border)" title="Drag & Drop zum Verbinden">🔗 Connect</button>
+    <button class="btn" id="tool-delete" style="border-radius:0; border:none;" title="Knoten durch Klick löschen">🗑 Delete</button>
+  </div>
   <button class="btn" id="btn-add">+ Node</button>
-  <button class="btn" id="btn-connect">Verbinden</button>
-  <button class="btn danger" id="btn-delete">✕</button>
 
   <div class="tb-sep"></div>
 
@@ -531,7 +534,7 @@ const S = {
   edges: [],   // {id, from, to, direction}
   startNode:   null,
   selected:    null,
-  connectMode: false,
+  toolMode: 'move', // move, connect, delete
   connectSrc:  null,
   edgeCounter: 0,
   floorFilter: 'all',
@@ -781,7 +784,7 @@ function renderNode(node) {
     'node-card',
     S.selected === node.id ? 'selected' : '',
     isSrc ? 'connect-src' : '',
-    S.connectMode ? 'connect-tgt' : '',
+    S.toolMode === 'connect' ? 'connect-tgt' : '',
     !nodeVisible(node) ? 'floor-hidden' : '',
   ].filter(Boolean).join(' ');
   card.dataset.type = node.nodeType || 'corridor';
@@ -1033,10 +1036,32 @@ let drag = null;
 function onNodeMouseDown(e, nodeId) {
   e.stopPropagation();
   if (e.button !== 0 || spaceDown) return;
-  if (S.connectMode) { handleConnectClick(nodeId); return; }
+  
   selectNode(nodeId);
+  
+  if (S.toolMode === 'delete') {
+    if (confirm(`Node "${nodeId}" und alle Verbindungen löschen?`)) deleteNode(nodeId);
+    return;
+  }
+  
   const n = findNode(nodeId);
-  drag = { nodeId, sx: e.clientX, sy: e.clientY, ox: n.x, oy: n.y };
+  
+  if (S.toolMode === 'move') {
+    drag = { type: 'move', nodeId, sx: e.clientX, sy: e.clientY, ox: n.x, oy: n.y };
+  } else if (S.toolMode === 'connect') {
+    S.connectSrc = nodeId;
+    activeConnectionLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    activeConnectionLine.setAttribute('x1', n.x + NODE_W/2);
+    activeConnectionLine.setAttribute('y1', n.y + NODE_H/2);
+    activeConnectionLine.setAttribute('x2', n.x + NODE_W/2);
+    activeConnectionLine.setAttribute('y2', n.y + NODE_H/2);
+    activeConnectionLine.setAttribute('stroke', '#7c3aed');
+    activeConnectionLine.setAttribute('stroke-width', '3');
+    activeConnectionLine.setAttribute('stroke-dasharray', '5,5');
+    svg.appendChild(activeConnectionLine);
+    drag = { type: 'connect', nodeId, sx: e.clientX, sy: e.clientY };
+  }
+  
   document.addEventListener('mousemove', onDragMove);
   document.addEventListener('mouseup',   onDragUp);
 }
@@ -1045,11 +1070,20 @@ function onDragMove(e) {
   if (!drag) return;
   const n = findNode(drag.nodeId);
   if (!n) return;
-  n.x = Math.max(0, drag.ox + (e.clientX - drag.sx) / VIEW.zoom);
-  n.y = Math.max(0, drag.oy + (e.clientY - drag.sy) / VIEW.zoom);
-  const c = document.getElementById(`card-${drag.nodeId}`);
-  if (c) { c.style.left = n.x + 'px'; c.style.top = n.y + 'px'; }
-  renderSVG();
+  
+  if (drag.type === 'move') {
+    n.x = Math.max(0, drag.ox + (e.clientX - drag.sx) / VIEW.zoom);
+    n.y = Math.max(0, drag.oy + (e.clientY - drag.sy) / VIEW.zoom);
+    const c = document.getElementById(`card-${drag.nodeId}`);
+    if (c) { c.style.left = n.x + 'px'; c.style.top = n.y + 'px'; }
+    renderSVG();
+  } else if (drag.type === 'connect' && activeConnectionLine) {
+    const rect = canvasWrap.getBoundingClientRect();
+    const cx = (e.clientX - rect.left - VIEW.x) / VIEW.zoom;
+    const cy = (e.clientY - rect.top - VIEW.y) / VIEW.zoom;
+    activeConnectionLine.setAttribute('x2', cx);
+    activeConnectionLine.setAttribute('y2', cy);
+  }
 }
 
 function onDragUp() {
@@ -1058,16 +1092,52 @@ function onDragUp() {
   document.removeEventListener('mouseup',   onDragUp);
 }
 
-// ── CONNECT MODE ──────────────────────────────────────────────────────────────
-$('btn-connect').addEventListener('click', toggleConnect);
 
-function toggleConnect() {
-  S.connectMode = !S.connectMode;
-  S.connectSrc  = null;
-  $('btn-connect').classList.toggle('active', S.connectMode);
+// ── TOOLS ────────────────────────────────────────────────────────────────────
+function setTool(tool) {
+  S.toolMode = tool;
+  S.connectSrc = null;
+  document.querySelectorAll('.tool-group .btn').forEach(b => b.classList.remove('active'));
+  $(`tool-${tool}`).classList.add('active');
   renderAllNodes();
-  setStatus(S.connectMode ? 'Verbindungsmodus — Quell-Node anklicken…' : 'Verbindungsmodus beendet.');
+  if (tool === 'move') setStatus('Modus: Verschieben (Drag & Drop)');
+  else if (tool === 'connect') setStatus('Modus: Verbinden (Von Node A nach Node B ziehen)');
+  else if (tool === 'delete') setStatus('Modus: Löschen (Node anklicken)');
 }
+
+$('tool-move').addEventListener('click', () => setTool('move'));
+$('tool-connect').addEventListener('click', () => setTool('connect'));
+$('tool-delete').addEventListener('click', () => setTool('delete'));
+
+let activeConnectionLine = null;
+
+async function doConnect(srcId, tgtId) {
+  if (srcId === tgtId) return;
+  const existing = S.edges.find(e => e.from === srcId && e.to === tgtId);
+  if (existing) { setStatus('Verbindung existiert bereits.', 'warn'); return; }
+  
+  const fromNode = findNode(srcId);
+  const toNode   = findNode(tgtId);
+  if (fromNode.floor !== toNode.floor) {
+    if (!['staircase','elevator'].includes(fromNode.nodeType) && !['staircase','elevator'].includes(toNode.nodeType)) {
+      if (!confirm('Unterschiedliche Stockwerke verbinden (ohne Treppe/Aufzug)?')) return;
+    }
+  }
+  
+  const res = await openModal('edge', {
+    title: `Verbindung: ${srcId} → ${tgtId}`,
+    sub: 'Beispiel: front, back, left, right, up, down',
+    dir: 'front', edgeId: `e-${S.edgeCounter++}`
+  });
+  if (!res || !res.dir) { setStatus('Verbindung abgebrochen', 'warn'); return; }
+  
+  S.edges.push({ id: res.edgeId, from: srcId, to: tgtId, direction: res.dir });
+  renderSVG();
+  setStatus(`Verbindung ${srcId} → ${tgtId} (${res.dir}) erstellt.`, 'success');
+}
+
+
+
 
 async function handleConnectClick(nodeId) {
   if (!S.connectSrc) {
@@ -1173,7 +1243,7 @@ function renderSVG() {
 // ── CANVAS CLICK ──────────────────────────────────────────────────────────────
 canvasWrap.addEventListener('click', e => {
   if (e.target === canvasWrap || e.target === canvasInner || e.target === svg) {
-    if (S.connectMode) { toggleConnect(); return; }
+    if (S.toolMode === 'connect') return;
     selectNode(null);
   }
 });
@@ -1183,7 +1253,7 @@ document.addEventListener('keydown', e => {
   const active = document.activeElement;
   if (active && active.matches('input,select,textarea')) return;
   if (e.key === 'Escape') {
-    if (S.connectMode) { toggleConnect(); return; }
+    if (S.toolMode === 'connect') return;
     selectNode(null);
   }
   if (e.key === 'Delete' && S.selected) {
@@ -1195,10 +1265,7 @@ document.addEventListener('keydown', e => {
 // ── TOOLBAR ACTIONS ───────────────────────────────────────────────────────────
 $('btn-add').addEventListener('click', createNode);
 
-$('btn-delete').addEventListener('click', () => {
-  if (!S.selected) { setStatus('Kein Node ausgewählt.', 'err'); return; }
-  if (confirm(`Node "${S.selected}" und alle Verbindungen löschen?`)) deleteNode(S.selected);
-});
+
 
 // ── BUILD GRAPH ───────────────────────────────────────────────────────────────
 function buildGraph() {
