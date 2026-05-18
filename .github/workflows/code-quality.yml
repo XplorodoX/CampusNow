@@ -48,7 +48,7 @@ jobs:
           python -m pytest --cov=app --cov-report=term-missing:skip-covered --cov-report=html -v || true
           
       - name: Upload coverage artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: backend/api-service/htmlcov/
