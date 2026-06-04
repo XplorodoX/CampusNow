@@ -1,723 +1,1587 @@
-# CampusNow – API-Dokumentation für Frontend-Entwickler
+# CampusNow API – Frontend-Dokumentation
 
-> **Base URL:** `http://<host>:6058`  
-> **Interaktive Docs:** `http://<host>:6058/docs` (Swagger UI)  
-> **Alle Endpunkte beginnen mit `/api/v1/`**
+> **Stand:** Juni 2026 · **Version:** 1.0.0  
+> Vollständige Referenz aller REST-Endpoints für die Flutter-App-Integration.
 
 ---
 
 ## Inhaltsverzeichnis
 
-1. [Timetable](#1-timetable) ← **Hauptendpunkt für das Frontend**
-2. [Settings](#2-settings)
-3. [Street View Graph](#3-street-view-graph)
-4. [Buildings](#4-buildings)
-5. [Rooms](#5-rooms)
-6. [Events](#6-events)
-7. [Images (360°)](#7-images-360)
-8. [Auth-Header](#auth-header)
-9. [Fehler-Codes](#fehler-codes)
-10. [Datenmodelle im Überblick](#datenmodelle-im-überblick)
+1. [Übersicht](#1-übersicht)
+2. [Requests senden](#2-requests-senden)
+3. [Responses empfangen](#3-responses-empfangen)
+4. [Authentifizierung](#4-authentifizierung)
+5. [Fehlerbehandlung](#5-fehlerbehandlung)
+6. [Settings](#6-settings)
+7. [Timetable](#7-timetable)
+8. [StreetView & Navigation](#8-streetview--navigation)
+9. [Buildings](#9-buildings)
+10. [Rooms](#10-rooms)
+11. [Events](#11-events)
+12. [Images](#12-images)
+13. [Scheduler](#13-scheduler)
+14. [Datenmodelle](#14-datenmodelle)
+15. [Schnellreferenz](#15-schnellreferenz-aller-endpoints)
 
 ---
 
-## 1. Timetable
+## 1. Übersicht
 
-> Dieser eine Endpunkt liefert alles, was die Stundenplan-Ansicht braucht:  
-> Studiengänge, Semester, Event-Gruppen, Vorlesungen und Events – in einem Call.
+| | |
+|---|---|
+| **Base URL (Produktion)** | `https://streetview.8xc.de` |
+| **Base URL (Lokal)** | `http://localhost:6058` |
+| **API-Prefix** | `/api/v1` |
+| **Swagger UI** | `{base}/docs` |
 
-### `GET /api/v1/timetable`
+Alle Pfade in dieser Dokumentation sind relativ zur **Base URL + API-Prefix**.  
+Vollständiges Beispiel: `https://streetview.8xc.de/api/v1/timetable`
 
-**Ohne Filter:** gibt alles zurück (bis zu 200 Vorlesungen + 50 Events).  
-**Mit Filtern:** beliebig kombinierbar.
+---
 
-#### Query-Parameter
+## 2. Requests senden
 
-| Parameter | Typ | Beispiel | Beschreibung |
-|---|---|---|---|
-| `course` | string | `IN` | Studiengang-Code (aus `courses_of_study[].id`). Mehrere mit Komma: `IN,ET` |
-| `semester` | string | `sem_1` | Semester-ID. Mehrere: `sem_1,sem_2` |
-| `event_group` | string | `sports` | Event-Gruppe. Mehrere: `sports,career` |
-| `building` | string | `G2` | Exakter Gebäude-Code |
-| `room` | string | `G2 1` | Partial-Match auf Raumnummer (case-insensitiv) |
-| `professor` | string | `Müller` | Partial-Match auf Dozentenname |
-| `date_from` | string | `2026-05-11` | Vorlesungen/Events ab diesem Datum (YYYY-MM-DD) |
-| `date_to` | string | `2026-07-31` | Vorlesungen/Events bis zu diesem Datum (inkl.) |
-| `recurrence` | string | `weekly` | `weekly` oder `once` |
-| `public_only` | bool | `true` | Nur öffentliche Events (Gäste-Modus ohne Login) |
-| `limit_lectures` | int | `200` | Max. Vorlesungen (1–1000, default 200) |
-| `limit_events` | int | `50` | Max. Events (1–200, default 50) |
+### 2.1 Allgemeine Request-Headers
 
-#### Beispiel-Request
+Für alle Requests empfohlen:
 
 ```
-GET /api/v1/timetable?course=IN&semester=sem_1&date_from=2026-05-11
+Accept: application/json
+Content-Type: application/json   ← nur bei POST/PUT/PATCH mit JSON-Body
 ```
 
-#### Response-Struktur
+### 2.2 Requests nach Typ
 
-```json
-{
-  "courses_of_study": [
-    { "id": "IN",  "label": "Informatik" },
-    { "id": "ET",  "label": "Elektrotechnik" },
-    { "id": "ETI", "label": "Technische Informatik / Embedded Systems" }
-  ],
-  "semesters": [
-    { "id": "sem_1", "label": "Semester 1" },
-    { "id": "sem_2", "label": "Semester 2" },
-    { "id": "sem_3", "label": "Semester 3" },
-    { "id": "sem_4", "label": "Semester 4" },
-    { "id": "sem_6", "label": "Semester 6" },
-    { "id": "sem_7", "label": "Semester 7" }
-  ],
-  "event_groups": [
-    { "id": "sports",  "label": "Sports & Fitness" },
-    { "id": "culture", "label": "Culture & Arts" },
-    { "id": "career",  "label": "Career & Networking" },
-    { "id": "social",  "label": "Social Events" }
-  ],
-  "lectures": [ ... ],
-  "events":   [ ... ]
-}
+#### GET – Daten abrufen
+Keine Body, keine Content-Type-Header nötig. Parameter werden als Query-String übergeben.
+
+```bash
+# cURL
+curl -X GET "https://streetview.8xc.de/api/v1/timetable?course=INF%20S1%2B2" \
+  -H "Accept: application/json"
 ```
-
-#### Lecture-Objekt
-
-```json
-{
-  "id":              "6643f1a2e4b0a1c2d3e4f5a6",
-  "title":           "Rechnerarchitektur",
-  "moduleId":        "31-57103",
-  "courseOfStudyId": "IN",
-  "semesterId":      "sem_1",
-  "semesterIds":     ["sem_1"],
-  "room":            "G2 1.44",
-  "building":        "G2",
-  "professor":       "Prof. Dr. Müller",
-  "startTime":       "2026-05-11T08:00:00",
-  "endTime":         "2026-05-11T09:30:00",
-  "dayOfWeek":       "Monday",
-  "durationMinutes": 90,
-  "color":           "#4A90D9",
-  "recurrence":      "weekly"
-}
-```
-
-| Feld | Typ | Beschreibung |
-|---|---|---|
-| `id` | string | MongoDB-ID der Vorlesung |
-| `title` | string | Modulname (bereinigt, ohne Modulnummer) |
-| `moduleId` | string\|null | Modulnummer aus StarPlan, z. B. `"31-57103"` |
-| `courseOfStudyId` | string | Studiengangs-Code, z. B. `"IN"` – passt zu `courses_of_study[].id` |
-| `semesterId` | string | Primäres Semester, z. B. `"sem_1"` |
-| `semesterIds` | string[] | Alle Semester dieser Vorlesung (z. B. `["sem_1","sem_2"]` bei gemeinsamen VL) |
-| `room` | string | Raumnummer, z. B. `"G2 1.44"` |
-| `building` | string | Gebäude-Code, z. B. `"G2"` – passt zu `buildings[].code` |
-| `professor` | string | Dozent(in), kann leer sein |
-| `startTime` | string (ISO 8601) | Startzeit |
-| `endTime` | string (ISO 8601) | Endzeit |
-| `dayOfWeek` | string | Englischer Wochentag: `"Monday"`, `"Tuesday"`, … |
-| `durationMinutes` | int | Dauer in Minuten (meist 90) |
-| `color` | string | Hex-Farbe pro Studiengang (deterministisch, z. B. `"#4A90D9"`) |
-| `recurrence` | string | `"weekly"` – alle Vorlesungen aus StarPlan sind wöchentlich |
-
-#### Event-Objekt
-
-```json
-{
-  "id":        "6623a1f2e4b0a1c2d3e4f5a6",
-  "title":     "Karrieremesse Aalen 2026",
-  "groupId":   "career",
-  "startTime": "2026-05-20T18:00:00",
-  "endTime":   "2026-05-20T21:00:00",
-  "color":     "#2ECC71",
-  "is_public": true,
-  "detail_url": "https://www.hs-aalen.de/aktuelles/veranstaltungen/karrieremesse-aalen-2026",
-
-  "description":           "Über 80 Unternehmen stellen sich vor...",
-  "organizer":             "Transferzentrum HS Aalen",
-  "registration_url":      "https://www.hs-aalen.de/.../anmeldung",
-  "registration_deadline": "15. Mai 2026"
-}
-```
-
-> **Hinweis:** `description`, `organizer`, `registration_url` und `registration_deadline` sind **optional** –  
-> sie sind nur vorhanden wenn der Scraper sie auf der Detail-Seite gefunden hat.  
-> Das Frontend muss diese Felder mit null-check behandeln.
-
-| Feld | Typ | Beschreibung |
-|---|---|---|
-| `id` | string | MongoDB-ID |
-| `title` | string | Titel des Events |
-| `groupId` | string | `"sports"`, `"culture"`, `"career"` oder `"social"` |
-| `startTime` | string (ISO 8601) | Startzeit |
-| `endTime` | string\|null | Endzeit (kann fehlen bei Ganztagsevents) |
-| `color` | string | Hex-Farbe nach `groupId`: sports=`#F39C12`, culture=`#9B59B6`, career=`#2ECC71`, social=`#3498DB` |
-| `is_public` | bool | `true` = ohne Login sichtbar |
-| `detail_url` | string\|null | Link zur Event-Seite auf hs-aalen.de |
-| `description` | string | (optional) Beschreibungstext von der Detail-Seite |
-| `organizer` | string | (optional) Veranstalter / Trainer |
-| `registration_url` | string | (optional) Anmeldelink |
-| `registration_deadline` | string | (optional) Anmeldefrist als Text, z. B. `"28. Juli 2026"` |
-
-#### Farben der Event-Gruppen
 
 ```dart
-const eventGroupColors = {
-  'sports':  '#F39C12',
-  'culture': '#9B59B6',
-  'career':  '#2ECC71',
-  'social':  '#3498DB',
-};
+// Flutter (http package)
+final response = await http.get(
+  Uri.parse('https://streetview.8xc.de/api/v1/timetable')
+    .replace(queryParameters: {'course': 'INF S1+2'}),
+  headers: {'Accept': 'application/json'},
+);
+```
+
+#### POST / PUT / PATCH – JSON-Body senden
+
+```bash
+# cURL
+curl -X POST "https://streetview.8xc.de/api/v1/events" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -H "X-API-Key: <api-key>" \
+  -d '{"title": "Event", "start_time": "2026-07-10T09:00:00+02:00", "end_time": "2026-07-10T17:00:00+02:00"}'
+```
+
+```dart
+// Flutter
+final response = await http.post(
+  Uri.parse('https://streetview.8xc.de/api/v1/events'),
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'X-API-Key': apiKey,
+  },
+  body: jsonEncode({
+    'title': 'Event',
+    'start_time': '2026-07-10T09:00:00+02:00',
+    'end_time': '2026-07-10T17:00:00+02:00',
+  }),
+);
+```
+
+#### POST – Datei hochladen (Multipart)
+
+Für Bild-Uploads: `Content-Type: multipart/form-data` (wird automatisch gesetzt).
+
+```bash
+# cURL
+curl -X POST "https://streetview.8xc.de/api/v1/images/rooms/2_35/upload" \
+  -H "X-API-Key: <api-key>" \
+  -F "file=@/pfad/zum/panorama.jpg"
+```
+
+```dart
+// Flutter
+final request = http.MultipartRequest(
+  'POST',
+  Uri.parse('https://streetview.8xc.de/api/v1/images/rooms/2_35/upload'),
+)
+  ..headers['X-API-Key'] = apiKey
+  ..files.add(await http.MultipartFile.fromPath('file', '/pfad/panorama.jpg'));
+
+final response = await request.send();
+```
+
+#### DELETE – Ressource löschen
+
+```bash
+# cURL
+curl -X DELETE "https://streetview.8xc.de/api/v1/events/64a1b2c3d4e5f6789abcdef0" \
+  -H "X-API-Key: <api-key>"
+```
+
+```dart
+// Flutter
+final response = await http.delete(
+  Uri.parse('https://streetview.8xc.de/api/v1/events/64a1b2c3d4e5f6789abcdef0'),
+  headers: {'X-API-Key': apiKey},
+);
+```
+
+### 2.3 URL-Encoding
+
+Query-Parameter mit Sonderzeichen müssen URL-encoded sein:
+
+| Zeichen | Encoded | Beispiel |
+|---------|---------|---------|
+| Leerzeichen | `%20` | `G2 2.34` → `G2%202.34` |
+| `+` | `%2B` | `INF S1+2` → `INF%20S1%2B2` |
+| `/` | `%2F` | `path/to` → `path%2Fto` |
+| `,` | `%2C` | `sem_3,sem_4` → `sem_3%2Csem_4` |
+
+> **Flutter-Tipp:** `Uri.replace(queryParameters: {...})` encoded automatisch korrekt.  
+> Niemals manuell concatenaten: `'?to_room=' + roomId` — das führt bei Leerzeichen zu Fehlern.
+
+```dart
+// Richtig
+final uri = Uri.parse('$baseUrl/api/v1/streetview/route/building/G2')
+  .replace(queryParameters: {
+    'to_room': 'G2 2.34',
+    'from_room': 'G2 2.01',
+  });
+// Ergibt: /api/v1/streetview/route/building/G2?to_room=G2%202.34&from_room=G2%202.01
 ```
 
 ---
 
-## 2. Settings
+## 3. Responses empfangen
 
-### `GET /api/v1/settings`
+### 3.1 Response-Formate nach Endpoint-Typ
 
-Gibt die gespeicherten Nutzereinstellungen zurück. Entspricht `settings.json`.
+| Endpoint-Typ | Response `Content-Type` | Verarbeitung |
+|---|---|---|
+| Normale Endpoints | `application/json` | `jsonDecode(response.body)` |
+| `/map` Endpoints | `image/svg+xml` | Als String speichern oder `SvgPicture.string()` |
+| `/floorplan/{id}` | `image/svg+xml` | Als String speichern |
+| `/images/rooms/{id}/{file}` | `image/jpeg` oder `image/png` | Als Bytes speichern (`response.bodyBytes`) |
 
+### 3.2 JSON-Responses parsen
+
+```dart
+import 'dart:convert';
+
+final response = await http.get(Uri.parse('$baseUrl/api/v1/timetable'));
+
+if (response.statusCode == 200) {
+  final data = jsonDecode(response.body) as Map<String, dynamic>;
+  final lectures = data['lectures'] as List<dynamic>;
+  // ...
+} else {
+  final error = jsonDecode(response.body)['detail'] as String;
+  throw Exception('API Error: $error');
+}
+```
+
+### 3.3 SVG-Responses anzeigen
+
+```dart
+// pubspec.yaml: flutter_svg: ^2.0.0
+import 'package:flutter_svg/flutter_svg.dart';
+
+final response = await http.get(
+  Uri.parse('$baseUrl/api/v1/streetview/graph/building/G2/map?floor=2'),
+);
+
+if (response.statusCode == 200) {
+  final svgString = response.body;
+  // Anzeigen:
+  SvgPicture.string(svgString)
+  // Oder als URL direkt laden:
+  SvgPicture.network('$baseUrl/api/v1/streetview/graph/building/G2/map?floor=2')
+}
+```
+
+### 3.4 Bild-Responses laden
+
+```dart
+// Als bytes
+final response = await http.get(
+  Uri.parse('$baseUrl/api/v1/images/rooms/2_35/panorama.jpg?size=medium'),
+);
+final imageBytes = response.bodyBytes;
+Image.memory(imageBytes)
+
+// Oder direkt als NetworkImage (einfacher)
+Image.network('$baseUrl/api/v1/images/rooms/2_35/panorama.jpg?size=medium')
+```
+
+### 3.5 Response-Headers prüfen
+
+```dart
+final contentType = response.headers['content-type'];
+final contentLength = response.headers['content-length'];
+```
+
+---
+
+## 4. Authentifizierung
+
+Alle **Lese-Endpoints** (`GET`) sind öffentlich — kein Header nötig.
+
+Alle **Schreib-Endpoints** (`POST`, `PUT`, `PATCH`, `DELETE`) erfordern:
+
+```
+X-API-Key: <api-key>
+```
+
+```dart
+// Flutter – konstanter API-Key in der App
+const apiKey = 'dein-api-key';
+
+final response = await http.post(
+  uri,
+  headers: {
+    'Content-Type': 'application/json',
+    'X-API-Key': apiKey,
+  },
+  body: jsonEncode(body),
+);
+```
+
+Fehlender oder ungültiger Key → `401 Unauthorized`:
+```json
+{ "detail": "Unauthorized" }
+```
+
+---
+
+## 5. Fehlerbehandlung
+
+Alle Fehler-Responses:
+- **Content-Type:** `application/json`
+- **Body:**
+```json
+{ "detail": "Beschreibung des Fehlers" }
+```
+
+| Status | Bedeutung | Typischer Grund |
+|--------|-----------|----------------|
+| `200` | Erfolg | — |
+| `400` | Ungültige Parameter | Crop-Format falsch, Wert außerhalb Range |
+| `401` | Nicht autorisiert | API-Key fehlt oder falsch |
+| `404` | Nicht gefunden | Gebäude/Raum/Node/Bild existiert nicht |
+| `413` | Datei zu groß | Upload > 20 MB |
+| `415` | Falsches Format | Kein JPEG/PNG/WEBP |
+| `422` | Schema-Fehler | Pflichtfeld fehlt, falscher Typ |
+| `500` | Serverfehler | Datenbankfehler, interner Fehler |
+
+```dart
+// Universelle Fehlerbehandlung Flutter
+Future<Map<String, dynamic>> apiGet(String path) async {
+  final response = await http.get(Uri.parse('$baseUrl$path'));
+  
+  if (response.statusCode == 200) {
+    return jsonDecode(response.body);
+  }
+  
+  String detail = 'Unbekannter Fehler';
+  try {
+    detail = jsonDecode(response.body)['detail'] ?? detail;
+  } catch (_) {}
+  
+  throw ApiException(response.statusCode, detail);
+}
+
+class ApiException implements Exception {
+  final int statusCode;
+  final String message;
+  ApiException(this.statusCode, this.message);
+}
+```
+
+---
+
+## 6. Settings
+
+### `GET /settings`
+
+Gibt Benutzereinstellungen + statische Metadaten zurück. **Einmalig pro Session aufrufen.**
+
+**Request:**
+```
+GET /api/v1/settings
+Accept: application/json
+```
+
+**Response:**
+```
+200 OK
+Content-Type: application/json
+```
 ```json
 {
   "notificationLeadMinutes": 15,
-  "defaultCourseOfStudyIds": ["IN"],
-  "defaultSemesterIds":      ["sem_1"],
-  "defaultEventGroupIds":    ["career", "sports"],
-  "savedLectureIds":         [],
-  "savedEventIds":           [],
-  "theme":                   "system"
+  "defaultCourseOfStudyIds": ["INF S1+2"],
+  "defaultSemesterIds": ["sem_3"],
+  "defaultEventGroupIds": [],
+  "savedLectureIds": [],
+  "savedEventIds": [],
+  "theme": "system",
+  "courses_of_study": [
+    { "id": "INF S1+2", "label": "Informatik S1+2", "color": "#4f8ef7" }
+  ],
+  "semesters": [
+    { "id": "sem_3", "label": "Sommersemester 2026" }
+  ],
+  "event_groups": [
+    { "id": "sports", "label": "Sport", "color": "#3fb950" }
+  ]
 }
 ```
 
-| Feld | Typ | Beschreibung |
-|---|---|---|
-| `notificationLeadMinutes` | int | Vorlaufzeit für Push-Benachrichtigungen in Minuten |
-| `defaultCourseOfStudyIds` | string[] | Standard-Studiengänge für die Timetable-Filterung |
-| `defaultSemesterIds` | string[] | Standard-Semester |
-| `defaultEventGroupIds` | string[] | Standard Event-Gruppen |
-| `savedLectureIds` | string[] | Vom Nutzer gespeicherte Vorlesungs-IDs |
-| `savedEventIds` | string[] | Vom Nutzer gespeicherte Event-IDs |
-| `theme` | string | `"light"`, `"dark"` oder `"system"` |
+**cURL:**
+```bash
+curl "https://streetview.8xc.de/api/v1/settings"
+```
+
+**Flutter:**
+```dart
+final response = await http.get(
+  Uri.parse('$baseUrl/api/v1/settings'),
+);
+final config = jsonDecode(response.body);
+```
 
 ---
 
-### `PUT /api/v1/settings`
+### `PUT /settings`
 
-Speichert alle Einstellungen (vollständiges Überschreiben). Benötigt API-Key-Header.
+Überschreibt alle Einstellungen. Metadatenfelder (`courses_of_study` etc.) werden ignoriert.
 
-**Request Body:** gleiche Struktur wie GET-Response.
-
+**Request:**
+```
+PUT /api/v1/settings
+Content-Type: application/json
+X-API-Key: <api-key>
+```
 ```json
 {
-  "notificationLeadMinutes": 10,
-  "defaultCourseOfStudyIds": ["IN"],
-  "defaultSemesterIds": ["sem_2"],
-  "defaultEventGroupIds": ["social"],
+  "notificationLeadMinutes": 15,
+  "defaultCourseOfStudyIds": ["INF S1+2"],
+  "defaultSemesterIds": ["sem_3"],
+  "defaultEventGroupIds": [],
   "savedLectureIds": [],
   "savedEventIds": [],
   "theme": "dark"
 }
 ```
 
-**Response:** die gespeicherten Einstellungen (gleiche Struktur).
+**Body-Felder:**
+
+| Feld | Typ | Default | Beschreibung |
+|------|-----|---------|-------------|
+| `notificationLeadMinutes` | `int` | `15` | Benachrichtigungsvorlauf in Minuten |
+| `defaultCourseOfStudyIds` | `string[]` | `[]` | Vorausgewählte Studiengänge |
+| `defaultSemesterIds` | `string[]` | `[]` | Vorausgewählte Semester |
+| `defaultEventGroupIds` | `string[]` | `[]` | Vorausgewählte Event-Gruppen |
+| `savedLectureIds` | `string[]` | `[]` | Gespeicherte Vorlesungs-IDs |
+| `savedEventIds` | `string[]` | `[]` | Gespeicherte Event-IDs |
+| `theme` | `string` | `"system"` | `"light"` \| `"dark"` \| `"system"` |
+
+**Response:**
+```
+200 OK
+Content-Type: application/json
+```
+Gleiche Struktur wie Request Body.
+
+**cURL:**
+```bash
+curl -X PUT "https://streetview.8xc.de/api/v1/settings" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: <api-key>" \
+  -d '{"notificationLeadMinutes": 15, "theme": "dark", "defaultCourseOfStudyIds": [], "defaultSemesterIds": [], "defaultEventGroupIds": [], "savedLectureIds": [], "savedEventIds": []}'
+```
 
 ---
 
-## 3. Street View Graph
+### `PATCH /settings`
 
-### `GET /api/v1/streetview/graph`
+Aktualisiert nur übergebene Felder.
 
-Gibt den 360°-Navigationsgraphen zurück. Entspricht `street_view_graph.json`.
-
+**Request:**
+```
+PATCH /api/v1/settings
+Content-Type: application/json
+X-API-Key: <api-key>
+```
 ```json
 {
-  "startNode": "node0",
-  "nodes": [
+  "theme": "dark",
+  "notificationLeadMinutes": 30
+}
+```
+
+**Response:**
+```
+200 OK
+Content-Type: application/json
+```
+Vollständiges `UserSettings`-Objekt nach dem Update.
+
+**Flutter:**
+```dart
+final response = await http.patch(
+  Uri.parse('$baseUrl/api/v1/settings'),
+  headers: {
+    'Content-Type': 'application/json',
+    'X-API-Key': apiKey,
+  },
+  body: jsonEncode({'theme': 'dark'}),
+);
+```
+
+---
+
+## 7. Timetable
+
+### `GET /timetable`
+
+Gefilterte Vorlesungen + Events. Alle Parameter optional.
+
+**Request:**
+```
+GET /api/v1/timetable?course=INF%20S1%2B2&semester=sem_3
+Accept: application/json
+```
+
+**Query-Parameter:**
+
+| Parameter | Typ | Pflicht | Beschreibung |
+|-----------|-----|---------|-------------|
+| `course` | `string` | nein | Studiengang-IDs, kommagetrennt (z.B. `INF S1+2,INF S3+4`) |
+| `semester` | `string` | nein | Semester-IDs, kommagetrennt (z.B. `sem_3,sem_4`) |
+| `event_group` | `string` | nein | Event-Gruppen-IDs, kommagetrennt (z.B. `sports,career`) |
+| `building` | `string` | nein | Gebäude-Kürzel, exakter Match (z.B. `G2`) |
+| `room` | `string` | nein | Raum-Teilstring, case-insensitiv |
+| `professor` | `string` | nein | Professor-Name, Teilstring, case-insensitiv |
+| `date_from` | `string` | nein | Datum `YYYY-MM-DD` |
+| `date_to` | `string` | nein | Datum `YYYY-MM-DD` (inklusiv) |
+| `recurrence` | `string` | nein | `"weekly"` oder `"once"` |
+| `public_only` | `bool` | nein | Nur öffentliche Events (default: `false`) |
+| `limit_lectures` | `int` | nein | Max. Vorlesungen (default: `200`, max: `1000`) |
+| `limit_events` | `int` | nein | Max. Events (default: `50`, max: `200`) |
+
+**Response:**
+```
+200 OK
+Content-Type: application/json
+```
+```json
+{
+  "lectures": [
     {
-      "id":      "node0",
-      "image":   "/api/v1/images/rooms/G2-0.01/2026-04-15-083000-panorama.jpg",
+      "id": "abc123",
+      "title": "Algorithmen und Datenstrukturen",
+      "moduleId": "ADS",
+      "courseOfStudyId": "INF S1+2",
+      "semesterId": "sem_3",
+      "room": "G2 2.01",
       "building": "G2",
-      "room":    "G2 0.01",
-      "heading": 12,
-      "exits": {
-        "front": "node1",
-        "right": "node2",
-        "left":  null
-      },
-      "spots": [
-        {
-          "name":        "Hörsaal H1",
-          "longitude":   45,
-          "latitude":    0,
-          "description": "Eingang Hörsaal H1"
-        }
-      ]
+      "professor": "Prof. Dr. Müller",
+      "startTime": "2026-06-02T08:00:00+02:00",
+      "endTime": "2026-06-02T09:30:00+02:00",
+      "dayOfWeek": "Monday",
+      "durationMinutes": 90,
+      "recurrence": "weekly"
+    }
+  ],
+  "events": [
+    {
+      "id": "evt456",
+      "title": "Campusfest 2026",
+      "groupId": "social",
+      "color": "#f0b429",
+      "startTime": "2026-06-15T14:00:00+02:00",
+      "endTime": "2026-06-15T20:00:00+02:00",
+      "is_public": true,
+      "detail_url": "https://hs-aalen.de/events/campusfest",
+      "image_url": "https://...",
+      "building": "G2",
+      "room": null,
+      "description": "Jährliches Campusfest",
+      "organizer": "Studentenwerk",
+      "registration_url": null,
+      "registration_deadline": null
+    }
+  ]
+}
+```
+
+**cURL:**
+```bash
+curl "https://streetview.8xc.de/api/v1/timetable?course=INF%20S1%2B2&date_from=2026-06-01"
+```
+
+**Flutter:**
+```dart
+final response = await http.get(
+  Uri.parse('$baseUrl/api/v1/timetable').replace(queryParameters: {
+    'course': 'INF S1+2',
+    'date_from': '2026-06-01',
+    'date_to': '2026-06-30',
+  }),
+);
+final data = jsonDecode(response.body);
+final lectures = (data['lectures'] as List).cast<Map<String, dynamic>>();
+final events   = (data['events']   as List).cast<Map<String, dynamic>>();
+```
+
+---
+
+## 8. StreetView & Navigation
+
+### Konzept
+
+- **Nodes**: Standpunkte mit 360°-Panoramabild, verbunden über `exits`
+- **Exits**: Gerichtete Verbindungen (`{"front": "node_b"}`) — Richtung aus Kameraperspektive
+- **Routing**: Dijkstra über geografische Distanz, automatisch aus `pos_override`-Koordinaten
+
+---
+
+### `GET /streetview/graph/building/{building_id}`
+
+**Request:**
+```
+GET /api/v1/streetview/graph/building/G2
+Accept: application/json
+```
+
+**Response:**
+```
+200 OK
+Content-Type: application/json
+```
+Vollständiges `StreetViewGraph`-Objekt (kann groß sein — cachen!).
+
+**cURL:**
+```bash
+curl "https://streetview.8xc.de/api/v1/streetview/graph/building/G2"
+```
+
+**Flutter:**
+```dart
+final response = await http.get(
+  Uri.parse('$baseUrl/api/v1/streetview/graph/building/G2'),
+);
+final graph = jsonDecode(response.body) as Map<String, dynamic>;
+final nodes = (graph['nodes'] as List).cast<Map<String, dynamic>>();
+```
+
+---
+
+### `GET /streetview/graph/building/{building_id}/map`
+
+Navigationsgraph als **SVG-Bild**.
+
+**Request:**
+```
+GET /api/v1/streetview/graph/building/G2/map?floor=2
+```
+
+**Query-Parameter:**
+
+| Parameter | Typ | Pflicht | Beschreibung |
+|-----------|-----|---------|-------------|
+| `floor` | `int` | nein | `-1`=UG · `0`=EG · `1`=1OG · `2`=2OG. Ohne Angabe: alle Etagen gestapelt |
+
+**Response:**
+```
+200 OK
+Content-Type: image/svg+xml
+```
+
+**cURL:**
+```bash
+curl "https://streetview.8xc.de/api/v1/streetview/graph/building/G2/map?floor=2" \
+  -o karte.svg
+```
+
+**Flutter:**
+```dart
+// Als SVG anzeigen (flutter_svg package)
+SvgPicture.network(
+  '$baseUrl/api/v1/streetview/graph/building/G2/map?floor=2',
+  fit: BoxFit.contain,
+)
+
+// Oder manuell laden
+final response = await http.get(
+  Uri.parse('$baseUrl/api/v1/streetview/graph/building/G2/map')
+    .replace(queryParameters: {'floor': '2'}),
+);
+final svgString = response.body; // Content-Type: image/svg+xml
+```
+
+---
+
+### `GET /streetview/route/building/{building_id}`
+
+Dijkstra-Route als JSON-Schrittliste.
+
+> `from_room` und `to_room` sind **Raum-IDs** (z.B. `G2 2.01`) — keine Node-IDs.
+
+**Request:**
+```
+GET /api/v1/streetview/route/building/G2?to_room=G2%202.34&from_room=G2%202.01
+Accept: application/json
+```
+
+**Query-Parameter:**
+
+| Parameter | Typ | Pflicht | Beschreibung |
+|-----------|-----|---------|-------------|
+| `to_room` | `string` | **ja** | Ziel-Raum-ID, z.B. `G2 2.34` |
+| `from_room` | `string` | nein | Start-Raum-ID, z.B. `G2 2.01`. Standard: `startNode` des Graphen |
+
+**Response:**
+```
+200 OK
+Content-Type: application/json
+```
+```json
+{
+  "building_id": "G2",
+  "to_room": "G2 2.34",
+  "total_steps": 10,
+  "steps": [
+    {
+      "node_id": "2_01_02",
+      "image": "/api/v1/images/rooms/2_01_02/2_01_02.jpg",
+      "building": "G2",
+      "heading": 0.0,
+      "direction": "front",
+      "nearby_rooms": [
+        { "room_id": "G2 2.01", "direction": null },
+        { "room_id": "G2 2.02", "direction": null }
+      ],
+      "room_direction": null
     },
     {
-      "id":      "node1",
-      "image":   "/api/v1/images/rooms/G2-1.44/2026-04-15-090000-panorama.jpg",
+      "node_id": "2_34",
+      "image": "/api/v1/images/rooms/2_34/2_34.jpg",
       "building": "G2",
-      "room":    "G2 1.44",
-      "heading": 0,
-      "exits": {
-        "back": "node0"
-      },
-      "spots": []
+      "heading": 0.0,
+      "direction": null,
+      "nearby_rooms": [{ "room_id": "G2 2.34", "direction": "links" }],
+      "room_direction": "links"
     }
   ]
 }
 ```
 
-| Feld | Typ | Beschreibung |
-|---|---|---|
-| `startNode` | string | ID des Einstiegs-Knotens |
-| `nodes[].id` | string | Eindeutige Knoten-ID |
-| `nodes[].image` | string | URL zum 360°-Bild (relativ, über `/api/v1/images/...` abrufbar) |
-| `nodes[].building` | string | Gebäude-Code |
-| `nodes[].room` | string | Raumnummer |
-| `nodes[].heading` | int | Startausrichtung der Kamera in Grad (0–359) |
-| `nodes[].exits` | object | Richtungs-Map → Knoten-ID (`"front"`, `"back"`, `"left"`, `"right"`) |
-| `nodes[].spots` | array | Klickbare Informationspunkte im 360°-Bild |
-| `spots[].longitude` | int | Horizontale Position im Panorama (0–360) |
-| `spots[].latitude` | int | Vertikale Position (-90 bis 90) |
+**Felder:**
 
-> **Navigation im Frontend:** Das Frontend traversiert den Graphen selbst.  
-> `node.exits["front"]` liefert die ID des nächsten Knotens in dieser Richtung.  
-> Es gibt keine server-seitige Routing-Berechnung.
+| Feld | Beschreibung |
+|------|-------------|
+| `steps[n].direction` | Exit-Richtung zum **nächsten** Node (`null` am Ziel) |
+| `steps[last].room_direction` | Wo die Zieltür ist — nur am letzten Schritt |
+| `steps[n].image` | Relativer Pfad → volles Bild: `{baseUrl}{image}` |
+| `steps[n].heading` | Kamerawinkel beim Panorama-Laden (0–360°) |
 
----
-
-## 4. Buildings
-
-### `GET /api/v1/buildings`
-
-```
-GET /api/v1/buildings
-GET /api/v1/buildings?campus=Burren
+**cURL:**
+```bash
+curl "https://streetview.8xc.de/api/v1/streetview/route/building/G2?to_room=G2%202.34&from_room=G2%202.01"
 ```
 
-**Parameter:**
+**Flutter:**
+```dart
+final uri = Uri.parse('$baseUrl/api/v1/streetview/route/building/G2')
+  .replace(queryParameters: {
+    'to_room': 'G2 2.34',
+    'from_room': 'G2 2.01',
+  });
 
-| Parameter | Typ | Beispiel | Beschreibung |
-|---|---|---|---|
-| `campus` | string | `Burren` oder `Main` | Filtert nach Campus-Standort |
-| `skip` | int | `0` | Pagination |
-| `limit` | int | `100` | Max. Ergebnisse (default 100) |
-
-**Response:**
-
-```json
-[
-  {
-    "_id":                 "G2",
-    "code":                "G2",
-    "name":                "Gebäude G2",
-    "description":         "Hier befinden sich die Räumlichkeiten der Fakultät Elektronik und Informatik.",
-    "campus":              "Burren",
-    "address":             "Anton-Huber-Straße 25",
-    "floors":              [0, 1, 2],
-    "room_count":          18,
-    "street_view_enabled": true,
-    "created_at":          "2026-01-01T00:00:00"
+final response = await http.get(uri);
+if (response.statusCode == 200) {
+  final data = jsonDecode(response.body);
+  final steps = (data['steps'] as List).cast<Map<String, dynamic>>();
+  for (final step in steps) {
+    final imageUrl = '$baseUrl${step['image']}';
+    final direction = step['direction']; // null am Ziel
+    final roomDir   = step['room_direction']; // nur letzter Schritt
   }
-]
-```
-
-**Verfügbare Gebäude (HS Aalen):**
-
-| Code | Name | Campus |
-|---|---|---|
-| `G1` | Gebäude G1 (Optik & Mechatronik) | Burren |
-| `G2` | Gebäude G2 (Elektronik & Informatik) | Burren |
-| `G3` | Gebäude G3 (Bibliothek) | Burren |
-| `G4` | Gebäude G4 (Augenoptik & Hörakustik) | Burren |
-| `IZ` | Innovationszentrum | Burren |
-| `M`  | Mensa | Burren |
-| `E`  | Physikzentrum | Burren |
-| `AH` | Anton-Huber-Straße (Aula) | Burren |
-| `BS1` | Beethovenstraße 1 (Verwaltung) | Main |
-| `S46` | Stuttgarter Straße 46 | Main |
-| `WIN` | Wirtschaftswissenschaften | Main |
-| `DIS` | Digital Innovation Space | Main |
-| `NM` | Neue Mensa | Main |
-| `SW` | Studentenwohnheim | Main |
-
----
-
-## 5. Rooms
-
-### `GET /api/v1/rooms`
-
-```
-GET /api/v1/rooms
-GET /api/v1/rooms?building=G2
-GET /api/v1/rooms?building=G2&floor=1
-GET /api/v1/rooms?search=1.4
-```
-
-**Parameter:**
-
-| Parameter | Typ | Beispiel | Beschreibung |
-|---|---|---|---|
-| `building` | string | `G2` | Filtert nach Gebäude-Code |
-| `floor` | int | `1` | Filtert nach Stockwerk (0 = EG, 1 = 1. OG, …) |
-| `search` | string | `G2 1` | Partial-Match auf Raumnummer |
-| `skip` | int | `0` | Pagination |
-| `limit` | int | `100` | Max. Ergebnisse (max. 1000) |
-
-**Response:**
-
-```json
-[
-  {
-    "_id":                 "abc123",
-    "room_number":         "G2 1.44",
-    "room_id":             "42",
-    "building":            "G2",
-    "building_id":         "G2",
-    "floor":               1,
-    "capacity":            30,
-    "has_video":           true,
-    "has_projector":       true,
-    "street_view_enabled": true,
-    "ical_url":            "https://vorlesungen.htw-aalen.de/splan/ical?type=room&roomid=42",
-    "last_scraped":        "2026-05-11T06:00:00",
-    "created_at":          "2026-01-01T00:00:00"
-  }
-]
-```
-
-> **Tipp:** `room_number` aus dem Timetable-Endpunkt (z. B. `"G2 1.44"`) kann direkt  
-> zum Lookup in dieser Liste verwendet werden.
-
----
-
-## 6. Events
-
-Die Events-Endpunkte liefern detailliertere Filter-Möglichkeiten als der Timetable-Endpunkt.  
-Für die Stundenplan-Ansicht reicht der Timetable-Endpunkt. Diese Endpunkte sind für eine  
-dedizierte Event-Übersichtsseite oder ein Event-Detail-View sinnvoll.
-
-### `GET /api/v1/events`
-
-```
-GET /api/v1/events?public_only=true
-GET /api/v1/events?date_from=2026-05-11T00:00:00&date_to=2026-05-31T23:59:59
-```
-
-**Parameter:**
-
-| Parameter | Typ | Beschreibung |
-|---|---|---|
-| `category` | string | `Hochschule`, `Sport`, `Kultur`, `Mensa`, `Vortrag`, `Sonstiges` |
-| `date_from` | string | ISO 8601, z. B. `2026-05-01T00:00:00` |
-| `date_to` | string | ISO 8601 |
-| `public_only` | bool | Nur öffentliche Events (default `false`) |
-| `skip` / `limit` | int | Pagination (max. 200) |
-
-**Response:** Array von Event-Objekten (gleiche Felder wie im Timetable-Endpunkt).
-
----
-
-### `GET /api/v1/events/upcoming`
-
-Gibt Events der nächsten N Tage zurück (sortiert nach Startzeit).
-
-```
-GET /api/v1/events/upcoming?days=7&public_only=true
-```
-
-| Parameter | Default | Beschreibung |
-|---|---|---|
-| `days` | 7 | Zeitraum ab heute (1–90) |
-| `public_only` | false | Nur öffentliche Events |
-
----
-
-### `GET /api/v1/events/{event_id}`
-
-Gibt ein einzelnes Event anhand seiner MongoDB-ID zurück.
-
-```
-GET /api/v1/events/6623a1f2e4b0a1c2d3e4f5a6
-```
-
-**404** wenn nicht gefunden.
-
----
-
-### `POST /api/v1/events` *(Admin)*
-
-Legt ein neues Event an. Benötigt API-Key-Header.
-
-```json
-{
-  "title":      "Workshop Flutter",
-  "start_time": "2026-06-01T09:00:00",
-  "end_time":   "2026-06-01T17:00:00",
-  "category":   "Vortrag",
-  "is_public":  true
 }
 ```
 
-**Response:** `{ "id": "6623a1f2e4b0a1c2d3e4f5a6" }`
-
 ---
 
-### `PUT /api/v1/events/{event_id}` *(Admin)*
+### `GET /streetview/route/building/{building_id}/map`
 
-Vollständiges Ersetzen eines Events. Gleiche Felder wie POST.
+Route als **SVG-Visualisierung** (Pfad gold hervorgehoben).
 
----
-
-### `DELETE /api/v1/events/{event_id}` *(Admin)*
-
+**Request:**
 ```
-DELETE /api/v1/events/6623a1f2e4b0a1c2d3e4f5a6
+GET /api/v1/streetview/route/building/G2/map?to_room=G2%202.34&from_room=G2%202.01
 ```
 
-**Response:** `{ "message": "Event deleted successfully" }`
+**Query-Parameter:**
 
----
-
-## 7. Images (360°)
-
-### `GET /api/v1/images/rooms/{room_id}`
-
-Liste aller 360°-Bilder für einen Raum.
-
-```
-GET /api/v1/images/rooms/G2-1.44
-```
+| Parameter | Typ | Pflicht | Beschreibung |
+|-----------|-----|---------|-------------|
+| `to_room` | `string` | **ja** | Ziel-Raum-ID |
+| `from_room` | `string` | nein | Start-Raum-ID (Standard: `startNode`) |
+| `floor` | `int` | nein | Etage. Standard: automatisch aus Zielraum |
 
 **Response:**
+```
+200 OK
+Content-Type: image/svg+xml
+```
 
+**Flutter:**
+```dart
+SvgPicture.network(
+  Uri.parse('$baseUrl/api/v1/streetview/route/building/G2/map')
+    .replace(queryParameters: {
+      'to_room': 'G2 2.34',
+      'from_room': 'G2 2.01',
+    }).toString(),
+)
+```
+
+---
+
+### `GET /streetview/floorplan/{building_id}`
+
+Roher Grundriss ohne Nodes.
+
+**Response:** `image/svg+xml`
+
+**cURL:**
+```bash
+curl "https://streetview.8xc.de/api/v1/streetview/floorplan/G2" -o grundriss.svg
+```
+
+---
+
+### `GET /streetview/floorplan/{building_id}/rooms`
+
+Raumkoordinaten aus dem Grundriss. Key = Raum-Suffix ohne Gebäude-Prefix.
+
+**Response:** `application/json`
 ```json
 {
-  "room_id": "G2-1.44",
-  "total_count": 2,
+  "2.35": { "x": 412.5, "y": 543.0 },
+  "2.36": { "x": 445.2, "y": 543.0 }
+}
+```
+
+---
+
+### `POST /streetview/graph`
+
+Graph speichern / ersetzen (Upsert auf `building_id`).
+
+**Request:**
+```
+POST /api/v1/streetview/graph
+Content-Type: application/json
+X-API-Key: <api-key>
+```
+```json
+{
+  "building_id": "G2",
+  "graph": {
+    "startNode": "2_01_02",
+    "nodes": [
+      {
+        "id": "2_01_02",
+        "image": "/api/v1/images/rooms/2_01_02/2_01_02.jpg",
+        "building": "G2",
+        "floor": 2,
+        "node_type": "corridor",
+        "heading": 0,
+        "exits": { "front": "2_04" },
+        "nearby_rooms": [
+          { "room_id": "G2 2.01", "direction": null },
+          { "room_id": "G2 2.02", "direction": null }
+        ],
+        "spots": [],
+        "pos_override": { "x": 155.0, "y": 543.0 }
+      }
+    ]
+  }
+}
+```
+
+**Response:** `application/json`
+```json
+{ "id": "G2", "message": "Graph for building 'G2' saved successfully" }
+```
+
+---
+
+### `PATCH /streetview/graph/building/{building_id}/node/{node_id}`
+
+Einzelnen Node teilweise aktualisieren. Alle Felder optional.
+
+**Request:**
+```
+PATCH /api/v1/streetview/graph/building/G2/node/2_01_02
+Content-Type: application/json
+X-API-Key: <api-key>
+```
+```json
+{
+  "heading": 90,
+  "nearby_rooms": [
+    { "room_id": "G2 2.01", "direction": "links" }
+  ]
+}
+```
+
+**Response:** `application/json`
+```json
+{ "message": "Node '2_01_02' updated in building 'G2'" }
+```
+
+---
+
+### Verfügbare Räume für Routing (Gebäude G2)
+
+```
+G2 2.01  G2 2.02  G2 2.04  G2 2.05  G2 2.06  G2 2.07  G2 2.08
+G2 2.09  G2 2.10  G2 2.11  G2 2.12  G2 2.13  G2 2.14  G2 2.15
+G2 2.16  G2 2.17  G2 2.18  G2 2.19  G2 2.20  G2 2.21  G2 2.22
+G2 2.23  G2 2.24  G2 2.25  G2 2.26  G2 2.28  G2 2.29  G2 2.30
+G2 2.31  G2 2.32  G2 2.33  G2 2.34  G2 2.35  G2 2.36  G2 2.37
+G2 2.38  G2 2.39  G2 2.40  G2 2.41
+```
+
+> `G2 2.03` und `G2 2.27` existieren nicht.
+
+---
+
+## 9. Buildings
+
+### `GET /buildings`
+
+**Request:**
+```
+GET /api/v1/buildings?campus=Main
+Accept: application/json
+```
+
+**Query-Parameter:**
+
+| Parameter | Typ | Pflicht | Beschreibung |
+|-----------|-----|---------|-------------|
+| `campus` | `string` | nein | `"Main"` oder `"Burren"` |
+| `skip` | `int` | nein | Pagination-Offset (default: `0`) |
+| `limit` | `int` | nein | Max. Ergebnisse (default: `100`, max: `500`) |
+
+**Response:** `application/json`
+```json
+[
+  {
+    "id": "64a1b2c3d4e5f6789abc1234",
+    "code": "G2",
+    "name": "Gebäude G2",
+    "campus": "Main",
+    "address": "Beethovenstr. 1, 73430 Aalen",
+    "floors": [0, 1, 2],
+    "street_view_enabled": true,
+    "description": null,
+    "room_count": 45,
+    "last_scraped": "2026-06-01T06:00:00Z",
+    "created_at": "2025-01-15T10:00:00Z"
+  }
+]
+```
+
+**cURL:**
+```bash
+curl "https://streetview.8xc.de/api/v1/buildings?campus=Main"
+```
+
+**Flutter:**
+```dart
+final response = await http.get(
+  Uri.parse('$baseUrl/api/v1/buildings')
+    .replace(queryParameters: {'campus': 'Main'}),
+);
+final buildings = (jsonDecode(response.body) as List).cast<Map<String, dynamic>>();
+```
+
+---
+
+## 10. Rooms
+
+### `GET /rooms`
+
+**Request:**
+```
+GET /api/v1/rooms?building=G2&floor=2
+Accept: application/json
+```
+
+**Query-Parameter:**
+
+| Parameter | Typ | Pflicht | Beschreibung |
+|-----------|-----|---------|-------------|
+| `floor` | `int` | nein | Etage filtern |
+| `search` | `string` | nein | Suche im Raumname, case-insensitiv |
+| `building` | `string` | nein | Gebäude-Kürzel oder MongoDB-ID |
+| `skip` | `int` | nein | Offset (default: `0`) |
+| `limit` | `int` | nein | Max. Ergebnisse (default: `100`, max: `1000`) |
+
+**Response:** `application/json`
+```json
+[
+  {
+    "id": "64a1b2c3d4e5f6789abc5678",
+    "room_number": "G2 2.35",
+    "floor": 2,
+    "capacity": 30,
+    "building": "G2",
+    "building_id": "64a1b2c3d4e5f6789abc1234",
+    "has_video": true,
+    "has_projector": true,
+    "street_view_enabled": true,
+    "room_image_360": {
+      "image_paths": ["2_35/2_35.jpg"],
+      "latest_update": "2026-05-15T12:00:00Z",
+      "url_prefix": "/api/v1/images/rooms"
+    },
+    "created_at": "2025-01-15T10:00:00Z"
+  }
+]
+```
+
+> **Bild-URL zusammensetzen:** `{baseUrl}{room_image_360.url_prefix}/{room_image_360.image_paths[0]}`  
+> Beispiel: `https://streetview.8xc.de/api/v1/images/rooms/2_35/2_35.jpg`
+
+**Flutter:**
+```dart
+final response = await http.get(
+  Uri.parse('$baseUrl/api/v1/rooms').replace(queryParameters: {
+    'building': 'G2',
+    'floor': '2',
+  }),
+);
+final rooms = (jsonDecode(response.body) as List).cast<Map<String, dynamic>>();
+```
+
+---
+
+## 11. Events
+
+### `GET /events`
+
+**Request:**
+```
+GET /api/v1/events?groupId=sports&date_from=2026-06-01
+Accept: application/json
+```
+
+**Query-Parameter:**
+
+| Parameter | Typ | Pflicht | Beschreibung |
+|-----------|-----|---------|-------------|
+| `groupId` | `string` | nein | `sports` · `workshops` · `academic` · `culture` · `alumni` · `international` · `career` · `social` |
+| `building` | `string` | nein | Gebäude-Kürzel, exakter Match |
+| `date_from` | `string` | nein | Ab Datum (ISO 8601) |
+| `date_to` | `string` | nein | Bis Datum (ISO 8601) |
+| `public_only` | `bool` | nein | Nur öffentliche Events (default: `false`) |
+| `skip` | `int` | nein | Offset (default: `0`) |
+| `limit` | `int` | nein | Max. Ergebnisse (default: `50`, max: `200`) |
+
+**Response:** `application/json`
+```json
+[
+  {
+    "id": "64a1b2c3d4e5f6789abcdef0",
+    "title": "Campusfest 2026",
+    "groupId": "social",
+    "start_time": "2026-06-15T14:00:00+02:00",
+    "end_time": "2026-06-15T20:00:00+02:00",
+    "building": "G2",
+    "room": null,
+    "organizer": "Studentenwerk",
+    "is_public": true,
+    "image_url": "https://hs-aalen.de/images/campusfest.jpg",
+    "detail_url": "https://hs-aalen.de/events/campusfest",
+    "description": "Jährliches Campusfest mit Live-Musik",
+    "registration_url": null,
+    "registration_deadline": null,
+    "created_at": "2026-05-01T10:00:00Z",
+    "updated_at": "2026-05-15T08:00:00Z"
+  }
+]
+```
+
+---
+
+### `POST /events`
+
+**Request:**
+```
+POST /api/v1/events
+Content-Type: application/json
+X-API-Key: <api-key>
+```
+```json
+{
+  "title": "Workshop: Flutter Basics",
+  "groupId": "workshops",
+  "start_time": "2026-07-10T09:00:00+02:00",
+  "end_time": "2026-07-10T17:00:00+02:00",
+  "building": "G2",
+  "room": "G2 2.01",
+  "organizer": "Prof. Dr. Schmidt",
+  "is_public": true,
+  "image_url": null,
+  "detail_url": "https://hs-aalen.de/events/flutter-workshop",
+  "description": "Einführung in Flutter-Entwicklung",
+  "registration_url": "https://hs-aalen.de/register/flutter",
+  "registration_deadline": "2026-07-05"
+}
+```
+
+**Pflichtfelder:** `title`, `start_time`, `end_time`
+
+**Response:** `application/json`
+```json
+{ "id": "64a1b2c3d4e5f6789abcdef1" }
+```
+
+---
+
+### `PUT /events/{event_id}`
+
+Ersetzt ein Event vollständig.
+
+**Request:**
+```
+PUT /api/v1/events/64a1b2c3d4e5f6789abcdef0
+Content-Type: application/json
+X-API-Key: <api-key>
+```
+
+Body: Gleiche Felder wie `POST`
+
+**Response:** `application/json`
+```json
+{ "message": "Event updated successfully" }
+```
+
+---
+
+### `DELETE /events/{event_id}`
+
+**Request:**
+```
+DELETE /api/v1/events/64a1b2c3d4e5f6789abcdef0
+X-API-Key: <api-key>
+```
+
+**Response:** `application/json`
+```json
+{ "message": "Event deleted successfully" }
+```
+
+---
+
+## 12. Images
+
+### `GET /images/rooms/{room_id}`
+
+Alle Bilder für einen Raum.
+
+> `room_id` = Node-ID mit Unterstrichen (z.B. `2_35`), nicht Raumnummer (`G2 2.35`)
+
+**Request:**
+```
+GET /api/v1/images/rooms/2_35
+Accept: application/json
+```
+
+**Response:** `application/json`
+```json
+{
+  "room_id": "2_35",
   "images": [
     {
-      "_id":            "6623a1f2e4b0a1c2d3e4f5a6",
-      "room_id":        "G2-1.44",
-      "image_filename": "2026-04-15-083000-panorama.jpg",
-      "file_size_mb":   4.2,
-      "image_type":     "360_panoramic",
-      "uploaded_at":    "2026-04-15T08:30:00",
-      "image_url_api":  "/api/v1/images/rooms/G2-1.44/2026-04-15-083000-panorama.jpg"
+      "id": "64a1b2c3d4e5f6789abc9999",
+      "room_id": "2_35",
+      "image_filename": "2026-05-15-120000-panorama.jpg",
+      "file_size_mb": 4.2,
+      "image_type": "360_panoramic",
+      "image_path": "/app/data/images/360/2_35/2026-05-15-120000-panorama.jpg",
+      "uploaded_at": "2026-05-15T12:00:00Z",
+      "image_url_api": "/api/v1/images/rooms/2_35/2026-05-15-120000-panorama.jpg"
     }
-  ]
+  ],
+  "total_count": 1
 }
 ```
 
----
-
-### `GET /api/v1/images/rooms/{room_id}/latest`
-
-Gibt das neueste Bild eines Raums zurück (Metadaten-Objekt, kein Bild-Binary).
+> **Bild laden:** `{baseUrl}{image_url_api}` → `https://streetview.8xc.de/api/v1/images/rooms/2_35/2026-05-15-120000-panorama.jpg`
 
 ---
 
-### `GET /api/v1/images/rooms/{room_id}/{filename}`
+### `GET /images/rooms/{room_id}/latest`
 
-Liefert die Bilddatei selbst (JPEG/PNG/WEBP).
+Neuestes Bild für einen Raum.
 
-**Optionale Transform-Parameter:**
+**Response:** `application/json` — einzelnes `ImageResponse`-Objekt  
+**404** wenn kein Bild vorhanden.
 
-| Parameter | Beispiel | Beschreibung |
-|---|---|---|
-| `size` | `thumbnail` | `original`, `medium` (1600px), `thumbnail` (640px) |
-| `width` | `800` | Zielbreite in Pixeln |
-| `height` | `600` | Zielhöhe in Pixeln |
-| `crop` | `100,200,400,300` | Ausschnitt: `x,y,width,height` oder `width,height` (zentriert) |
+---
 
+### `GET /images/rooms/{room_id}/{filename}`
+
+Bild herunterladen, optional transformiert.
+
+**Request:**
 ```
-GET /api/v1/images/rooms/G2-1.44/2026-04-15-083000-panorama.jpg?size=thumbnail
-GET /api/v1/images/rooms/G2-1.44/2026-04-15-083000-panorama.jpg?width=1600
-GET /api/v1/images/rooms/G2-1.44/2026-04-15-083000-panorama.jpg?crop=50%,50%
+GET /api/v1/images/rooms/2_35/panorama.jpg?size=medium
 ```
 
-> Diese URL kann direkt als `Image`-Source in Flutter verwendet werden.
+**Query-Parameter:**
 
----
-
-### `POST /api/v1/images/rooms/{room_id}/upload` *(Admin)*
-
-Upload eines 360°-Panoramabilds. `multipart/form-data`, Feld `file`.  
-Max. 20 MB. Erlaubte Typen: JPEG, PNG, WEBP.
+| Parameter | Typ | Pflicht | Beschreibung |
+|-----------|-----|---------|-------------|
+| `size` | `string` | nein | `"original"` (default) · `"medium"` · `"thumbnail"` |
+| `width` | `int` | nein | Zielbreite px (1–8192) |
+| `height` | `int` | nein | Zielhöhe px (1–8192) |
+| `crop` | `string` | nein | `"w,h"` (zentriert) oder `"x,y,w,h"`. Werte: px, `%`, oder `0.0–1.0` |
 
 **Response:**
+```
+200 OK
+Content-Type: image/jpeg   (oder image/png / image/webp)
+Content-Length: <bytes>
+```
+Body: Binäre Bilddaten
 
+**Beispiele:**
+```bash
+# Original
+curl "https://streetview.8xc.de/api/v1/images/rooms/2_35/panorama.jpg" -o original.jpg
+
+# Thumbnail
+curl "https://streetview.8xc.de/api/v1/images/rooms/2_35/panorama.jpg?size=thumbnail" -o thumb.jpg
+
+# Custom Größe
+curl "https://streetview.8xc.de/api/v1/images/rooms/2_35/panorama.jpg?width=1920&height=960" -o resized.jpg
+
+# Rechte Bildhälfte (crop: 50% bis Ende)
+curl "https://streetview.8xc.de/api/v1/images/rooms/2_35/panorama.jpg?crop=50%25,0,50%25,100%25" -o right-half.jpg
+```
+
+**Flutter:**
+```dart
+// Einfach per NetworkImage / Image.network (empfohlen für Anzeige)
+Image.network(
+  '$baseUrl/api/v1/images/rooms/2_35/panorama.jpg?size=medium',
+)
+
+// Als Bytes laden (z.B. für 360°-Viewer)
+final response = await http.get(
+  Uri.parse('$baseUrl/api/v1/images/rooms/2_35/panorama.jpg'),
+);
+// response.bodyBytes = Uint8List mit JPEG-Daten
+final imageBytes = response.bodyBytes;
+```
+
+---
+
+### `HEAD /images/rooms/{room_id}/{filename}`
+
+Prüft Existenz ohne Body zu laden.
+
+**Request:**
+```
+HEAD /api/v1/images/rooms/2_35/panorama.jpg
+```
+
+**Response:**
+```
+200 OK
+Content-Type: image/jpeg
+Content-Length: 4398080
+```
+oder `404` wenn nicht vorhanden.
+
+**Flutter:**
+```dart
+final response = await http.head(
+  Uri.parse('$baseUrl/api/v1/images/rooms/2_35/panorama.jpg'),
+);
+final exists = response.statusCode == 200;
+```
+
+---
+
+### `POST /images/rooms/{room_id}/upload`
+
+Bild hochladen.
+
+**Request:**
+```
+POST /api/v1/images/rooms/2_35/upload
+Content-Type: multipart/form-data
+X-API-Key: <api-key>
+```
+
+| Form-Feld | Typ | Beschreibung |
+|-----------|-----|-------------|
+| `file` | `File` | JPEG, PNG oder WEBP · max. **20 MB** |
+
+**Response:** `application/json`
 ```json
 {
-  "message":  "Image uploaded successfully",
-  "filename": "2026-04-15-083000-panorama.jpg"
+  "message": "Image uploaded successfully",
+  "filename": "2026-06-04-143000-panorama.jpg"
+}
+```
+
+**cURL:**
+```bash
+curl -X POST "https://streetview.8xc.de/api/v1/images/rooms/2_35/upload" \
+  -H "X-API-Key: <api-key>" \
+  -F "file=@/pfad/zum/panorama.jpg"
+```
+
+**Flutter:**
+```dart
+final request = http.MultipartRequest(
+  'POST',
+  Uri.parse('$baseUrl/api/v1/images/rooms/2_35/upload'),
+)
+  ..headers['X-API-Key'] = apiKey
+  ..files.add(await http.MultipartFile.fromPath(
+    'file',
+    '/pfad/zum/panorama.jpg',
+    contentType: MediaType('image', 'jpeg'),
+  ));
+
+final streamedResponse = await request.send();
+final response = await http.Response.fromStream(streamedResponse);
+final result = jsonDecode(response.body);
+final filename = result['filename'];
+```
+
+---
+
+### `DELETE /images/rooms/{room_id}/{filename}`
+
+**Request:**
+```
+DELETE /api/v1/images/rooms/2_35/2026-06-04-143000-panorama.jpg
+X-API-Key: <api-key>
+```
+
+**Response:** `application/json`
+```json
+{ "message": "Image deleted successfully" }
+```
+
+---
+
+## 13. Scheduler
+
+### `GET /scheduler/status`
+
+**Request:**
+```
+GET /api/v1/scheduler/status
+Accept: application/json
+```
+
+**Response:** `application/json`
+```json
+{
+  "status": "success",
+  "schedule": "Täglich um 06:00 Uhr (Europe/Berlin)",
+  "last_run": {
+    "id": "64a1b2c3d4e5f6789abc0001",
+    "status": "success",
+    "started_at": "2026-06-04T06:00:00Z",
+    "completed_at": "2026-06-04T06:08:32Z",
+    "rooms_processed": 312,
+    "courses_processed": 18,
+    "lectures_total": 4521,
+    "buildings_upserted": 12,
+    "error": null
+  },
+  "total_runs": 142,
+  "failed_runs": 3,
+  "error": null
+}
+```
+
+**Status-Werte:** `"success"` · `"failed"` · `"running"` · `"never_run"` · `"error"`
+
+---
+
+### `GET /scheduler/logs`
+
+**Request:**
+```
+GET /api/v1/scheduler/logs?limit=10&status=failed
+Accept: application/json
+```
+
+**Query-Parameter:**
+
+| Parameter | Typ | Pflicht | Beschreibung |
+|-----------|-----|---------|-------------|
+| `limit` | `int` | nein | Max. Einträge (default: `20`, max: `100`) |
+| `status` | `string` | nein | `"success"` · `"failed"` · `"running"` |
+
+**Response:** `application/json`
+```json
+{
+  "logs": [
+    {
+      "id": "64a1b2c3d4e5f6789abc0001",
+      "status": "success",
+      "started_at": "2026-06-04T06:00:00Z",
+      "completed_at": "2026-06-04T06:08:32Z",
+      "rooms_processed": 312,
+      "courses_processed": 18,
+      "lectures_total": 4521,
+      "buildings_upserted": 12,
+      "error": null
+    }
+  ],
+  "total": 142,
+  "limit": 10,
+  "error": null
 }
 ```
 
 ---
 
-### `DELETE /api/v1/images/rooms/{room_id}/{filename}` *(Admin)*
+### `POST /scheduler/trigger`
 
-Löscht Bilddatei und Metadaten-Eintrag.
+Scraper manuell starten. Gibt sofort zurück — Fortschritt über `GET /scheduler/status`.
+
+**Request:**
+```
+POST /api/v1/scheduler/trigger
+X-API-Key: <api-key>
+```
+
+**Response:** `application/json`
+```json
+{
+  "message": "Scraper job triggered successfully",
+  "status": "triggered"
+}
+```
 
 ---
 
-## Auth-Header
+## 14. Datenmodelle
 
-Einige Endpunkte sind mit *(Admin)* markiert und benötigen einen API-Key:
+### `StreetViewGraph`
 
-```
-X-API-Key: <api_key>
-```
-
-Der Key wird über die Umgebungsvariable `API_KEY` gesetzt.  
-**Lese-Endpunkte (GET) benötigen keinen Key.**
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `startNode` | `string` | ID des Standard-Startknotens |
+| `nodes` | `StreetViewNode[]` | Alle Navigationspunkte |
 
 ---
 
-## Fehler-Codes
+### `StreetViewNode`
 
-| HTTP Code | Bedeutung |
-|---|---|
-| `200` | OK |
-| `400` | Ungültige Parameter (z. B. falsches Crop-Format) |
-| `404` | Ressource nicht gefunden |
-| `413` | Bild zu groß (> 20 MB) |
-| `415` | Nicht unterstützter Dateityp |
-| `422` | Fehlende Pflichtfelder im Request Body |
-| `500` | Interner Fehler (DB nicht erreichbar o. Ä.) |
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `id` | `string` | Eindeutige Node-ID (z.B. `"2_01_02"`) |
+| `image` | `string` | Relativer Pfad zum Panoramabild → volles Bild: `{baseUrl}{image}` |
+| `building` | `string \| null` | Gebäude-Kürzel (z.B. `"G2"`) |
+| `floor` | `int \| null` | `-1`=UG · `0`=EG · `1`=1OG · `2`=2OG |
+| `node_type` | `string` | `"corridor"` · `"entrance"` · `"staircase"` · `"elevator"` |
+| `heading` | `float` | Kameraausrichtung beim Laden in Grad (0–360) |
+| `exits` | `dict[string → string]` | Richtung → Ziel-Node-ID, z.B. `{"front": "2_04", "left": "2_08"}` |
+| `nearby_rooms` | `RoomAccess[]` | Räume an diesem Standpunkt |
+| `spots` | `StreetViewSpot[]` | Interaktive Panorama-Punkte |
+| `pos_override` | `{x: float, y: float} \| null` | Manuelle Floorplan-Position (vom Editor, nicht für App relevant) |
 
-Alle Fehler haben den Body: `{ "detail": "<Fehlerbeschreibung>" }`
-
----
-
-## Datenmodelle im Überblick
-
-### Lecture (Vorlesung)
-
-Wird **ausschließlich** vom Scraper aus StarPlan befüllt (täglich 06:00 Uhr).  
-Jede Vorlesung ist einer Planungsgruppe zugeordnet (`course_code = "IN S1 AI"`)  
-und einem Studiengang (`courseOfStudyId = "IN"`).
-
-```
-lecture_id       → iCal UID aus StarPlan (eindeutig)
-module_name      → bereinigter Modulname
-module_id        → Modulnummer aus StarPlan
-room_number      → Raumnummer aus iCal LOCATION (z. B. "G2 1.44")
-building         → Gebäude-Code (aus room_number extrahiert)
-professor        → aus iCal DESCRIPTION geparst
-start_time       → datetime (UTC)
-end_time         → datetime (UTC)
-day_of_week      → "Monday" … "Sunday"
-duration_minutes → Dauer in Minuten
-courseOfStudyId  → Studiengangs-Code (z. B. "IN")
-semesterIds      → ["sem_1"] – Array, da VL für S1+S2 → ["sem_1","sem_2"]
-color            → Hex-Farbe (deterministisch per MD5 des Studiengangs-Codes)
-recurrence       → immer "weekly"
-source_type      → immer "course"
-```
-
-### Event
-
-Wird wöchentlich von der HS-Aalen-Website gescrapt.  
-**Kein physischer Raum** – HS Aalen Events haben keine Raum-Angabe.
-
-```
-title                 → Titel
-start_time            → ISO-String
-end_time              → ISO-String (optional)
-groupId               → "social" (alle HS-Aalen-Events)
-is_public             → immer true
-detail_url            → Link zur hs-aalen.de Seite
-source_slug           → eindeutiger Slug aus der URL (Upsert-Key)
-description           → optional, von Detailseite
-organizer             → optional, von Detailseite
-registration_url      → optional, Anmeldelink
-registration_deadline → optional, Frist als Text
-```
-
-### Studiengang
-
-```
-_id      → Studiengangs-Code (z. B. "IN")
-code     → gleich wie _id
-name     → "Informatik"
-semesters → [1,2,3,4,5,6,7]
-color    → Hex-Farbe
-```
-
-### Building
-
-```
-_id                → Gebäude-Code (z. B. "G2")
-code               → gleich wie _id
-name               → "Gebäude G2"
-campus             → "Burren" oder "Main"
-address            → Straße
-floors             → [0,1,2]
-room_count         → Anzahl bekannter Räume
-street_view_enabled → bool
-```
-
-### Settings (Singleton)
-
-Aktuell **ein globales** Settings-Dokument – keine User-Authentifizierung.  
-Im Produktivbetrieb müsste das pro Device-ID aufgeteilt werden.
+**Exit-Richtungen:** `"front"` · `"back"` · `"left"` · `"right"` · `"up"` · `"down"`
 
 ---
 
-## Typische Flutter-Flows
+### `RoomAccess`
 
-### App-Start
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `room_id` | `string` | Raum-ID (z.B. `"G2 2.35"`) |
+| `direction` | `string \| null` | Richtung zur Tür aus Kameraperspektive (z.B. `"links"`, `"rechts"`, `"geradeaus"`) |
 
-```
-1. GET /api/v1/settings
-   → defaultCourseOfStudyIds, defaultSemesterIds laden
+---
 
-2. GET /api/v1/timetable?course=IN&semester=sem_1
-   → courses_of_study, semesters, lectures, events
+### `StreetViewSpot`
 
-3. Filter-UI mit courses_of_study[] und semesters[] befüllen
-```
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `name` | `string` | Name des Spots |
+| `longitude` | `float` | Longitude im Panorama (0–360) |
+| `latitude` | `float` | Latitude im Panorama (-90 bis 90) |
+| `description` | `string \| null` | Optionale Beschreibung |
 
-### Stundenplan-Filter ändern
+---
 
-```
-GET /api/v1/timetable?course=IN,ET&semester=sem_2&date_from=2026-05-11
-```
+### `StreetViewNodeUpdate` (nur für PATCH)
 
-### Gebäude-Navigation öffnen
+Alle Felder optional:
 
-```
-1. GET /api/v1/streetview/graph
-   → startNode + nodes[] laden
-   
-2. nodes[startNode].image als 360°-Bild anzeigen
-   → URL direkt als Image-Source nutzbar
+| Feld | Typ |
+|------|-----|
+| `image` | `string \| null` |
+| `building` | `string \| null` |
+| `floor` | `int \| null` |
+| `node_type` | `"corridor" \| "entrance" \| "staircase" \| "elevator" \| null` |
+| `heading` | `float \| null` |
+| `exits` | `dict[string → string] \| null` |
+| `nearby_rooms` | `RoomAccess[] \| null` |
+| `spots` | `StreetViewSpot[] \| null` |
+| `pos_override` | `{x: float, y: float} \| null` |
 
-3. Bei Tap auf Exit "front":
-   → nextNodeId = nodes[currentId].exits["front"]
-   → nodes[nextNodeId].image anzeigen
-```
+---
 
-### Event-Detail anzeigen
+### `RouteStep`
 
-```
-GET /api/v1/events/{id}
-→ description, organizer, registration_url, registration_deadline prüfen (können fehlen!)
-→ detail_url als "Mehr auf hs-aalen.de" Link anzeigen
-```
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `node_id` | `string` | Node-ID |
+| `image` | `string \| null` | Relativer Pfad → `{baseUrl}{image}` |
+| `building` | `string \| null` | Gebäude-Kürzel |
+| `heading` | `float` | Kamerawinkel (0–360°) |
+| `direction` | `string \| null` | Exit nehmen → zum nächsten Node (`null` am Ziel) |
+| `nearby_rooms` | `RoomAccess[]` | Räume an diesem Node |
+| `room_direction` | `string \| null` | Wo die Zieltür ist — **nur am letzten Schritt** |
 
-### 360°-Bild in bestimmter Auflösung laden
+---
 
-```dart
-// Thumbnail für Raumvorschau
-final thumbUrl = '/api/v1/images/rooms/$roomId/$filename?size=thumbnail';
+### `AppConfig` (Settings-Response)
 
-// Vollbild für 360°-Viewer
-final fullUrl  = '/api/v1/images/rooms/$roomId/$filename';
-```
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `notificationLeadMinutes` | `int` | Vorlaufzeit Benachrichtigungen (default: `15`) |
+| `defaultCourseOfStudyIds` | `string[]` | Vorausgewählte Studiengänge |
+| `defaultSemesterIds` | `string[]` | Vorausgewählte Semester |
+| `defaultEventGroupIds` | `string[]` | Vorausgewählte Event-Gruppen |
+| `savedLectureIds` | `string[]` | Gemerkte Vorlesungen |
+| `savedEventIds` | `string[]` | Gemerkte Events |
+| `theme` | `string` | `"light"` · `"dark"` · `"system"` |
+| `courses_of_study` | `{id, label, color}[]` | Alle Studiengänge mit Farbe |
+| `semesters` | `{id, label}[]` | Alle Semester |
+| `event_groups` | `{id, label, color}[]` | Alle Event-Gruppen mit Farbe |
+
+---
+
+### `BuildingResponse`
+
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `id` | `string` | MongoDB ObjectId |
+| `code` | `string` | Kürzel (z.B. `"G2"`) |
+| `name` | `string` | Vollständiger Name |
+| `campus` | `string` | `"Main"` oder `"Burren"` |
+| `address` | `string \| null` | Anschrift |
+| `floors` | `int[]` | Verfügbare Etagen (z.B. `[0, 1, 2]`) |
+| `street_view_enabled` | `bool` | Hat 360°-Panoramas |
+| `description` | `string \| null` | Optionale Beschreibung |
+| `room_count` | `int` | Anzahl Räume |
+| `last_scraped` | `datetime \| null` | Letzter Scraper-Lauf |
+| `created_at` | `datetime \| null` | Erstellungsdatum |
+
+---
+
+### `RoomResponse`
+
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `id` | `string` | MongoDB ObjectId |
+| `room_number` | `string` | Raumnummer (z.B. `"G2 2.35"`) |
+| `floor` | `int \| null` | Etage |
+| `capacity` | `int \| null` | Sitzplätze |
+| `building` | `string \| null` | Gebäude-Kürzel |
+| `building_id` | `string \| null` | MongoDB ObjectId des Gebäudes |
+| `has_video` | `bool` | Videoanlage |
+| `has_projector` | `bool` | Beamer |
+| `street_view_enabled` | `bool` | Hat 360°-Panorama |
+| `room_image_360` | `{image_paths: string[], latest_update: datetime, url_prefix: string} \| null` | 360°-Bild-Info |
+| `created_at` | `datetime \| null` | Erstellungsdatum |
+
+---
+
+### `EventResponse`
+
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `id` | `string` | MongoDB ObjectId |
+| `title` | `string` | Titel |
+| `groupId` | `string \| null` | Event-Gruppe |
+| `start_time` | `datetime \| null` | Startzeit (ISO 8601 mit Timezone, z.B. `2026-06-15T14:00:00+02:00`) |
+| `end_time` | `datetime \| null` | Endzeit |
+| `building` | `string \| null` | Gebäude-Kürzel |
+| `room` | `string \| null` | Raumnummer |
+| `organizer` | `string \| null` | Veranstalter |
+| `is_public` | `bool` | Ohne Login sichtbar |
+| `image_url` | `string \| null` | Externe Bild-URL |
+| `detail_url` | `string \| null` | Detail-Seite |
+| `description` | `string \| null` | Beschreibung |
+| `registration_url` | `string \| null` | Anmeldelink |
+| `registration_deadline` | `string \| null` | Anmeldeschluss |
+| `created_at` | `datetime \| null` | Erstellungsdatum |
+| `updated_at` | `datetime \| null` | Letztes Update |
+
+---
+
+## 15. Schnellreferenz aller Endpoints
+
+| Method | Endpoint | Auth | Request `Content-Type` | Response `Content-Type` |
+|--------|----------|:----:|------------------------|------------------------|
+| `GET` | `/settings` | — | — | `application/json` |
+| `PUT` | `/settings` | ✓ | `application/json` | `application/json` |
+| `PATCH` | `/settings` | ✓ | `application/json` | `application/json` |
+| `GET` | `/timetable` | — | — | `application/json` |
+| `GET` | `/streetview/graph` | — | — | `application/json` |
+| `GET` | `/streetview/graph/building/{id}` | — | — | `application/json` |
+| `POST` | `/streetview/graph` | ✓ | `application/json` | `application/json` |
+| `PATCH` | `/streetview/graph/building/{id}/node/{nid}` | ✓ | `application/json` | `application/json` |
+| `GET` | `/streetview/graph/building/{id}/map[?floor=]` | — | — | `image/svg+xml` |
+| `GET` | `/streetview/floorplan/{id}` | — | — | `image/svg+xml` |
+| `GET` | `/streetview/floorplan/{id}/rooms` | — | — | `application/json` |
+| `GET` | `/streetview/route/building/{id}?to_room=&from_room=` | — | — | `application/json` |
+| `GET` | `/streetview/route/building/{id}/map?to_room=&from_room=` | — | — | `image/svg+xml` |
+| `GET` | `/buildings` | — | — | `application/json` |
+| `GET` | `/rooms` | — | — | `application/json` |
+| `GET` | `/events` | — | — | `application/json` |
+| `POST` | `/events` | ✓ | `application/json` | `application/json` |
+| `PUT` | `/events/{id}` | ✓ | `application/json` | `application/json` |
+| `DELETE` | `/events/{id}` | ✓ | — | `application/json` |
+| `GET` | `/images/rooms/{id}` | — | — | `application/json` |
+| `GET` | `/images/rooms/{id}/latest` | — | — | `application/json` |
+| `GET` | `/images/rooms/{id}/{filename}[?size=&width=&height=&crop=]` | — | — | `image/jpeg` |
+| `HEAD` | `/images/rooms/{id}/{filename}` | — | — | *(kein Body)* |
+| `POST` | `/images/rooms/{id}/upload` | ✓ | `multipart/form-data` | `application/json` |
+| `DELETE` | `/images/rooms/{id}/{filename}` | ✓ | — | `application/json` |
+| `GET` | `/scheduler/status` | — | — | `application/json` |
+| `GET` | `/scheduler/logs` | — | — | `application/json` |
+| `POST` | `/scheduler/trigger` | ✓ | — | `application/json` |
