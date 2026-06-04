@@ -1,8 +1,8 @@
-"""API-Key-Authentifizierung für Admin-Endpoints."""
+"""Authentifizierung und User-Identifikation."""
 
 import os
 
-from fastapi import HTTPException, Security, status
+from fastapi import Header, HTTPException, Security, status
 from fastapi.security import APIKeyHeader
 
 _API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
@@ -23,3 +23,13 @@ async def require_api_key(key: str | None = Security(_API_KEY_HEADER)) -> None:
             detail="Ungültiger oder fehlender API-Key.",
             headers={"WWW-Authenticate": "ApiKey"},
         )
+
+
+async def get_user_id(x_user_id: str | None = Header(default=None)) -> str:
+    """FastAPI-Dependency: liest die Firebase UID aus dem X-User-ID Header."""
+    if not x_user_id or not x_user_id.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="X-User-ID Header fehlt.",
+        )
+    return x_user_id.strip()

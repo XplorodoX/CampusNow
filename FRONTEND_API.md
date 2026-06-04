@@ -235,9 +235,9 @@ final contentLength = response.headers['content-length'];
 
 ## 4. Authentifizierung
 
-Alle **Lese-Endpoints** (`GET`) sind öffentlich — kein Header nötig.
+### 4.1 Admin-Endpoints (`X-API-Key`)
 
-Alle **Schreib-Endpoints** (`POST`, `PUT`, `PATCH`, `DELETE`) erfordern:
+Alle **Admin-Schreib-Endpoints** (`POST`, `PUT`, `PATCH`, `DELETE` außer Settings) erfordern:
 
 ```
 X-API-Key: <api-key>
@@ -262,6 +262,36 @@ Fehlender oder ungültiger Key → `401 Unauthorized`:
 { "detail": "Unauthorized" }
 ```
 
+### 4.2 User-Endpoints (`X-User-ID`)
+
+Die **Settings-Endpoints** (`GET`, `PUT`, `PATCH /settings`) identifizieren den Nutzer über seine **Firebase UID**:
+
+```
+X-User-ID: <firebase-uid>
+```
+
+```dart
+// Flutter – Firebase UID nach Login
+import 'package:firebase_auth/firebase_auth.dart';
+
+final uid = FirebaseAuth.instance.currentUser?.uid;
+
+final response = await http.get(
+  Uri.parse('$baseUrl/api/v1/settings'),
+  headers: {
+    'Accept': 'application/json',
+    'X-User-ID': uid!,
+  },
+);
+```
+
+Fehlender oder leerer Header → `400 Bad Request`:
+```json
+{ "detail": "X-User-ID Header fehlt." }
+```
+
+Jeder Nutzer hat seine eigenen Einstellungen — isoliert über seine Firebase UID.
+
 ---
 
 ## 5. Fehlerbehandlung
@@ -276,7 +306,7 @@ Alle Fehler-Responses:
 | Status | Bedeutung | Typischer Grund |
 |--------|-----------|----------------|
 | `200` | Erfolg | — |
-| `400` | Ungültige Parameter | Crop-Format falsch, Wert außerhalb Range |
+| `400` | Ungültige Parameter | `X-User-ID` fehlt, Crop-Format falsch, Wert außerhalb Range |
 | `401` | Nicht autorisiert | API-Key fehlt oder falsch |
 | `404` | Nicht gefunden | Gebäude/Raum/Node/Bild existiert nicht |
 | `413` | Datei zu groß | Upload > 20 MB |
@@ -320,6 +350,7 @@ Gibt Benutzereinstellungen + statische Metadaten zurück. **Einmalig pro Session
 ```
 GET /api/v1/settings
 Accept: application/json
+X-User-ID: <firebase-uid>
 ```
 
 **Response:**
@@ -350,13 +381,16 @@ Content-Type: application/json
 
 **cURL:**
 ```bash
-curl "https://streetview.8xc.de/api/v1/settings"
+curl "https://streetview.8xc.de/api/v1/settings" \
+  -H "X-User-ID: <firebase-uid>"
 ```
 
 **Flutter:**
 ```dart
+final uid = FirebaseAuth.instance.currentUser!.uid;
 final response = await http.get(
   Uri.parse('$baseUrl/api/v1/settings'),
+  headers: {'X-User-ID': uid},
 );
 final config = jsonDecode(response.body);
 ```
@@ -371,7 +405,7 @@ final config = jsonDecode(response.body);
 ```
 PUT /api/v1/settings
 Content-Type: application/json
-X-API-Key: <api-key>
+X-User-ID: <firebase-uid>
 ```
 ```json
 {
@@ -408,8 +442,29 @@ Gleiche Struktur wie Request Body.
 ```bash
 curl -X PUT "https://streetview.8xc.de/api/v1/settings" \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: <api-key>" \
+  -H "X-User-ID: <firebase-uid>" \
   -d '{"notificationLeadMinutes": 15, "theme": "dark", "defaultCourseOfStudyIds": [], "defaultSemesterIds": [], "defaultEventGroupIds": [], "savedLectureIds": [], "savedEventIds": []}'
+```
+
+**Flutter:**
+```dart
+final uid = FirebaseAuth.instance.currentUser!.uid;
+final response = await http.put(
+  Uri.parse('$baseUrl/api/v1/settings'),
+  headers: {
+    'Content-Type': 'application/json',
+    'X-User-ID': uid,
+  },
+  body: jsonEncode({
+    'notificationLeadMinutes': 15,
+    'theme': 'dark',
+    'defaultCourseOfStudyIds': ['INF S1+2'],
+    'defaultSemesterIds': ['sem_3'],
+    'defaultEventGroupIds': [],
+    'savedLectureIds': [],
+    'savedEventIds': [],
+  }),
+);
 ```
 
 ---
@@ -422,7 +477,7 @@ Aktualisiert nur übergebene Felder.
 ```
 PATCH /api/v1/settings
 Content-Type: application/json
-X-API-Key: <api-key>
+X-User-ID: <firebase-uid>
 ```
 ```json
 {
@@ -438,13 +493,22 @@ Content-Type: application/json
 ```
 Vollständiges `UserSettings`-Objekt nach dem Update.
 
+**cURL:**
+```bash
+curl -X PATCH "https://streetview.8xc.de/api/v1/settings" \
+  -H "Content-Type: application/json" \
+  -H "X-User-ID: <firebase-uid>" \
+  -d '{"theme": "dark"}'
+```
+
 **Flutter:**
 ```dart
+final uid = FirebaseAuth.instance.currentUser!.uid;
 final response = await http.patch(
   Uri.parse('$baseUrl/api/v1/settings'),
   headers: {
     'Content-Type': 'application/json',
-    'X-API-Key': apiKey,
+    'X-User-ID': uid,
   },
   body: jsonEncode({'theme': 'dark'}),
 );
@@ -1557,14 +1621,14 @@ Alle Felder optional:
 
 | Method | Endpoint | Auth | Request `Content-Type` | Response `Content-Type` |
 |--------|----------|:----:|------------------------|------------------------|
-| `GET` | `/settings` | — | — | `application/json` |
-| `PUT` | `/settings` | ✓ | `application/json` | `application/json` |
-| `PATCH` | `/settings` | ✓ | `application/json` | `application/json` |
+| `GET` | `/settings` | `X-User-ID` | — | `application/json` |
+| `PUT` | `/settings` | `X-User-ID` | `application/json` | `application/json` |
+| `PATCH` | `/settings` | `X-User-ID` | `application/json` | `application/json` |
 | `GET` | `/timetable` | — | — | `application/json` |
 | `GET` | `/streetview/graph` | — | — | `application/json` |
 | `GET` | `/streetview/graph/building/{id}` | — | — | `application/json` |
-| `POST` | `/streetview/graph` | ✓ | `application/json` | `application/json` |
-| `PATCH` | `/streetview/graph/building/{id}/node/{nid}` | ✓ | `application/json` | `application/json` |
+| `POST` | `/streetview/graph` | `X-API-Key` | `application/json` | `application/json` |
+| `PATCH` | `/streetview/graph/building/{id}/node/{nid}` | `X-API-Key` | `application/json` | `application/json` |
 | `GET` | `/streetview/graph/building/{id}/map[?floor=]` | — | — | `image/svg+xml` |
 | `GET` | `/streetview/floorplan/{id}` | — | — | `image/svg+xml` |
 | `GET` | `/streetview/floorplan/{id}/rooms` | — | — | `application/json` |
@@ -1573,15 +1637,15 @@ Alle Felder optional:
 | `GET` | `/buildings` | — | — | `application/json` |
 | `GET` | `/rooms` | — | — | `application/json` |
 | `GET` | `/events` | — | — | `application/json` |
-| `POST` | `/events` | ✓ | `application/json` | `application/json` |
-| `PUT` | `/events/{id}` | ✓ | `application/json` | `application/json` |
-| `DELETE` | `/events/{id}` | ✓ | — | `application/json` |
+| `POST` | `/events` | `X-API-Key` | `application/json` | `application/json` |
+| `PUT` | `/events/{id}` | `X-API-Key` | `application/json` | `application/json` |
+| `DELETE` | `/events/{id}` | `X-API-Key` | — | `application/json` |
 | `GET` | `/images/rooms/{id}` | — | — | `application/json` |
 | `GET` | `/images/rooms/{id}/latest` | — | — | `application/json` |
 | `GET` | `/images/rooms/{id}/{filename}[?size=&width=&height=&crop=]` | — | — | `image/jpeg` |
 | `HEAD` | `/images/rooms/{id}/{filename}` | — | — | *(kein Body)* |
-| `POST` | `/images/rooms/{id}/upload` | ✓ | `multipart/form-data` | `application/json` |
-| `DELETE` | `/images/rooms/{id}/{filename}` | ✓ | — | `application/json` |
+| `POST` | `/images/rooms/{id}/upload` | `X-API-Key` | `multipart/form-data` | `application/json` |
+| `DELETE` | `/images/rooms/{id}/{filename}` | `X-API-Key` | — | `application/json` |
 | `GET` | `/scheduler/status` | — | — | `application/json` |
 | `GET` | `/scheduler/logs` | — | — | `application/json` |
-| `POST` | `/scheduler/trigger` | ✓ | — | `application/json` |
+| `POST` | `/scheduler/trigger` | `X-API-Key` | — | `application/json` |

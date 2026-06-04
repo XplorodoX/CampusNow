@@ -5,7 +5,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.auth import require_api_key
+from app.auth import get_user_id
 from app.db.mongo_client import mongo_client
 from app.models.settings import AppConfig, UserSettings, UserSettingsPatch
 from app.routers.timetable import _EVENT_GROUPS, _SEMESTERS
@@ -14,16 +14,14 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/settings", tags=["settings"])
 
-_SETTINGS_ID = "default"
-
 _USER_FIELDS = {
     "notificationLeadMinutes", "defaultCourseOfStudyIds", "defaultSemesterIds",
     "defaultEventGroupIds", "savedLectureIds", "savedEventIds", "theme",
 }
 
 
-def _load_user_settings(db: Any) -> dict:
-    doc = db.settings.find_one({"_id": _SETTINGS_ID}) or {}
+def _load_user_settings(db: Any, uid: str) -> dict:
+    doc = db.settings.find_one({"_id": uid}) or {}
     doc.pop("_id", None)
     return {k: v for k, v in doc.items() if k in _USER_FIELDS}
 
@@ -37,7 +35,7 @@ def _load_user_settings(db: Any) -> dict:
         "Einmalig beim App-Start aufrufen; bei neuer Session wiederholen."
     ),
 )
-async def get_settings() -> AppConfig:
+async def get_settings(uid: str = Depends(get_user_id)) -> AppConfig:
     """Gibt User-Einstellungen und einmalig benötigte Metadaten zurück.
 
     Der Frontend-Client ruft diesen Endpunkt **einmalig pro Session** auf (App-Start
@@ -47,7 +45,7 @@ async def get_settings() -> AppConfig:
     try:
         db = mongo_client.get_db()
 
-        user = _load_user_settings(db)
+        user = _load_user_settings(db, uid)
 
         studiengaenge = list(db.studiengaenge.find({}, {"code": 1, "name": 1, "color": 1}))
         courses_of_study = [
@@ -72,17 +70,16 @@ async def get_settings() -> AppConfig:
 
 @router.put(
     "",
-    dependencies=[Depends(require_api_key)],
     response_model=UserSettings,
     summary="Einstellungen speichern (vollständig)",
     response_description="Die gespeicherten Einstellungen",
 )
-async def save_settings(settings: UserSettings) -> UserSettings:
+async def save_settings(settings: UserSettings, uid: str = Depends(get_user_id)) -> UserSettings:
     """Überschreibt alle User-Einstellungen komplett. Metadaten werden nicht gespeichert."""
     try:
         db = mongo_client.get_db()
         doc = settings.model_dump()
-        db.settings.replace_one({"_id": _SETTINGS_ID}, {"_id": _SETTINGS_ID, **doc}, upsert=True)
+        db.settings.replace_one({"_id": uid}, {"_id": uid, **doc}, upsert=True)
         return settings
     except Exception as e:
         logger.error(f"Error saving settings: {e}")
@@ -91,23 +88,22 @@ async def save_settings(settings: UserSettings) -> UserSettings:
 
 @router.patch(
     "",
-    dependencies=[Depends(require_api_key)],
     response_model=UserSettings,
     summary="Einstellungen aktualisieren (partiell)",
     response_description="Die vollständigen Einstellungen nach dem Update",
 )
-async def patch_settings(patch: UserSettingsPatch) -> UserSettings:
+async def patch_settings(patch: UserSettingsPatch, uid: str = Depends(get_user_id)) -> UserSettings:
     """Aktualisiert nur die übergebenen Felder; alle anderen bleiben unverändert."""
     try:
         db = mongo_client.get_db()
         updates = {k: v for k, v in patch.model_dump().items() if v is not None}
         if updates:
             db.settings.update_one(
-                {"_id": _SETTINGS_ID},
+                {"_id": uid},
                 {"$set": updates},
                 upsert=True,
             )
-        return UserSettings(**_load_user_settings(db))
+        return UserSettings(**_load_user_settings(db, uid))
     except Exception as e:
         logger.error(f"Error patching settings: {e}")
         raise HTTPException(status_code=500, detail=str(e)) from e
