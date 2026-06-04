@@ -29,6 +29,8 @@ def _parse_object_id(event_id: str) -> ObjectId:
 def _serialize(doc: dict) -> dict:
     if doc and "_id" in doc and isinstance(doc["_id"], ObjectId):
         doc["_id"] = str(doc["_id"])
+    if doc and "_id" in doc:
+        doc["id"] = doc["_id"]
     return doc
 
 
@@ -141,6 +143,35 @@ async def get_events(
 
     except Exception as e:
         logger.error(f"Error fetching events: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@router.get(
+    "/{event_id}",
+    response_model=EventResponse,
+    response_model_exclude_none=True,
+    summary="Event per ID abrufen",
+    response_description="Das Event mit der angegebenen ID",
+    responses={
+        404: {"description": "Event nicht gefunden"},
+        500: {"description": "Datenbankfehler"},
+    },
+)
+async def get_event_by_id(event_id: str) -> EventResponse:
+    """Gibt ein einzelnes Event anhand seiner MongoDB-ID zurück.
+
+    Wird vom Frontend genutzt um gespeicherte Event-IDs in Titel aufzulösen.
+    """
+    try:
+        db = mongo_client.get_db()
+        doc = db.events.find_one({"_id": _parse_object_id(event_id)})
+        if not doc:
+            raise HTTPException(status_code=404, detail="Event not found")
+        return _serialize(doc)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching event {event_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 

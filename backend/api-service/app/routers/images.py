@@ -23,6 +23,10 @@ router = APIRouter(prefix="/api/v1/images", tags=["images"])
 IMAGE_DIR = "/app/data/images/360"
 
 _ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
+_CACHE_TTL = 60 * 60 * 24 * 7  # 7 Tage
+_JPEG_QUALITY = 80
+_MEDIUM_WIDTH = 1600
+_THUMB_WIDTH = 640
 _TIMESTAMP_PREFIX = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{6}-")
 _SAFE_ID = re.compile(r"^[A-Za-z0-9_\-]{1,64}$")
 _MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20 MB
@@ -290,28 +294,37 @@ async def get_image(
                 detail="Invalid size. Use original, medium, or thumbnail.",
             )
 
+        cache_headers = {"Cache-Control": f"public, max-age={_CACHE_TTL}"}
+
+        # Vorgenerierten Variant direkt liefern wenn kein custom crop/size
+        if crop is None and width is None and height is None:
+            stem, ext = os.path.splitext(filename)
+            if size == "medium":
+                variant = os.path.join(IMAGE_DIR, room_id, f"{stem}_medium.jpg")
+                if os.path.exists(variant):
+                    return FileResponse(variant, media_type="image/jpeg", headers=cache_headers)
+            elif size == "thumbnail":
+                variant = os.path.join(IMAGE_DIR, room_id, f"{stem}_thumb.jpg")
+                if os.path.exists(variant):
+                    return FileResponse(variant, media_type="image/jpeg", headers=cache_headers)
+
         filepath = os.path.join(IMAGE_DIR, room_id, filename)
-
         if not os.path.exists(filepath):
-            raise HTTPException(
-                status_code=404,
-                detail="Image not found",
-            )
+            raise HTTPException(status_code=404, detail="Image not found")
 
-        # MIME-Type aus Magic-Bytes lesen statt hardcoded
         with open(filepath, "rb") as f:
             header = f.read(12)
         mime_type = _detect_mime(filepath, header)
 
-        # Legacy size-Parameter in konkrete Zielauflösung übersetzen.
+        # Legacy size-Parameter in konkrete Zielauflösung übersetzen
         if size == "thumbnail" and width is None and height is None:
-            width = 640
+            width = _THUMB_WIDTH
         if size == "medium" and width is None and height is None:
-            width = 1600
+            width = _MEDIUM_WIDTH
 
         has_transform = crop is not None or width is not None or height is not None
         if not has_transform:
-            return FileResponse(filepath, media_type=mime_type)
+            return FileResponse(filepath, media_type=mime_type, headers=cache_headers)
 
         with Image.open(filepath) as image:
             if crop is not None:
@@ -335,9 +348,13 @@ async def get_image(
             if save_format == "JPEG" and image.mode in {"RGBA", "LA", "P"}:
                 image = image.convert("RGB")
 
-            image.save(output, format=save_format)
+            save_kwargs: dict = {"format": save_format}
+            if save_format == "JPEG":
+                save_kwargs.update({"quality": _JPEG_QUALITY, "optimize": True})
+
+            image.save(output, **save_kwargs)
             output.seek(0)
-            return Response(content=output.getvalue(), media_type=mime_type)
+            return Response(content=output.getvalue(), media_type=mime_type, headers=cache_headers)
 
     except HTTPException:
         raise
@@ -441,6 +458,23 @@ async def upload_image(
 
         with open(filepath, "wb") as f:
             f.write(contents)
+
+        # Varianten vorproduzieren
+        stem, _ = os.path.splitext(filename)
+        try:
+            with Image.open(filepath) as img:
+                if img.mode in {"RGBA", "LA", "P"}:
+                    img = img.convert("RGB")
+                for label, target_w in (("medium", _MEDIUM_WIDTH), ("thumb", _THUMB_WIDTH)):
+                    if img.width > target_w:
+                        h = max(1, int(img.height * (target_w / img.width)))
+                        resized = img.resize((target_w, h), Image.Resampling.LANCZOS)
+                    else:
+                        resized = img.copy()
+                    variant_path = os.path.join(room_dir, f"{stem}_{label}.jpg")
+                    resized.save(variant_path, format="JPEG", quality=_JPEG_QUALITY, optimize=True)
+        except Exception as e:
+            logger.warning(f"Variant generation failed for {filename}: {e}")
 
         # Save metadata
         db = mongo_client.get_db()

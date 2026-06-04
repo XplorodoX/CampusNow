@@ -265,7 +265,7 @@ Fehlender oder ungültiger Key → `401 Unauthorized`:
 
 ### 4.2 User-Endpoints (`X-User-ID`)
 
-Die **Settings-Endpoints** (`GET`, `PUT`, `PATCH /settings`) identifizieren den Nutzer über seine **Firebase UID**:
+Die **User- und Settings-Endpoints** (`POST /users`, `GET`, `PUT`, `PATCH /settings`) identifizieren den Nutzer über seine **Firebase UID**:
 
 ```
 X-User-ID: <firebase-uid>
@@ -1524,6 +1524,16 @@ X-API-Key: <api-key>
 ---
 
 ## 15. Datenmodelle
+
+### `UserResponse`
+
+Response von `POST /api/v1/users`.
+
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `created_at` | `string` | ISO-8601-Timestamp der Registrierung |
+
+---
 
 ### `StreetViewGraph`
 

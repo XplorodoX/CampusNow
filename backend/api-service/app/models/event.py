@@ -22,7 +22,7 @@ class EventCreate(BaseModel):
 
 
 class EventResponse(EventCreate):
-    id: str | None = Field(None, alias="_id")
+    id: str | None = Field(None)
     created_at: datetime | None = None
     updated_at: datetime | None = None
 

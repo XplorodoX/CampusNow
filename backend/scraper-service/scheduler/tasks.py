@@ -313,9 +313,7 @@ class ScraperTasks:
                                 }
 
                                 if lid:
-                                    # Upsert: semesterIds per $addToSet zusammenführen,
-                                    # damit ein Lecture das in IN S1 und IN S2 vorkommt
-                                    # beide Semester-IDs bekommt – kein Duplikat.
+                                    # Upsert per lecture_id: semesterIds zusammenführen
                                     db.lectures.update_one(
                                         {"lecture_id": lid},
                                         {
@@ -325,8 +323,20 @@ class ScraperTasks:
                                         upsert=True,
                                     )
                                 else:
+                                    # Kein lecture_id → Upsert per module_id+course+start_time
                                     fields["semesterIds"] = semester_ids
-                                    db.lectures.insert_one(fields)
+                                    db.lectures.update_one(
+                                        {
+                                            "module_id":       fields["module_id"],
+                                            "courseOfStudyId": fields["courseOfStudyId"],
+                                            "start_time":      fields["start_time"],
+                                        },
+                                        {
+                                            "$set":      fields,
+                                            "$addToSet": {"semesterIds": {"$each": semester_ids}},
+                                        },
+                                        upsert=True,
+                                    )
                                 saved += 1
 
                             course_lecture_count += saved
