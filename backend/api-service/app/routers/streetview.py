@@ -230,6 +230,18 @@ _SVG_DEFAULT_FILL   = "#333333"
 _SVG_DEFAULT_STROKE = "#888888"
 _FLOORPLAN_DIR = Path("/app/data/floorplans")
 
+_FLOOR_LABEL = {-1: "Untergeschoss", 0: "Erdgeschoss", 1: "1. Obergeschoss",
+                2: "2. Obergeschoss", 3: "3. Obergeschoss"}
+_FLOOR_SHORT  = {-1: "UG", 0: "EG", 1: "1OG", 2: "2OG", 3: "3OG"}
+
+
+def _floor_svg(building_id: str, floor: int) -> Path:
+    """Gibt floor-spezifisches SVG zurück, Fallback auf Gebäude-SVG."""
+    specific = _FLOORPLAN_DIR / f"{building_id}_{floor}.svg"
+    if specific.exists():
+        return specific
+    return _FLOORPLAN_DIR / f"{building_id}.svg"
+
 # ── Korridor-Geometrie G2 (aus SVG-Analyse) ──────────────────────────────────
 # Nordkorridor: Türöffnungen bei y≈406, Raumlabels bei y≈504
 # Südkorridor: Türöffnungen bei y≈645, Raumlabels bei y≈664
@@ -294,7 +306,8 @@ def _node_xy(
     return avg_x, _SOUTH_DOOR_Y
 
 
-def _render_graph_svg(graph: dict, svg_path: Path) -> str:
+def _render_graph_svg(graph: dict, svg_path: Path, floor_filter: int | None = None,
+                      floor_label: str = "") -> str:
     """SVG – visuell identisch mit dem Floorplan-Editor."""
     room_coords = _parse_room_coords(svg_path)
 
@@ -310,7 +323,8 @@ def _render_graph_svg(graph: dict, svg_path: Path) -> str:
     legend_h = 44.0
     total_h  = vb_h + legend_h
 
-    nodes:      list[dict]                    = graph.get("nodes", [])
+    all_nodes:  list[dict]                    = graph.get("nodes", [])
+    nodes = [n for n in all_nodes if floor_filter is None or n.get("floor") == floor_filter]
     start_node: str                           = graph.get("startNode", "")
     positions:  dict[str, tuple[float, float]] = {}
     for node in nodes:
@@ -344,6 +358,12 @@ def _render_graph_svg(graph: dict, svg_path: Path) -> str:
         f'  <image href="data:image/svg+xml;base64,{fp_b64}" '
         f'x="0" y="0" width="{vb_w}" height="{vb_h}" filter="url(#dark-fp)"/>'
     )
+    if floor_label:
+        p.append(
+            f'  <rect x="0" y="0" width="{vb_w}" height="18" fill="rgba(17,25,39,.85)"/>'
+            f'  <text x="8" y="13" font-size="11" font-weight="700" fill="#4f8ef7">'
+            f'{html.escape(floor_label)}</text>'
+        )
 
 
     # Kanten – eine Linie pro Paar, bidirektionale Pfeile
@@ -468,6 +488,52 @@ def _room_to_node(graph: dict, room_id: str) -> str | None:
             if r.get("room_id") == room_id:
                 return node["id"]
     return None
+
+
+def _render_all_floors_svg(graph: dict, building_id: str) -> str:
+    """Alle Etagen gestapelt in einem SVG."""
+    floors = sorted({n.get("floor") for n in graph.get("nodes", []) if n.get("floor") is not None})
+    if not floors:
+        floors = [None]
+
+    GAP = 24  # Abstand zwischen Etagen
+    svgs: list[tuple[str, float, float]] = []  # (inner_svg_content, w, h)
+
+    for floor in floors:
+        svg_path = _floor_svg(building_id, floor) if floor is not None else _FLOORPLAN_DIR / f"{building_id}.svg"
+        if not svg_path.exists():
+            svg_path = _FLOORPLAN_DIR / f"{building_id}.svg"
+        label = _FLOOR_LABEL.get(floor, f"Etage {floor}") if floor is not None else building_id
+        inner = _render_graph_svg(graph, svg_path, floor_filter=floor, floor_label=label)
+        # Dimensionen aus dem generierten SVG lesen
+        m = re.search(r'width="([\d.]+)" height="([\d.]+)"', inner)
+        w = float(m.group(1)) if m else 723
+        h = float(m.group(2)) if m else 726
+        svgs.append((inner, w, h))
+
+    total_w = max(w for _, w, _ in svgs)
+    total_h = sum(h for _, _, h in svgs) + GAP * (len(svgs) - 1)
+
+    p = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {total_w} {total_h}" '
+        f'width="{total_w}" height="{total_h}" style="background:#0d1117">'
+    ]
+    y_off = 0.0
+    for inner, w, h in svgs:
+        # Inneres SVG als <image> einbetten – extrahiere viewBox und Inhalt
+        b64 = base64.b64encode(inner.encode()).decode()
+        p.append(
+            f'  <image href="data:image/svg+xml;base64,{b64}" '
+            f'x="0" y="{y_off:.0f}" width="{w:.0f}" height="{h:.0f}"/>'
+        )
+        y_off += h + GAP
+        if y_off < total_h:
+            p.append(
+                f'  <line x1="0" y1="{y_off - GAP/2:.0f}" x2="{total_w}" y2="{y_off - GAP/2:.0f}" '
+                f'stroke="#30363d" stroke-width="1" stroke-dasharray="6 4"/>'
+            )
+    p.append("</svg>")
+    return "\n".join(p)
 
 
 def _render_route_svg(graph: dict, steps: list[dict], svg_path: Path, to_room: str) -> str:
@@ -676,9 +742,10 @@ def _render_route_svg(graph: dict, steps: list[dict], svg_path: Path, to_room: s
 async def get_route_map(
     building_id: str,
     to_room: str = Query(..., description="Ziel-Raum-ID, z.B. 'G2 2.34'"),
-    from_room: str | None = Query(None, description="Start-Raum-ID, z.B. 'G2 2.01' (Standard: startNode des Graphen)"),
+    from_room: str | None = Query(None, description="Start-Raum-ID, z.B. 'G2 2.01' (Standard: startNode)"),
+    floor: int | None = Query(None, description="Etage filtern. Ohne Angabe: Etage des Zielraums."),
 ) -> StreamingResponse:
-    """SVG: Route von from_room zum Zielraum — Pfad gold hervorgehoben, alle anderen Nodes gedimmt."""
+    """SVG: Route hervorgehoben. Etage wird automatisch aus Zielraum ermittelt wenn nicht angegeben."""
     db    = mongo_client.get_db()
     doc   = db.streetview_graphs.find_one({"building_id": building_id})
     if not doc:
@@ -690,7 +757,14 @@ async def get_route_map(
     steps = find_route(graph, target_room=to_room, start_node_id=start_node)
     if steps is None:
         raise HTTPException(404, f"Kein Pfad zu '{to_room}' gefunden")
-    svg_path = _FLOORPLAN_DIR / f"{building_id}.svg"
+
+    # Etage automatisch aus Zielnode ermitteln wenn nicht angegeben
+    if floor is None:
+        nodes_by_id = {n["id"]: n for n in graph.get("nodes", [])}
+        dest_node = nodes_by_id.get(steps[-1]["node_id"], {})
+        floor = dest_node.get("floor")
+
+    svg_path = _floor_svg(building_id, floor) if floor is not None else _FLOORPLAN_DIR / f"{building_id}.svg"
     if not svg_path.exists():
         raise HTTPException(404, f"Kein Floorplan-SVG für '{building_id}'")
     svg = _render_route_svg(graph, steps, svg_path, to_room)
@@ -707,24 +781,30 @@ async def get_route_map(
         500: {"description": "Fehler beim Rendern"},
     },
 )
-async def get_graph_map(building_id: str) -> StreamingResponse:
-    """SVG: Grundriss als Hintergrund, Nodes als farbige Kreise, Exits als Linien.
-    Benötigt /app/data/floorplans/{building_id}.svg im Container."""
+async def get_graph_map(
+    building_id: str,
+    floor: int | None = Query(None, description="Etage filtern (0=EG, 1=1OG, 2=2OG). Ohne Angabe: alle Etagen gestapelt."),
+) -> StreamingResponse:
+    """SVG: Grundriss mit Nodes.
+    - Ohne ?floor → alle Etagen gestapelt
+    - ?floor=2    → nur 2. OG
+    Erwartet /app/data/floorplans/{building_id}[_{floor}].svg"""
     try:
         db = mongo_client.get_db()
         doc = db.streetview_graphs.find_one({"building_id": building_id})
         if not doc:
-            raise HTTPException(
-                status_code=404,
-                detail=f"No street view graph for building '{building_id}'",
-            )
-        svg_path = _FLOORPLAN_DIR / f"{building_id}.svg"
-        if not svg_path.exists():
-            raise HTTPException(
-                status_code=404,
-                detail=f"No floorplan SVG at {svg_path}",
-            )
-        svg = _render_graph_svg(_unwrap(doc), svg_path)
+            raise HTTPException(status_code=404, detail=f"No graph for '{building_id}'")
+        graph = _unwrap(doc)
+
+        if floor is None:
+            svg = _render_all_floors_svg(graph, building_id)
+        else:
+            svg_path = _floor_svg(building_id, floor)
+            if not svg_path.exists():
+                raise HTTPException(404, f"Kein Floorplan-SVG für '{building_id}' Etage {floor}")
+            label = _FLOOR_LABEL.get(floor, f"Etage {floor}")
+            svg = _render_graph_svg(graph, svg_path, floor_filter=floor, floor_label=label)
+
         return StreamingResponse(io.BytesIO(svg.encode()), media_type="image/svg+xml")
     except HTTPException:
         raise

@@ -1,27 +1,48 @@
-"""Dijkstra-based pathfinding for StreetView navigation graphs."""
+"""Dijkstra-based pathfinding for StreetView navigation graphs.
+
+Edge weights are the Euclidean distance between node positions (from pos_override).
+If a node has no position, a default penalty is used so the algorithm still works
+but prefers positioned nodes.
+"""
 
 from __future__ import annotations
 
 import heapq
+import math
 from dataclasses import dataclass, field
 from typing import Any
+
+_DEFAULT_EDGE_COST = 100.0  # fallback wenn pos_override fehlt
 
 
 @dataclass(order=True)
 class _State:
-    cost: int
+    cost: float
     node_id: str = field(compare=False)
     prev_node_id: str | None = field(compare=False)
     direction: str | None = field(compare=False)
 
 
+def _pos(node: dict) -> tuple[float, float] | None:
+    po = node.get("pos_override")
+    if po and po.get("x") is not None and po.get("y") is not None:
+        return float(po["x"]), float(po["y"])
+    return None
+
+
+def _edge_cost(a: dict, b: dict) -> float:
+    """Euklidische Distanz zwischen zwei Nodes, automatisch aus pos_override."""
+    pa, pb = _pos(a), _pos(b)
+    if pa and pb:
+        return math.sqrt((pb[0] - pa[0]) ** 2 + (pb[1] - pa[1]) ** 2)
+    return _DEFAULT_EDGE_COST
+
+
 def _node_has_room(node: dict, target_room: str) -> bool:
-    """True if this node provides access to target_room."""
     return any(r.get("room_id") == target_room for r in node.get("nearby_rooms", []))
 
 
 def _room_direction(node: dict, target_room: str) -> str | None:
-    """Return the door direction for target_room at this node, or None."""
     for r in node.get("nearby_rooms", []):
         if r.get("room_id") == target_room:
             return r.get("direction")
@@ -33,18 +54,10 @@ def find_route(
     target_room: str,
     start_node_id: str | None = None,
 ) -> list[dict[str, Any]] | None:
-    """Compute shortest path to the node that has access to target_room.
+    """Kürzester Weg (geografische Distanz) zum Node mit Zugang zu target_room.
 
-    Args:
-        graph: Raw graph dict with keys 'startNode' and 'nodes'.
-        target_room: Room ID to navigate to (must appear in a node's nearby_rooms).
-        start_node_id: Starting node ID. Defaults to graph['startNode'].
-
-    Returns:
-        Ordered list of step dicts, or None if no path exists.
-        Each step: {node_id, image, building, heading, direction, nearby_rooms, room_direction}
-        - direction: exit label taken FROM this node to reach the next one (None at destination)
-        - room_direction: how to find the target room door at the destination node
+    Gewichtung: Euklidische Distanz zwischen Node-Positionen (pos_override).
+    Keine manuelle Angabe nötig – wird automatisch berechnet.
     """
     nodes_by_id: dict[str, dict] = {n["id"]: n for n in graph.get("nodes", [])}
     start = start_node_id or graph.get("startNode")
@@ -52,7 +65,7 @@ def find_route(
     if not start or start not in nodes_by_id:
         return None
 
-    heap: list[_State] = [_State(0, start, None, None)]
+    heap: list[_State] = [_State(0.0, start, None, None)]
     visited: dict[str, tuple[str | None, str | None]] = {}
 
     while heap:
@@ -69,7 +82,9 @@ def find_route(
 
         for direction, neighbor_id in node.get("exits", {}).items():
             if neighbor_id not in visited and neighbor_id in nodes_by_id:
-                heapq.heappush(heap, _State(cost + 1, neighbor_id, nid, direction))
+                neighbor = nodes_by_id[neighbor_id]
+                weight = _edge_cost(node, neighbor)
+                heapq.heappush(heap, _State(cost + weight, neighbor_id, nid, direction))
 
     return None
 
@@ -93,7 +108,6 @@ def _reconstruct(
         node = nodes_by_id[nid]
         is_dest = i == len(path) - 1
 
-        # Direction taken FROM this node to reach the next
         if not is_dest:
             _, direction = visited[path[i + 1]]
         else:
@@ -106,7 +120,6 @@ def _reconstruct(
             "heading": node.get("heading", 0),
             "direction": direction,
             "nearby_rooms": node.get("nearby_rooms", []),
-            # Only set at the destination node
             "room_direction": _room_direction(node, target_room) if is_dest else None,
         })
 
