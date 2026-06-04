@@ -16,7 +16,7 @@ class Studiengang(BaseModel):
 
 
 class StuDiengangResponse(Studiengang):
-    id: str | None = Field(alias="_id")
+    id: str | None = Field(None, validation_alias="_id")
     last_scraped: datetime | None = None
     created_at: datetime | None = None
     related_courses: list[dict] = []

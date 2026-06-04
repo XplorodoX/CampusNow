@@ -29,7 +29,7 @@ class Building(BaseModel):
 
 
 class BuildingResponse(Building):
-    id: str | None = Field(None, alias="_id")
+    id: str | None = Field(None, validation_alias="_id")
     room_count: int = Field(0, description="Anzahl der Räume in diesem Gebäude")
     last_scraped: datetime | None = None
     created_at: datetime | None = None

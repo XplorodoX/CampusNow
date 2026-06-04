@@ -14,7 +14,7 @@ class ImageMetadata(BaseModel):
 
 
 class ImageResponse(ImageMetadata):
-    id: str | None = Field(alias="_id")
+    id: str | None = Field(None, validation_alias="_id")
     image_path: str
     uploaded_at: datetime
     image_url_api: str

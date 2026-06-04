@@ -31,7 +31,7 @@ class Lecture(BaseModel):
 
 
 class LectureResponse(Lecture):
-    id: str | None = Field(None, alias="_id")
+    id: str | None = Field(None, validation_alias="_id")
 
     class Config:
         from_attributes = True

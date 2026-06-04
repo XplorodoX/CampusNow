@@ -24,7 +24,7 @@ class RoomImageInfo(BaseModel):
 
 
 class RoomResponse(Room):
-    id: str | None = Field(alias="_id")
+    id: str | None = Field(None, validation_alias="_id")
     room_image_360: RoomImageInfo | None = None
     created_at: datetime | None = None
 

@@ -4,8 +4,9 @@ import hashlib
 import logging
 from datetime import datetime
 from typing import Any
+from bson import ObjectId
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Header, HTTPException, Query
 
 from app.db.mongo_client import mongo_client
 from app.utils import serialize_docs
@@ -178,6 +179,7 @@ async def get_timetable(
     public_only: bool = Query(False, description="Nur öffentliche Events zurückgeben"),
     limit_lectures: int = Query(200, ge=1, le=1000, description="Max. Vorlesungen"),
     limit_events: int = Query(50, ge=1, le=200, description="Max. Events"),
+    x_user_id: str | None = Header(default=None, alias="X-User-ID", description="Firebase UID des Nutzers"),
 ) -> dict[str, Any]:
     """Gibt gefilterte Vorlesungen und Events zurück.
 
@@ -264,12 +266,40 @@ async def get_timetable(
                 evt_clauses.append({"start_time": {"$lte": date_to + "T23:59:59"}})
 
             evt_query: dict[str, Any] = {"$and": evt_clauses} if evt_clauses else {}
-            raw_events = serialize_docs(list(db.events.find(evt_query).limit(limit_events)))
+            raw_events = list(db.events.find(evt_query).sort("start_time", 1).limit(limit_events))
+
+            # Fetch savedEventIds from user settings
+            saved_event_ids: list[str] = []
+            settings_uid = x_user_id or "default"
+            try:
+                settings_doc = db.settings.find_one({"_id": settings_uid})
+                if settings_doc:
+                    saved_event_ids = settings_doc.get("savedEventIds", [])
+            except Exception as e:
+                logger.warning(f"Error fetching settings for {settings_uid} in timetable: {e}")
+
+            # Ensure saved events are included
+            if saved_event_ids:
+                fetched_ids = {str(e.get("_id", "")) for e in raw_events}
+                missing_ids = [eid for eid in saved_event_ids if eid not in fetched_ids]
+
+                if missing_ids:
+                    object_ids = []
+                    for eid in missing_ids:
+                        try:
+                            object_ids.append(ObjectId(eid))
+                        except Exception:
+                            object_ids.append(eid)
+                    
+                    missing_events = list(db.events.find({"_id": {"$in": object_ids}}))
+                    raw_events.extend(missing_events)
+
+            raw_events_serialized = serialize_docs(raw_events)
             mock_rooms = list(db.rooms.find(
                 {"room_number": {"$exists": True}, "building_id": {"$exists": True}},
                 {"room_number": 1, "building_id": 1, "_id": 0},
             ))
-            events = [_event_to_frontend(e, mock_rooms or None) for e in raw_events]
+            events = [_event_to_frontend(e, mock_rooms or None) for e in raw_events_serialized]
 
         # Fetch study programs from DB for courses_of_study
         db = mongo_client.get_db()
