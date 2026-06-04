@@ -570,7 +570,7 @@ function setStatus(msg, type = '') {
   statusbar.textContent = msg;
   statusbar.className   = type;
   const nc = $('node-count');
-  nc.textContent = `${S.nodes.length} Nodes · ${S.edges.length} Kanten`;
+  if (nc) nc.textContent = `${S.nodes.length} Nodes · ${S.edges.length} Kanten`;
 }
 
 function findNode(id) { return S.nodes.find(n => n.id === id); }
@@ -1086,7 +1086,24 @@ function onDragMove(e) {
   }
 }
 
-function onDragUp() {
+function onDragUp(e) {
+  if (drag) {
+    if (drag.type === 'connect' && activeConnectionLine) {
+      activeConnectionLine.remove();
+      activeConnectionLine = null;
+      
+      // Find node under cursor
+      const card = e && e.target ? e.target.closest('.node-card') : null;
+      if (card) {
+        const targetId = card.id.replace('card-', '');
+        if (targetId && targetId !== drag.nodeId) {
+          doConnect(drag.nodeId, targetId);
+        }
+      }
+      S.connectSrc = null;
+      renderAllNodes();
+    }
+  }
   drag = null;
   document.removeEventListener('mousemove', onDragMove);
   document.removeEventListener('mouseup',   onDragUp);
@@ -1124,16 +1141,23 @@ async function doConnect(srcId, tgtId) {
     }
   }
   
-  const res = await openModal('edge', {
-    title: `Verbindung: ${srcId} → ${tgtId}`,
-    sub: 'Beispiel: front, back, left, right, up, down',
-    dir: 'front', edgeId: `e-${S.edgeCounter++}`
+  const dx = toNode.x - fromNode.x, dy = toNode.y - fromNode.y;
+  const sugg = Math.abs(dx) > Math.abs(dy) ? (dx>0?'right':'left') : (dy>0?'back':'front');
+
+  const dir = await openModal('connect', {
+    title: `Verbindung anlegen`,
+    sub: `Von "${srcId}" → "${tgtId}"`,
+    suggest: sugg
   });
-  if (!res || !res.dir) { setStatus('Verbindung abgebrochen', 'warn'); return; }
+  if (!dir) { setStatus('Verbindung abgebrochen.', 'warn'); return; }
   
-  S.edges.push({ id: res.edgeId, from: srcId, to: tgtId, direction: res.dir });
+  if (S.edges.find(e => e.from === srcId && e.direction === dir)) {
+    setStatus(`Richtung "${dir}" von "${srcId}" existiert bereits.`, 'err'); return;
+  }
+  
+  S.edges.push({ id: `e${S.edgeCounter++}`, from: srcId, to: tgtId, direction: dir });
   renderSVG();
-  setStatus(`Verbindung ${srcId} → ${tgtId} (${res.dir}) erstellt.`, 'success');
+  setStatus(`Verbindung "${dir}": "${srcId}" → "${tgtId}".`, 'success');
 }
 
 

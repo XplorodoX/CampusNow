@@ -10,7 +10,6 @@
   --bg:#0d1117;--surface:#161b22;--surface2:#1c2128;--surface3:#22272e;
   --border:#30363d;--accent:#4f8ef7;--accent2:#7c3aed;--danger:#f85149;
   --success:#3fb950;--warn:#d29922;--text:#e6edf3;--text2:#7d8590;--text3:#484f58;
-  --c-corridor:#4f8ef7;--c-entrance:#d29922;--c-staircase:#bc4cf7;--c-elevator:#3dd68c;
 }
 body{background:var(--bg);color:var(--text);font:13px/1.5 system-ui,sans-serif;
   height:100vh;display:flex;flex-direction:column;overflow:hidden}
@@ -32,9 +31,15 @@ body{background:var(--bg);color:var(--text);font:13px/1.5 system-ui,sans-serif;
 .btn:disabled{opacity:.4;cursor:not-allowed}
 .tb-inp{padding:4px 8px;border-radius:6px;border:1px solid var(--border);
   background:var(--surface2);color:var(--text);font-size:12px}
-#inp-api{width:180px}#inp-key{width:120px}#inp-bld{width:60px}
+#inp-api{width:180px}#inp-key{width:120px}#inp-bld{width:55px}
 #mode-label{font-size:11px;color:var(--warn);font-weight:600;display:none}
-#status{font-size:11px;color:var(--text2);margin-left:auto}
+
+/* floor tabs */
+#floor-tabs{display:flex;gap:2px;background:var(--surface2);border-radius:6px;padding:2px}
+.ftab{padding:3px 9px;border-radius:5px;cursor:pointer;font-size:11px;font-weight:600;
+  color:var(--text2);border:none;background:none;transition:background .12s,color .12s}
+.ftab:hover{color:var(--text)}
+.ftab.active{background:var(--accent);color:#fff}
 
 /* ── LAYOUT ── */
 #main{display:flex;flex:1;overflow:hidden}
@@ -44,7 +49,7 @@ body{background:var(--bg);color:var(--text);font:13px/1.5 system-ui,sans-serif;
   border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
 .panel{padding:12px;border-bottom:1px solid var(--border)}
 .ph{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);
-  margin-bottom:10px;font-weight:600}
+  margin-bottom:8px;font-weight:600;display:flex;align-items:center;justify-content:space-between}
 .field{display:flex;flex-direction:column;gap:3px;margin-bottom:8px}
 .field:last-child{margin-bottom:0}
 .field label{font-size:11px;color:var(--text2)}
@@ -52,24 +57,38 @@ body{background:var(--bg);color:var(--text);font:13px/1.5 system-ui,sans-serif;
   background:var(--surface2);color:var(--text);font-size:12px;width:100%}
 .field input:focus,.field select:focus{outline:none;border-color:var(--accent)}
 .hint{font-size:10px;color:var(--text3);margin-top:2px}
+.add-row{display:flex;gap:5px;margin-top:6px}
+.add-row input,.add-row select{flex:1;padding:5px 7px;border-radius:5px;border:1px solid var(--border);
+  background:var(--surface2);color:var(--text);font-size:11px}
+.add-row .btn{padding:5px 8px;flex-shrink:0}
 
-/* exits / rooms list */
+/* list rows */
 .list-row{display:flex;align-items:center;gap:5px;padding:4px 7px;
   border-radius:5px;background:var(--surface2);margin-bottom:4px;font-size:11px}
 .list-row .dir{color:var(--accent);font-weight:700;min-width:44px;font-family:monospace}
 .list-row .tgt{color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.list-row .sub{color:var(--text3);font-size:10px}
 .del-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 2px;line-height:1;margin-left:auto}
 .del-btn:hover{color:var(--danger)}
 .empty{font-size:11px;color:var(--text3);text-align:center;padding:6px 0}
 
-/* room badges */
-.room-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border-radius:4px;
-  background:var(--surface2);font-size:11px;margin:2px;border:1px solid var(--border)}
-.room-badge .room-id{color:var(--accent2);font-weight:600}
-
 #no-sel{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
   color:var(--text2);font-size:12px;text-align:center;padding:24px 16px;gap:8px}
 #no-sel .icon{font-size:36px}
+
+/* upload */
+#upload-area{border:2px dashed var(--border);border-radius:8px;padding:10px;
+  text-align:center;cursor:pointer;transition:border-color .15s,background .15s;position:relative}
+#upload-area:hover,#upload-area.drag-over{border-color:var(--accent);background:rgba(79,142,247,.05)}
+#upload-area.uploading{border-color:var(--warn);background:rgba(210,153,34,.05);cursor:default}
+#upload-area.done{border-color:var(--success);background:rgba(63,185,80,.05)}
+#upload-area.error{border-color:var(--danger);background:rgba(248,81,73,.05)}
+#upload-icon{font-size:22px;margin-bottom:3px}
+#upload-label{font-size:11px;color:var(--text2)}
+#upload-file{position:absolute;inset:0;opacity:0;cursor:pointer}
+#prop-preview{width:100%;aspect-ratio:2/1;object-fit:cover;border-radius:6px;
+  border:1px solid var(--border);margin-top:8px;display:none}
+.upload-url{font-size:10px;color:var(--success);word-break:break-all;margin-top:4px;display:none}
 
 /* ── CANVAS ── */
 #canvas-wrap{flex:1;position:relative;overflow:hidden;background:#111;cursor:default}
@@ -77,16 +96,21 @@ body{background:var(--bg);color:var(--text);font:13px/1.5 system-ui,sans-serif;
 #svg-canvas.mode-connect{cursor:cell}
 
 /* node circles */
-.node-circle{cursor:pointer;transition:filter .1s}
-.node-circle:hover{filter:brightness(1.25)}
+.node-circle{cursor:pointer}
+.node-circle text,.node-circle .badge-g{opacity:0;transition:opacity .1s}
+.node-circle:hover text,.node-circle.selected text,
+.node-circle:hover .badge-g,.node-circle.selected .badge-g{opacity:1}
+.node-circle:hover{filter:brightness(1.3) drop-shadow(0 0 3px rgba(91,155,213,.6))}
 .node-circle.selected circle{stroke-width:3!important;filter:drop-shadow(0 0 6px rgba(79,142,247,.8))}
 .node-circle.connect-src circle{stroke:#7c3aed!important;stroke-width:3!important;
   filter:drop-shadow(0 0 8px rgba(124,58,237,.9))}
+.node-circle.floor-hidden{display:none}
 
 /* edge */
 .edge{cursor:pointer}
-.edge:hover .edge-line{stroke:#f85149;stroke-width:2.5}
-.edge:hover .edge-lbl{fill:#f85149}
+.edge .edge-lbl-group{opacity:0;transition:opacity .12s}
+.edge:hover .edge-lbl-group{opacity:1}
+.edge:hover .edge-line{stroke:#7c3aed;stroke-width:2.5}
 
 /* zoom btns */
 #zoom-ctrl{position:absolute;bottom:12px;right:12px;display:flex;flex-direction:column;gap:4px}
@@ -96,10 +120,33 @@ body{background:var(--bg);color:var(--text);font:13px/1.5 system-ui,sans-serif;
 .zbtn:hover{background:var(--surface2)}
 #zoom-val{font-size:10px;color:var(--text2);text-align:center;padding:2px 0}
 
+/* statusbar */
+#statusbar{padding:4px 14px;background:var(--surface);border-top:1px solid var(--border);
+  font-size:11px;color:var(--text2);flex-shrink:0;min-height:24px;
+  display:flex;align-items:center;gap:8px}
+#status-dot{width:6px;height:6px;border-radius:50%;background:var(--text3);flex-shrink:0;transition:background .2s}
+#node-count{margin-left:auto;font-size:10px;color:var(--text3);white-space:nowrap}
+
+/* toast */
+#toast-wrap{position:fixed;bottom:36px;right:14px;z-index:600;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.toast{padding:9px 14px;border-radius:7px;font-size:12px;display:flex;align-items:center;gap:8px;
+  box-shadow:0 4px 20px rgba(0,0,0,.55);pointer-events:all;min-width:200px;
+  transform:translateX(calc(100% + 20px));transition:transform .22s ease,opacity .22s;opacity:0}
+.toast.in{transform:translateX(0);opacity:1}
+.toast-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:currentColor}
+.toast.success{background:#152b1e;border:1px solid var(--success);color:var(--success)}
+.toast.error{background:#2b1515;border:1px solid var(--danger);color:var(--danger)}
+.toast.warn{background:#2b2415;border:1px solid var(--warn);color:var(--warn)}
+.toast.info{background:var(--surface2);border:1px solid var(--border);color:var(--text2)}
+
+/* button loading */
+.btn.loading{opacity:.6;cursor:not-allowed;pointer-events:none}
+
 /* tooltip */
-#tooltip{position:fixed;background:rgba(22,27,34,.95);border:1px solid var(--border);
-  border-radius:6px;padding:5px 9px;font-size:11px;color:var(--text);pointer-events:none;
-  display:none;z-index:999;max-width:240px}
+#tooltip{position:fixed;background:#1c2333;border:1px solid #3a4a6a;
+  border-radius:7px;padding:7px 11px;font-size:12px;line-height:1.6;color:var(--text);pointer-events:none;
+  display:none;z-index:999;max-width:260px;white-space:pre;
+  box-shadow:0 4px 20px rgba(0,0,0,.6)}
 </style>
 </head>
 <body>
@@ -107,78 +154,142 @@ body{background:var(--bg);color:var(--text);font:13px/1.5 system-ui,sans-serif;
 <div id="toolbar">
   <h1>Floorplan-Editor</h1>
   <div class="sep"></div>
-  <input id="inp-api" class="tb-inp" value="http://localhost:6058" placeholder="API URL">
-  <input id="inp-key" class="tb-inp" value="" placeholder="X-API-Key">
+  <input id="inp-api" class="tb-inp" placeholder="http://localhost:6058">
+  <input id="inp-key" class="tb-inp" placeholder="API-Key" type="password">
   <input id="inp-bld" class="tb-inp" value="G2" placeholder="Gebäude">
-  <button class="btn" onclick="loadAll()">↓ Laden</button>
+  <button class="btn" onclick="loadAll()" id="btn-load">Laden</button>
   <div class="sep"></div>
-  <div class="tool-group" style="display:flex; border:1px solid var(--border); border-radius:4px; overflow:hidden">
-    <button class="btn active" id="tool-move" style="border-radius:0; border:none; border-right:1px solid var(--border)" onclick="setTool('move')">✋ Move</button>
-    <button class="btn" id="tool-connect" style="border-radius:0; border:none; border-right:1px solid var(--border)" onclick="setTool('connect')">🔗 Connect</button>
-    <button class="btn" id="tool-delete" style="border-radius:0; border:none;" onclick="setTool('delete')">🗑 Delete</button>
+  <div class="tool-group" style="display:flex;border:1px solid var(--border);border-radius:4px;overflow:hidden">
+    <button class="btn active" id="tool-move" style="border-radius:0;border:none;border-right:1px solid var(--border)" onclick="setTool('move')">Move</button>
+    <button class="btn" id="tool-connect" style="border-radius:0;border:none;border-right:1px solid var(--border)" onclick="setTool('connect')">Connect</button>
+    <button class="btn" id="tool-delete" style="border-radius:0;border:none" onclick="setTool('delete')">Delete</button>
   </div>
-  <span id="mode-label" style="display:none;"></span>
+  <button class="btn" onclick="addNode()">+ Node</button>
+  <button class="btn active" id="btn-snap" onclick="toggleSnap()" title="Shift = Grid-Snap">Snap</button>
   <div class="sep"></div>
-  <button class="btn ok" onclick="saveGraph()">↑ Speichern</button>
+  <input type="file" id="file-import" accept=".json" style="display:none">
+  <button class="btn" onclick="$('file-import').click()">Import</button>
+  <button class="btn" onclick="exportJSON()">Export</button>
+  <button class="btn ok" id="btn-save" onclick="saveGraph()">Speichern</button>
   <div class="sep"></div>
-  <span id="status">Nicht geladen</span>
+  <div id="floor-tabs">
+    <button class="ftab active" data-floor="all">Alle</button>
+    <button class="ftab" data-floor="0">EG</button>
+    <button class="ftab" data-floor="1">1OG</button>
+    <button class="ftab" data-floor="2">2OG</button>
+  </div>
+  <span id="mode-label"></span>
 </div>
 
 <div id="main">
   <!-- SIDEBAR -->
   <div id="sidebar">
     <div id="no-sel">
-      <div class="icon">🗺</div>
+      <div style="font-size:28px;color:var(--text3);line-height:1">◎</div>
       <div>Node anklicken<br>zum Bearbeiten</div>
       <div style="font-size:10px;color:var(--text3);margin-top:8px">
-        Shift+Klick → Verbindung ziehen<br>
-        Klick auf Pfeil → Verbindung löschen
+        Connect-Tool → Nodes verbinden<br>
+        Move-Tool → Nodes verschieben
       </div>
     </div>
     <div id="prop-panel" style="display:none">
+
       <div class="panel">
         <div class="ph">Node-Eigenschaften</div>
         <div class="field"><label>ID</label>
-          <input id="p-id" readonly style="color:var(--accent);font-family:monospace"></div>
-        <div class="field"><label>Typ</label>
-          <select id="p-type" onchange="applyProp()">
-            <option value="corridor">corridor – Gang / Flur</option>
-            <option value="staircase">staircase – Treppe</option>
-            <option value="elevator">elevator – Aufzug</option>
-            <option value="entrance">entrance – Eingang</option>
-          </select></div>
-        <div class="field"><label>Etage</label>
-          <input id="p-floor" type="number" onchange="applyProp()"></div>
+          <input id="p-id" readonly style="color:var(--accent);font-family:monospace;font-size:11px"></div>
+        <div class="field"><label>Neuer Name</label>
+          <div style="display:flex;gap:5px">
+            <input id="p-newid" style="font-family:monospace;font-size:11px" placeholder="Neue ID eingeben">
+            <button class="btn danger" style="flex-shrink:0;padding:4px 8px" onclick="renameId()">✓</button>
+          </div>
+          <div class="hint">Ändert ID im Graph (nicht Bild-Ordner)</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <div class="field" style="flex:1"><label>Typ</label>
+            <select id="p-type" onchange="applyProp()">
+              <option value="corridor">Korridor</option>
+              <option value="entrance">Eingang</option>
+              <option value="staircase">Treppe</option>
+              <option value="elevator">Aufzug</option>
+            </select></div>
+          <div class="field" style="flex:1"><label>Etage</label>
+            <select id="p-floor" onchange="applyProp()">
+              <option value="">–</option>
+              <option value="-1">–1 UG</option>
+              <option value="0">0 EG</option>
+              <option value="1">1 OG</option>
+              <option value="2">2 OG</option>
+              <option value="3">3 OG</option>
+            </select></div>
+        </div>
         <div class="field"><label>Heading (°)</label>
-          <input id="p-heading" type="number" min="0" max="359" onchange="applyProp()"></div>
-        <div class="field"><label>Bild-URL</label>
-          <input id="p-img" onchange="applyProp()" placeholder="/api/v1/images/rooms/...">
-          <div class="hint">Pfad zum 360°-Panorama</div></div>
+          <input id="p-heading" type="number" min="0" max="359" onchange="applyProp()">
+          <div class="hint">Kameraausrichtung beim Laden</div></div>
+        <div style="display:flex;gap:6px;margin-top:4px">
+          <button class="btn" style="flex:1" onclick="setStartNode()">Als StartNode</button>
+          <button class="btn danger" style="flex:1" onclick="deleteNode()">Löschen</button>
+        </div>
       </div>
 
       <div class="panel">
-        <div class="ph">Durchgangene Räume
-          <span style="font-size:9px;color:var(--text3);text-transform:none">
-            Räume die durch diesen Node passiert werden können</span>
+        <div class="ph">360°-Panoramabild</div>
+        <div id="upload-area">
+          <div id="upload-icon" style="font-size:16px;color:var(--text3);margin-bottom:3px">▲</div>
+          <div id="upload-label">Bild ablegen oder anklicken</div>
+          <input type="file" id="upload-file" accept="image/*">
+        </div>
+        <img id="prop-preview">
+        <div class="upload-url" id="upload-url-display"></div>
+        <div class="field" style="margin-top:8px"><label>Bild-URL</label>
+          <input id="p-img" onchange="applyProp()" placeholder="/api/v1/images/rooms/…/datei.jpg" style="font-size:10px">
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="ph">Zugängliche Räume
+          <span id="room-count" style="font-weight:400;font-size:10px;text-transform:none"></span>
         </div>
         <div id="rooms-list"></div>
-        <div style="display:flex;gap:6px;margin-top:6px">
-          <input id="add-room" class="tb-inp" style="flex:1;font-size:11px" placeholder="G2 2.35">
-          <button class="btn" style="padding:4px 8px" onclick="addRoom()">+</button>
+        <div class="add-row">
+          <input id="add-room-id" placeholder="G2 2.35">
+          <select id="add-room-dir">
+            <option value="">Richtung…</option>
+            <option value="links">← links</option>
+            <option value="rechts">→ rechts</option>
+            <option value="geradeaus">↑ geradeaus</option>
+            <option value="hinten">↓ hinten</option>
+            <option value="Tür links">Tür links</option>
+            <option value="Tür rechts">Tür rechts</option>
+            <option value="Tür geradeaus">Tür geradeaus</option>
+          </select>
+          <button class="btn" onclick="addRoom()">+</button>
         </div>
       </div>
 
       <div class="panel">
-        <div class="ph">Verbindungen (Exits)
-          <span style="font-size:9px;color:var(--text3);text-transform:none">
-            Klick auf Pfeil im Plan löscht, 🔗-Button fügt hinzu</span>
+        <div class="ph">Panorama-Spots
+          <span id="spot-count" style="font-weight:400;font-size:10px;text-transform:none"></span>
         </div>
+        <div id="spots-list"></div>
+        <div class="add-row" style="flex-wrap:wrap;gap:4px">
+          <input id="add-spot-name" placeholder="Name" style="flex:2;min-width:70px">
+          <input id="add-spot-lon" placeholder="Lon 0–360" type="number" min="0" max="360" style="flex:1;min-width:55px">
+          <input id="add-spot-lat" placeholder="Lat ±90" type="number" min="-90" max="90" style="flex:1;min-width:55px">
+          <input id="add-spot-desc" placeholder="Beschreibung (opt.)" style="flex:3;min-width:100px">
+          <button class="btn" onclick="addSpot()">+</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="ph">Verbindungen (Exits)</div>
         <div id="exits-list"></div>
       </div>
 
-      <div class="panel">
-        <button class="btn danger" style="width:100%" onclick="deleteNode()">Node löschen</button>
+      <div class="panel" style="border-bottom:none">
+        <button class="btn ok" id="btn-patch" style="width:100%" onclick="patchNode()">Diesen Node speichern</button>
       </div>
+
     </div>
   </div>
 
@@ -186,15 +297,17 @@ body{background:var(--bg);color:var(--text);font:13px/1.5 system-ui,sans-serif;
   <div id="canvas-wrap">
     <svg id="svg-canvas" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <marker id="arr" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
-          <polygon points="0,0 7,3.5 0,7" fill="#5b7fa8" opacity="0.9"/>
+        <marker id="arr" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto-start-reverse">
+          <polygon points="0,0 5,2.5 0,5" fill="#5b7fa8" opacity="0.9"/>
         </marker>
-        <marker id="arr-sel" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
-          <polygon points="0,0 7,3.5 0,7" fill="#f85149"/>
-        </marker>
+        <filter id="dark-fp" color-interpolation-filters="sRGB">
+          <feColorMatrix type="matrix"
+            values="-0.72 0 0 0 0.85  0 -0.72 0 0 0.88  0 0 -0.72 0 0.97  0 0 0 1 0"/>
+        </filter>
       </defs>
       <g id="layer-bg"></g>
       <g id="layer-edges"></g>
+      <g id="layer-snap"></g>
       <g id="layer-nodes"></g>
     </svg>
     <div id="zoom-ctrl">
@@ -206,91 +319,189 @@ body{background:var(--bg);color:var(--text);font:13px/1.5 system-ui,sans-serif;
   </div>
 </div>
 
+<!-- CONNECTION PANEL -->
+<div id="conn-panel" style="display:none;position:fixed;z-index:200;background:var(--surface);
+  border:1px solid var(--border);border-radius:10px;padding:14px;min-width:230px;
+  box-shadow:0 8px 32px rgba(0,0,0,.6)">
+  <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);font-weight:600;margin-bottom:10px">Verbindung bearbeiten</div>
+  <div class="field">
+    <label id="conn-lbl-fwd" style="font-size:11px;color:var(--text2)"></label>
+    <select id="conn-dir-fwd">
+      <option value="">— kein Exit —</option>
+      <option value="front">↑ front</option>
+      <option value="back">↓ back</option>
+      <option value="left">← left</option>
+      <option value="right">→ right</option>
+      <option value="up">⬆ up (Etage rauf)</option>
+      <option value="down">⬇ down (Etage runter)</option>
+    </select>
+  </div>
+  <div class="field">
+    <label id="conn-lbl-rev" style="font-size:11px;color:var(--text2)"></label>
+    <select id="conn-dir-rev">
+      <option value="">— kein Exit —</option>
+      <option value="front">↑ front</option>
+      <option value="back">↓ back</option>
+      <option value="left">← left</option>
+      <option value="right">→ right</option>
+      <option value="up">⬆ up (Etage rauf)</option>
+      <option value="down">⬇ down (Etage runter)</option>
+    </select>
+  </div>
+  <div style="display:flex;gap:6px;margin-top:10px">
+    <button class="btn danger" style="flex:1" onclick="deleteConn()">Löschen</button>
+    <button class="btn" style="flex:1" onclick="cancelConn()">Abbrechen</button>
+    <button class="btn active" style="flex:1" onclick="applyConn()">Übernehmen</button>
+  </div>
+</div>
+
+<div id="statusbar">
+  <span id="status-dot"></span>
+  <span id="status-msg">Nicht geladen — Gebäude-ID eingeben und Laden klicken.</span>
+  <span id="node-count"></span>
+</div>
+
+<div id="toast-wrap"></div>
 <div id="tooltip"></div>
 
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
-let graph = null;           // {startNode, nodes:[]}
-let roomCoords = {};        // "2.35" → {x,y}
-let positions = {};         // nodeId → {x,y}  (computed)
-let selectedId = null;
-let toolMode === 'connect' = false;
-let connectSrc = null;
-let scale = 1;
-let panX = 0, panY = 0;
+let graph       = null;
+let roomCoords  = {};
+let positions   = {};
+let selectedId  = null;
+let toolMode    = 'move';
+let floorFilter = 'all';
+let scale = 1, panX = 0, panY = 0;
 let isPanning = false, panStart = null;
-const FP_W = 723, FP_H = 682;
+let drag = null, activeConnectionLine = null;
+let snapEnabled = true;
+const SNAP_THRESHOLD = 14;
+const GRID_SIZE = 10;
 
-// Korridor-Geometrie (aus SVG-Analyse)
+function toggleSnap(){
+  snapEnabled = !snapEnabled;
+  $('btn-snap').classList.toggle('active', snapEnabled);
+}
+
+function applySnap(x, y, excludeId, useGrid){
+  if(useGrid){
+    return { x: Math.round(x/GRID_SIZE)*GRID_SIZE, y: Math.round(y/GRID_SIZE)*GRID_SIZE, gx: x, gy: y };
+  }
+  let snapX=null, snapY=null, minDX=SNAP_THRESHOLD, minDY=SNAP_THRESHOLD;
+  for(const [id,pos] of Object.entries(positions)){
+    if(id===excludeId||!pos) continue;
+    const dx=Math.abs(pos.x-x), dy=Math.abs(pos.y-y);
+    if(dx<minDX){ minDX=dx; snapX=pos.x; }
+    if(dy<minDY){ minDY=dy; snapY=pos.y; }
+  }
+  return { x: snapX!==null?snapX:x, y: snapY!==null?snapY:y, snapX, snapY };
+}
+
+function renderSnapGuides(snapX, snapY){
+  let html='';
+  if(snapX!=null)
+    html+=`<line x1="${snapX.toFixed(1)}" y1="0" x2="${snapX.toFixed(1)}" y2="${FP_H}"
+      stroke="#4f8ef7" stroke-width="0.6" stroke-dasharray="4 3" opacity="0.7"/>`;
+  if(snapY!=null)
+    html+=`<line x1="0" y1="${snapY.toFixed(1)}" x2="${FP_W}" y2="${snapY.toFixed(1)}"
+      stroke="#4f8ef7" stroke-width="0.6" stroke-dasharray="4 3" opacity="0.7"/>`;
+  $('layer-snap').innerHTML=html;
+}
+
+function clearSnapGuides(){ $('layer-snap').innerHTML=''; }
+
+const FP_W = 723, FP_H = 682;
 const NORTH_Y = 543, SOUTH_Y = 630, WEST_X_MAX = 65, EAST_X_MIN = 640, NORTH_MAX_Y = 587;
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-const api  = () => document.getElementById('inp-api').value.replace(/\/+$/,'');
-const key  = () => document.getElementById('inp-key').value;
-const bld  = () => document.getElementById('inp-bld').value;
-const $    = id  => document.getElementById(id);
-const setStatus = (msg, col='var(--text2)') => {
-  $('status').textContent = msg;
-  $('status').style.color = col;
-};
+const api = () => document.getElementById('inp-api').value.trim().replace(/\/+$/,'');
+const key = () => document.getElementById('inp-key').value.trim();
+const bld = () => document.getElementById('inp-bld').value.trim();
+const $   = id  => document.getElementById(id);
+
+function setStatus(msg, type=''){
+  $('status-msg').textContent = msg;
+  const dot=$('status-dot');
+  const dotColor = type==='success'?'var(--success)':type==='error'?'var(--danger)':type==='warn'?'var(--warn)':'var(--text3)';
+  dot.style.background = dotColor;
+  const nc=$('node-count');
+  if(nc&&graph) nc.textContent=`${graph.nodes.length} Nodes · ${graph.nodes.filter(n=>positions[n.id]).length} positioniert`;
+}
+
+function toast(msg, type='info', duration=3500){
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;
+  el.innerHTML=`<span class="toast-dot"></span><span>${msg}</span>`;
+  $('toast-wrap').appendChild(el);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('in')));
+  setTimeout(()=>{ el.classList.remove('in'); el.addEventListener('transitionend',()=>el.remove(),{once:true}); }, duration);
+}
+
+function btnLoading(id, loading, label){
+  const b=$(id); if(!b) return;
+  b.classList.toggle('loading', loading);
+  if(label) b.textContent=label;
+}
 
 function nodeById(id){ return graph?.nodes.find(n=>n.id===id); }
 
-// ── Positionierung (gleiche Logik wie Python _node_xy) ─────────────────────
+// ── Positionierung ─────────────────────────────────────────────────────────
 function computePositions(){
   positions = {};
   if(!graph) return;
   const BUILDING = bld();
   for(const node of graph.nodes){
+    if(node.pos_override){ positions[node.id]=node.pos_override; continue; }
     const raw = (node.nearby_rooms||[])
-      .map(r => { const s = r.room_id.replace(BUILDING+' ',''); return roomCoords[s]; })
+      .map(r=>{ const s=r.room_id.replace(BUILDING+' ',''); return roomCoords[s]; })
       .filter(Boolean);
     if(!raw.length){ positions[node.id]=null; continue; }
     const avgX = raw.reduce((a,c)=>a+c.x,0)/raw.length;
     const avgY = raw.reduce((a,c)=>a+c.y,0)/raw.length;
-
-    let x, y;
-    if(avgX < WEST_X_MAX){       x = avgX+18; y = avgY; }
-    else if(avgX > EAST_X_MIN){  x = avgX-18; y = avgY; }
-    else {
-      const north = raw.filter(r=>r.y < NORTH_MAX_Y).length;
-      const south = raw.length - north;
-      x = avgX;
-      y = north >= south ? NORTH_Y : SOUTH_Y;
+    let x,y;
+    if(avgX < WEST_X_MAX){      x=avgX+18; y=avgY; }
+    else if(avgX > EAST_X_MIN){ x=avgX-18; y=avgY; }
+    else{
+      const north=raw.filter(r=>r.y<NORTH_MAX_Y).length;
+      x=avgX; y=north>=raw.length-north ? NORTH_Y : SOUTH_Y;
     }
-    positions[node.id] = {x, y};
+    positions[node.id]={x,y};
   }
 }
 
 // ── Load ───────────────────────────────────────────────────────────────────
 async function loadAll(){
-  setStatus('Lade…');
+  btnLoading('btn-load', true, 'Lade…');
+  setStatus('Lade…','warn');
   try{
-    // Grundriss laden
     const fpRes = await fetch(`${api()}/api/v1/streetview/floorplan/${bld()}`);
     if(!fpRes.ok) throw new Error('Kein Floorplan für '+bld());
-    const fpSvg = await fpRes.text();
-    const b64   = btoa(unescape(encodeURIComponent(fpSvg)));
+    const b64 = btoa(unescape(encodeURIComponent(await fpRes.text())));
 
-    // Raumkoordinaten laden
     const rcRes = await fetch(`${api()}/api/v1/streetview/floorplan/${bld()}/rooms`);
-    roomCoords  = rcRes.ok ? await rcRes.json() : {};
-    // Werte normalisieren: {x,y} Objekte
+    roomCoords = rcRes.ok ? await rcRes.json() : {};
     for(const k in roomCoords){
-      const v = roomCoords[k];
+      const v=roomCoords[k];
       if(typeof v.x==='undefined') roomCoords[k]={x:v[0],y:v[1]};
     }
 
-    // Graph laden
     const gRes = await fetch(`${api()}/api/v1/streetview/graph/building/${bld()}`);
     if(!gRes.ok) throw new Error('Kein Graph für '+bld());
     graph = await gRes.json();
 
     computePositions();
     renderAll(b64);
-    setStatus(`${graph.nodes.length} Nodes geladen`, 'var(--success)');
+    setStatus(`${graph.nodes.length} Nodes geladen`, 'success');
+    toast(`Gebäude ${bld()} geladen — ${graph.nodes.length} Nodes`, 'success');
     fitView();
-  }catch(e){ setStatus('Fehler: '+e.message,'var(--danger)'); console.error(e); }
+  }catch(e){
+    setStatus(e.message,'error');
+    toast(e.message, 'error', 6000);
+    console.error(e);
+  } finally {
+    btnLoading('btn-load', false, 'Laden');
+  }
 }
 
 // ── Render ─────────────────────────────────────────────────────────────────
@@ -298,343 +509,559 @@ const TYPE_FILL   = {corridor:'#3a5a8a',staircase:'#7c4fa0',elevator:'#2a7a52',e
 const TYPE_STROKE = {corridor:'#5b9bd5',staircase:'#bc4cf7',elevator:'#3dd68c',entrance:'#e05252'};
 
 function renderAll(b64){
-  const svg = $('svg-canvas');
-  svg.setAttribute('width',  FP_W);
-  svg.setAttribute('height', FP_H + 45);
+  const svg=$('svg-canvas');
+  svg.setAttribute('width',FP_W);
+  svg.setAttribute('height',FP_H+45);
   svg.setAttribute('viewBox',`0 0 ${FP_W} ${FP_H+45}`);
-
-  // Hintergrund
-  $('layer-bg').innerHTML =
-    `<image href="data:image/svg+xml;base64,${b64}" x="0" y="0" width="${FP_W}" height="${FP_H}"/>` +
-    `<rect x="0" y="0" width="${FP_W}" height="${FP_H}" fill="white" opacity="0.12"/>` +
-    // Korridor-Hilfslinien
+  $('layer-bg').innerHTML=
+    `<image href="data:image/svg+xml;base64,${b64}" x="0" y="0" width="${FP_W}" height="${FP_H}" filter="url(#dark-fp)"/>` +
     `<line x1="40" y1="${NORTH_Y}" x2="660" y2="${NORTH_Y}" stroke="#5b9bd5" stroke-width=".5" stroke-dasharray="4 4" opacity=".3"/>` +
     `<line x1="40" y1="${SOUTH_Y}" x2="660" y2="${SOUTH_Y}" stroke="#5b9bd5" stroke-width=".5" stroke-dasharray="4 4" opacity=".3"/>` +
     `<text x="4" y="${NORTH_Y-4}" font-size="8" fill="#5b9bd5" opacity=".5">Nordkorridor</text>` +
     `<text x="4" y="${SOUTH_Y-4}" font-size="8" fill="#5b9bd5" opacity=".5">Südkorridor</text>`;
+  renderEdges(); renderNodes();
+}
 
-  renderEdges();
-  renderNodes();
+function nodeVisible(node){
+  if(floorFilter==='all') return true;
+  return String(node.floor)===floorFilter;
+}
+
+function findExitDir(node, targetId){
+  if(!node) return null;
+  for(const [d,t] of Object.entries(node.exits||{})) if(t===targetId) return d;
+  return null;
 }
 
 function renderEdges(){
-  const layer = $('layer-edges');
+  const layer=$('layer-edges');
   if(!graph){ layer.innerHTML=''; return; }
-  let html = '';
-  const drawn = new Set();
+  let html='';
+  const drawn=new Set();
   for(const node of graph.nodes){
-    const p = positions[node.id];
+    if(!nodeVisible(node)) continue;
+    const p=positions[node.id];
     if(!p) continue;
-    for(const [dir, tgt] of Object.entries(node.exits||{})){
-      const q = positions[tgt];
+    for(const tgt of Object.values(node.exits||{})){
+      const q=positions[tgt];
       if(!q) continue;
-      const key = [node.id,tgt].sort().join('|');
-      if(drawn.has(key)) continue;
-      drawn.add(key);
-      // Mittelpunkt für Label
-      const mx=(p.x+q.x)/2, my=(p.y+q.y)/2;
-      html += `<g class="edge" data-src="${esc(node.id)}" data-tgt="${esc(tgt)}" data-dir="${esc(dir)}"
-        onclick="clickEdge(event,this)">
-        <title>Klick → Verbindung löschen</title>
-        <line class="edge-line" x1="${p.x.toFixed(1)}" y1="${p.y.toFixed(1)}"
-          x2="${q.x.toFixed(1)}" y2="${q.y.toFixed(1)}"
-          stroke="#3a6090" stroke-width="1.8" marker-end="url(#arr)" opacity=".75"/>
-        <rect class="edge-label-bg" x="${(mx-12).toFixed(1)}" y="${(my-7).toFixed(1)}" width="24" height="13" rx="3"
-          fill="rgba(22,27,34,.8)"/>
-        <text class="edge-lbl" x="${mx.toFixed(1)}" y="${(my+4).toFixed(1)}"
-          text-anchor="middle" font-size="8" fill="#7d8590" font-family="monospace">${esc(dir)}</text>
+      if(!nodeVisible(nodeById(tgt)||{})) continue;
+      const k=[node.id,tgt].sort().join('|');
+      if(drawn.has(k)) continue;
+      drawn.add(k);
+      // A = alphabetically first, B = second — stable order for the line
+      const [idA,idB]=[node.id,tgt].sort();
+      const nA=nodeById(idA), nB=nodeById(idB);
+      const pA=positions[idA], pB=positions[idB];
+      const fwd=findExitDir(nA,idB); // A→B
+      const rev=findExitDir(nB,idA); // B→A
+      const mEnd  = fwd ? 'url(#arr)' : 'none';
+      const mStart= rev ? 'url(#arr)' : 'none';
+      // Label für A→B bei 75% (nahe Pfeilspitze), Label für B→A bei 25% (nahe Pfeilspitze)
+      const lbl=(txt,t)=>{
+        const w=txt.length*4+4, lx=pA.x+t*(pB.x-pA.x), ly=pA.y+t*(pB.y-pA.y);
+        return `<g class="edge-lbl-group">
+          <rect x="${(lx-w/2).toFixed(1)}" y="${(ly-5).toFixed(1)}" width="${w}" height="10" rx="2" fill="rgba(22,27,34,.92)"/>
+          <text text-anchor="middle" x="${lx.toFixed(1)}" y="${(ly+3).toFixed(1)}"
+            font-size="6.5" fill="#a0b4cc" font-family="monospace">${esc(txt)}</text>
+        </g>`; };
+      html+=`<g class="edge" data-a="${esc(idA)}" data-b="${esc(idB)}" onclick="clickEdge(event,this)">
+        <title>Klick → Verbindung bearbeiten</title>
+        <line x1="${pA.x.toFixed(1)}" y1="${pA.y.toFixed(1)}" x2="${pB.x.toFixed(1)}" y2="${pB.y.toFixed(1)}"
+          stroke="transparent" stroke-width="10"/>
+        <line class="edge-line" x1="${pA.x.toFixed(1)}" y1="${pA.y.toFixed(1)}" x2="${pB.x.toFixed(1)}" y2="${pB.y.toFixed(1)}"
+          stroke="#3a6090" stroke-width="1.8" marker-end="${mEnd}" marker-start="${mStart}" opacity=".75"/>
+        ${fwd ? lbl(fwd, 0.75) : ''}
+        ${rev ? lbl(rev, 0.25) : ''}
       </g>`;
     }
   }
-  layer.innerHTML = html;
+  layer.innerHTML=html;
 }
 
 function renderNodes(){
-  const layer = $('layer-nodes');
+  const layer=$('layer-nodes');
   if(!graph){ layer.innerHTML=''; return; }
-  let html = '';
+  let html='';
   for(const node of graph.nodes){
-    const p = positions[node.id];
-    if(!p){ /* orphan: skip */ continue; }
-    const fill   = TYPE_FILL[node.node_type]   || '#333';
-    const stroke = TYPE_STROKE[node.node_type] || '#888';
-    const isStart = node.id === graph.startNode;
-    const R = 10;
-    const sw = isStart ? 3 : 1.8;
+    const p=positions[node.id];
+    if(!p) continue;
+    const fill=TYPE_FILL[node.node_type]||'#333';
+    const stroke=TYPE_STROKE[node.node_type]||'#888';
+    const isStart=node.id===graph.startNode;
+    const R=6, sw=isStart?2.5:1.5;
+    const hidden=!nodeVisible(node);
 
-    // Rooms-Tooltip
-    const rooms = (node.nearby_rooms||[]).map(r=>r.room_id).join(', ');
-    const tip = `${node.id}\n${node.node_type}${rooms?'\n'+rooms:''}`;
+    const rooms=(node.nearby_rooms||[]).map(r=>r.room_id).join(', ');
+    const tip=`${node.id}\n${node.node_type||''}${rooms?'\n'+rooms:''}`;
 
-    // Treppenpfeil (runter/auf/hoch/rauf)
-    let arrow = '';
-    const lid = node.id.toLowerCase();
+    // Kurze Label: letzte 2 Segmente der ID
+    const parts=node.id.split(/[-_]/);
+    const shortLbl=parts.slice(-2).join('-');
+
+    let arrow='';
+    const lid=node.id.toLowerCase();
     if(node.node_type==='staircase'){
-      const up   = /(_auf_|_hoch_|_rauf_|_auf$)/.test(lid);
-      const down = /(_runter_|_runter$)/.test(lid);
-      if(up)   arrow=`<polygon points="${p.x},${p.y-R-10} ${p.x-6},${p.y-R-2} ${p.x+6},${p.y-R-2}"
-        fill="${stroke}" opacity=".9" pointer-events="none"/>`;
-      if(down) arrow=`<polygon points="${p.x},${p.y+R+10} ${p.x-6},${p.y+R+2} ${p.x+6},${p.y+R+2}"
-        fill="${stroke}" opacity=".9" pointer-events="none"/>`;
-      if(!up&&!down) // unbekannte Richtung: beide
-        arrow=`<polygon points="${p.x},${p.y-R-10} ${p.x-5},${p.y-R-3} ${p.x+5},${p.y-R-3}"
-          fill="${stroke}" opacity=".9" pointer-events="none"/>
-          <polygon points="${p.x},${p.y+R+10} ${p.x-5},${p.y+R+3} ${p.x+5},${p.y+R+3}"
-          fill="${stroke}" opacity=".9" pointer-events="none"/>`;
+      const up=/(_auf_|_hoch_|_rauf_|_auf$)/.test(lid);
+      const down=/(_runter_|_runter$)/.test(lid);
+      if(up)   arrow=`<polygon points="${p.x},${p.y-R-6} ${p.x-4},${p.y-R-1} ${p.x+4},${p.y-R-1}" fill="${stroke}" opacity=".9" pointer-events="none"/>`;
+      if(down) arrow=`<polygon points="${p.x},${p.y+R+6} ${p.x-4},${p.y+R+1} ${p.x+4},${p.y+R+1}" fill="${stroke}" opacity=".9" pointer-events="none"/>`;
+      if(!up&&!down) arrow=
+        `<polygon points="${p.x},${p.y-R-6} ${p.x-4},${p.y-R-1} ${p.x+4},${p.y-R-1}" fill="${stroke}" opacity=".9" pointer-events="none"/>` +
+        `<polygon points="${p.x},${p.y+R+6} ${p.x-4},${p.y+R+1} ${p.x+4},${p.y+R+1}" fill="${stroke}" opacity=".9" pointer-events="none"/>`;
     }
 
-    // Korridor-Durchgang: zeige Raumzähler als kleines Badge
-    const roomCount = (node.nearby_rooms||[]).length;
-    const badge = roomCount > 1
-      ? `<circle cx="${p.x+R-1}" cy="${p.y-R+1}" r="6" fill="${stroke}" opacity=".9"/>
-         <text x="${p.x+R-1}" y="${p.y-R+5}" font-size="7" text-anchor="middle" fill="white"
-           font-weight="bold">${roomCount}</text>`
-      : '';
+    const rc=(node.nearby_rooms||[]).length;
+    const badge=rc>0
+      ?`<g class="badge-g">
+          <circle cx="${p.x+R}" cy="${p.y-R}" r="4" fill="${stroke}" opacity=".95"/>
+          <text x="${p.x+R}" y="${p.y-R+3}" font-size="5.5" text-anchor="middle" fill="white" font-weight="bold" opacity="1">${rc}</text>
+        </g>`:'';
 
-    html += `<g class="node-circle${node.id===selectedId?' selected':''}"
-      id="nc-${esc(node.id)}"
-      data-id="${esc(node.id)}"
-      onclick="clickNode(event,'${esc(node.id)}')"
-      onmouseenter="showTip(event,'${esc(tip)}')"
-      onmouseleave="hideTip()">
+    html+=`<g class="node-circle${node.id===selectedId?' selected':''}${hidden?' floor-hidden':''}"
+      id="nc-${esc(node.id)}" data-id="${esc(node.id)}"
+      onmousedown="onNodeMouseDown(event,'${esc(node.id)}')"
+      onmouseenter="showTip(event,'${esc(tip)}')" onmouseleave="hideTip()">
       <title>${esc(tip)}</title>
       ${arrow}
-      <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${R}"
-        fill="${fill}" stroke="${stroke}" stroke-width="${sw}" opacity=".93"/>
-      ${isStart ? `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${R+4}"
-        fill="none" stroke="${stroke}" stroke-width="1.5" stroke-dasharray="3 2" opacity=".6"/>` : ''}
+      <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${R}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" opacity=".93"/>
+      ${isStart?`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${R+3}" fill="none" stroke="${stroke}" stroke-width="1" stroke-dasharray="2 2" opacity=".6"/>`:''}
       ${badge}
-      <text x="${p.x.toFixed(1)}" y="${(p.y-R-3).toFixed(1)}"
-        font-size="7.5" text-anchor="middle" fill="white" font-weight="bold"
-        paint-order="stroke" stroke="rgba(0,0,0,.7)" stroke-width="2.5"
-        pointer-events="none">${esc(node.id.replace(/_/g,' '))}</text>
+      <text x="${p.x.toFixed(1)}" y="${(p.y-R-2).toFixed(1)}"
+        font-size="6" text-anchor="middle" fill="white" font-weight="600"
+        paint-order="stroke" stroke="rgba(0,0,0,.8)" stroke-width="1.5" pointer-events="none">
+        ${esc(shortLbl)}</text>
     </g>`;
   }
 
-  // Orphan-Liste
-  const orphans = graph.nodes.filter(n=>!positions[n.id]);
-  if(orphans.length){
-    html += `<text x="6" y="${FP_H+16}" font-size="8" fill="#888" font-style="italic">
-      Ohne Koordinate: ${orphans.map(n=>n.id).join(', ')}</text>`;
-  }
+  const orphans=graph.nodes.filter(n=>!positions[n.id]);
+  if(orphans.length)
+    html+=`<text x="6" y="${FP_H+16}" font-size="8" fill="#888" font-style="italic">Ohne Koordinate: ${orphans.map(n=>n.id).join(', ')}</text>`;
 
-  layer.innerHTML = html;
+  layer.innerHTML=html;
 }
 
 // ── Interaction ────────────────────────────────────────────────────────────
-// Removed clickNode locally, handling inside mousedown to allow drag and drop
+// ── Connection Panel ───────────────────────────────────────────────────────
+let pendingConn = null; // {idA, idB}
 
-function clickEdge(e, el){
+function showConnPanel(idA, idB, screenX, screenY){
+  pendingConn = {idA, idB};
+  const nA=nodeById(idA), nB=nodeById(idB);
+  $('conn-lbl-fwd').textContent = `${idA.replace(/_/g,' ')} → ${idB.replace(/_/g,' ')}`;
+  $('conn-lbl-rev').textContent = `${idB.replace(/_/g,' ')} → ${idA.replace(/_/g,' ')}`;
+  $('conn-dir-fwd').value = findExitDir(nA, idB) || '';
+  $('conn-dir-rev').value = findExitDir(nB, idA) || '';
+  const panel=$('conn-panel');
+  panel.style.display='block';
+  // Pos so that panel stays inside viewport
+  const pw=panel.offsetWidth||240, ph=panel.offsetHeight||160;
+  panel.style.left = Math.min(screenX+10, window.innerWidth-pw-10)+'px';
+  panel.style.top  = Math.min(screenY+10, window.innerHeight-ph-10)+'px';
+}
+
+function applyConn(){
+  if(!pendingConn) return;
+  const {idA,idB}=pendingConn;
+  const nA=nodeById(idA), nB=nodeById(idB);
+  // Remove old exits between the two
+  if(nA) for(const [d,t] of Object.entries(nA.exits||{})) if(t===idB) delete nA.exits[d];
+  if(nB) for(const [d,t] of Object.entries(nB.exits||{})) if(t===idA) delete nB.exits[d];
+  // Apply new values
+  const fwd=$('conn-dir-fwd').value, rev=$('conn-dir-rev').value;
+  if(fwd && nA){ if(!nA.exits) nA.exits={}; nA.exits[fwd]=idB; }
+  if(rev && nB){ if(!nB.exits) nB.exits={}; nB.exits[rev]=idA; }
+  pendingConn=null;
+  $('conn-panel').style.display='none';
+  renderEdges(); renderNodes();
+  if(selectedId) showProps(selectedId);
+}
+
+function deleteConn(){
+  if(!pendingConn) return;
+  const {idA,idB}=pendingConn;
+  const nA=nodeById(idA), nB=nodeById(idB);
+  if(nA) for(const [d,t] of Object.entries(nA.exits||{})) if(t===idB) delete nA.exits[d];
+  if(nB) for(const [d,t] of Object.entries(nB.exits||{})) if(t===idA) delete nB.exits[d];
+  pendingConn=null;
+  $('conn-panel').style.display='none';
+  renderEdges(); renderNodes();
+  if(selectedId) showProps(selectedId);
+}
+
+function cancelConn(){
+  pendingConn=null;
+  $('conn-panel').style.display='none';
+}
+
+function clickEdge(e,el){
   e.stopPropagation();
-  const src = el.dataset.src, dir = el.dataset.dir;
-  if(!confirm(`Verbindung "${src}" → ${dir} löschen?`)) return;
-  const node = nodeById(src);
-  if(node) delete node.exits[dir];
-  renderEdges();
+  const [idA,idB]=[el.dataset.a, el.dataset.b];
+  showConnPanel(idA, idB, e.clientX, e.clientY);
 }
 
 function selectNode(id){
-  selectedId = id;
-  // Alle de-highlight
+  selectedId=id;
   document.querySelectorAll('.node-circle').forEach(g=>{
-    g.classList.toggle('selected', g.dataset.id===id);
+    g.classList.toggle('selected',g.dataset.id===id);
     g.classList.remove('connect-src');
   });
   showProps(id);
 }
 
 function showProps(id){
-  const node = nodeById(id);
+  const node=nodeById(id);
   if(!node){ $('no-sel').style.display='flex'; $('prop-panel').style.display='none'; return; }
   $('no-sel').style.display='none';
   $('prop-panel').style.display='block';
   $('p-id').value      = node.id;
-  $('p-type').value    = node.node_type || 'corridor';
-  $('p-floor').value   = node.floor ?? '';
-  $('p-heading').value = node.heading ?? 0;
-  $('p-img').value     = node.image || '';
-  renderRoomsList(node);
-  renderExitsList(node);
-}
-
-function renderRoomsList(node){
-  const rooms = node.nearby_rooms || [];
-  let html = '';
-  if(!rooms.length) html = '<div class="empty">Keine Räume</div>';
-  rooms.forEach((r,i)=>{
-    html += `<div class="list-row">
-      <span class="dir">${esc(r.direction||'–')}</span>
-      <span class="tgt">${esc(r.room_id)}</span>
-      <button class="del-btn" onclick="removeRoom(${i})" title="Entfernen">×</button>
-    </div>`;
-  });
-  $('rooms-list').innerHTML = html;
-}
-
-function renderExitsList(node){
-  const exits = node.exits || {};
-  let html = '';
-  const entries = Object.entries(exits);
-  if(!entries.length) html = '<div class="empty">Keine Exits</div>';
-  entries.forEach(([dir,tgt])=>{
-    html += `<div class="list-row">
-      <span class="dir">${esc(dir)}</span>
-      <span class="tgt">${esc(tgt)}</span>
-      <button class="del-btn" onclick="removeExit('${esc(dir)}')" title="Löschen">×</button>
-    </div>`;
-  });
-  $('exits-list').innerHTML = html;
+  $('p-newid').value   = '';
+  $('p-type').value    = node.node_type||'corridor';
+  $('p-floor').value   = node.floor??'';
+  $('p-heading').value = node.heading??0;
+  $('p-img').value     = node.image||'';
+  const preview=$('prop-preview'), urlDisp=$('upload-url-display');
+  if(node.image){ preview.src=`${api()}${node.image}`; preview.style.display='block'; }
+  else{ preview.style.display='none'; }
+  urlDisp.style.display=node.image?'block':'none';
+  urlDisp.textContent=node.image||'';
+  renderRoomsList(node); renderSpotsList(node); renderExitsList(node);
 }
 
 function applyProp(){
-  const node = nodeById(selectedId);
+  const node=nodeById(selectedId);
   if(!node) return;
-  node.node_type = $('p-type').value;
-  node.floor     = parseInt($('p-floor').value) || node.floor;
-  node.heading   = parseFloat($('p-heading').value) || 0;
-  node.image     = $('p-img').value;
-  renderNodes();
-  renderProps();
+  node.node_type=($('p-type').value)||node.node_type;
+  const fl=$('p-floor').value; node.floor=fl===''?null:parseInt(fl);
+  node.heading=parseFloat($('p-heading').value)||0;
+  node.image=$('p-img').value||null;
+  renderNodes(); renderEdges();
 }
 
-function renderProps(){ if(selectedId) showProps(selectedId); }
+function renderRoomsList(node){
+  const rooms=node.nearby_rooms||[];
+  $('room-count').textContent=rooms.length?`(${rooms.length})`:'';
+  let html=rooms.length?'':'<div class="empty">Keine Räume</div>';
+  rooms.forEach((r,i)=>{
+    html+=`<div class="list-row">
+      <span class="dir">${esc(r.direction||'–')}</span>
+      <span class="tgt">${esc(r.room_id)}</span>
+      <button class="del-btn" onclick="removeRoom(${i})">×</button>
+    </div>`;
+  });
+  $('rooms-list').innerHTML=html;
+}
+
+function renderSpotsList(node){
+  const spots=node.spots||[];
+  $('spot-count').textContent=spots.length?`(${spots.length})`:'';
+  let html=spots.length?'':'<div class="empty">Keine Spots</div>';
+  spots.forEach((s,i)=>{
+    html+=`<div class="list-row">
+      <span class="dir">${esc(s.name)}</span>
+      <span class="tgt sub">${s.longitude}°/${s.latitude}°</span>
+      ${s.description?`<span class="sub" style="flex:none;max-width:60px;overflow:hidden;text-overflow:ellipsis">${esc(s.description)}</span>`:''}
+      <button class="del-btn" onclick="removeSpot(${i})">×</button>
+    </div>`;
+  });
+  $('spots-list').innerHTML=html;
+}
+
+function renderExitsList(node){
+  const exits=node.exits||{};
+  const entries=Object.entries(exits);
+  let html=entries.length?'':'<div class="empty">Keine Exits</div>';
+  entries.forEach(([dir,tgt])=>{
+    html+=`<div class="list-row">
+      <span class="dir">${esc(dir)}</span>
+      <span class="tgt">${esc(tgt)}</span>
+      <button class="del-btn" onclick="removeExit('${esc(dir)}')">×</button>
+    </div>`;
+  });
+  $('exits-list').innerHTML=html;
+}
 
 function addRoom(){
-  const node = nodeById(selectedId);
-  if(!node) return;
-  const rid = $('add-room').value.trim();
-  if(!rid) return;
+  const node=nodeById(selectedId); if(!node) return;
+  const rid=$('add-room-id').value.trim(); if(!rid) return;
+  const dir=$('add-room-dir').value||null;
   if(!node.nearby_rooms) node.nearby_rooms=[];
-  node.nearby_rooms.push({room_id:rid, direction:null});
-  $('add-room').value='';
-  renderRoomsList(node);
+  node.nearby_rooms.push({room_id:rid,direction:dir});
+  $('add-room-id').value=''; $('add-room-dir').value='';
+  renderRoomsList(node); computePositions(); renderNodes();
 }
 
 function removeRoom(idx){
-  const node = nodeById(selectedId);
-  if(!node) return;
+  const node=nodeById(selectedId); if(!node) return;
   node.nearby_rooms.splice(idx,1);
-  renderRoomsList(node);
+  renderRoomsList(node); computePositions(); renderNodes();
+}
+
+function addSpot(){
+  const node=nodeById(selectedId); if(!node) return;
+  const name=$('add-spot-name').value.trim();
+  const lon=parseFloat($('add-spot-lon').value);
+  const lat=parseFloat($('add-spot-lat').value);
+  if(!name||isNaN(lon)||isNaN(lat)){ setStatus('Name, Longitude und Latitude sind Pflicht.','error'); return; }
+  if(!node.spots) node.spots=[];
+  node.spots.push({name,longitude:lon,latitude:lat,description:$('add-spot-desc').value.trim()||undefined});
+  ['add-spot-name','add-spot-lon','add-spot-lat','add-spot-desc'].forEach(id=>$(id).value='');
+  renderSpotsList(node);
+}
+
+function removeSpot(idx){
+  const node=nodeById(selectedId); if(!node) return;
+  node.spots.splice(idx,1);
+  renderSpotsList(node);
 }
 
 function removeExit(dir){
-  const node = nodeById(selectedId);
-  if(!node) return;
+  const node=nodeById(selectedId); if(!node) return;
   delete node.exits[dir];
   renderEdges(); renderExitsList(node);
 }
 
 function deleteNode(){
-  if(!selectedId || !confirm(`Node "${selectedId}" wirklich löschen?`)) return;
-  // Alle Referenzen in exits bereinigen
+  if(!selectedId||!confirm(`Node "${selectedId}" wirklich löschen?`)) return;
   for(const n of graph.nodes)
     for(const [d,t] of Object.entries(n.exits||{}))
       if(t===selectedId) delete n.exits[d];
-  graph.nodes = graph.nodes.filter(n=>n.id!==selectedId);
+  graph.nodes=graph.nodes.filter(n=>n.id!==selectedId);
   delete positions[selectedId];
-  selectedId = null;
+  selectedId=null;
   $('no-sel').style.display='flex'; $('prop-panel').style.display='none';
-  renderEdges(); renderNodes();
+  renderEdges(); renderNodes(); setStatus('Node gelöscht.','warn');
 }
 
-
-// ── TOOLS ──────────────────────────────────────────────────────────────
-let toolMode = 'move'; // move, connect, delete
-let drag = null;
-let activeConnectionLine = null;
-
-function setTool(tool) {
-  toolMode = tool;
-  connectSrc = null;
-  document.querySelectorAll('.tool-group .btn').forEach(b => b.classList.remove('active'));
-  $(`tool-${tool}`).classList.add('active');
-  
-  const ml = $('mode-label');
-  ml.style.display = 'inline-block';
-  if (tool === 'move') ml.textContent = '— Drag & Drop zum Verschieben';
-  else if (tool === 'connect') ml.textContent = '— Drag & Drop zum Verbinden';
-  else if (tool === 'delete') ml.textContent = '— Klick zum Löschen';
-  
-  $('svg-canvas').classList.toggle('mode-connect', tool === 'connect');
+function addNode(){
+  if(!graph){ setStatus('Zuerst Daten laden.','error'); return; }
+  const id=prompt('Neue Node-ID:', `${bld()}-EG-`);
+  if(!id) return;
+  if(nodeById(id)){ setStatus(`ID "${id}" existiert bereits.`,'error'); return; }
+  const cx=(FP_W/2 - panX/scale), cy=(FP_H/2 - panY/scale);
+  const node={id,building:bld(),node_type:'corridor',floor:0,heading:0,
+    nearby_rooms:[],spots:[],exits:{},pos_override:{x:Math.round(cx),y:Math.round(cy)}};
+  graph.nodes.push(node);
+  positions[id]=node.pos_override;
   renderNodes();
+  selectNode(id);
+  setStatus(`Node "${id}" erstellt.`,'success');
 }
 
-// ── Connect mode ───────────────────────────────────────────────────────────
+function setStartNode(){
+  if(!selectedId) return;
+  graph.startNode=selectedId;
+  renderNodes();
+  setStatus(`"${selectedId}" ist jetzt StartNode.`,'success');
+}
 
-function endConnect(){
-  connectSrc = null;
-  toolMode === 'connect' = false;
-  $('btn-connect').classList.remove('active');
-  $('mode-label').style.display='none';
-  $('svg-canvas').classList.remove('mode-connect');
-  document.querySelectorAll('.connect-src').forEach(g=>g.classList.remove('connect-src'));
+function renameId(){
+  const node=nodeById(selectedId); if(!node) return;
+  const newId=$('p-newid').value.trim();
+  if(!newId){ setStatus('Neue ID eingeben.','error'); return; }
+  if(nodeById(newId)){ setStatus(`ID "${newId}" bereits vergeben.`,'error'); return; }
+  const oldId=node.id;
+  for(const n of graph.nodes)
+    for(const [d,t] of Object.entries(n.exits||{}))
+      if(t===oldId) n.exits[d]=newId;
+  if(graph.startNode===oldId) graph.startNode=newId;
+  positions[newId]=positions[oldId]; delete positions[oldId];
+  node.id=newId; selectedId=newId;
+  renderNodes(); renderEdges(); showProps(newId);
+  setStatus(`Umbenannt: "${oldId}" → "${newId}"`,'success');
+}
+
+// ── Tools ──────────────────────────────────────────────────────────────────
+function setTool(tool){
+  toolMode=tool; drag=null;
+  document.querySelectorAll('.tool-group .btn').forEach(b=>b.classList.remove('active'));
+  $(`tool-${tool}`).classList.add('active');
+  const ml=$('mode-label');
+  ml.style.display='inline-block';
+  if(tool==='move')    ml.textContent='— Drag & Drop zum Verschieben';
+  else if(tool==='connect') ml.textContent='— Drag & Drop zum Verbinden';
+  else if(tool==='delete')  ml.textContent='— Klick zum Löschen';
+  $('svg-canvas').classList.toggle('mode-connect',tool==='connect');
+  renderNodes();
 }
 
 // ── Save ───────────────────────────────────────────────────────────────────
 async function saveGraph(){
-  if(!graph){ alert('Nichts geladen.'); return; }
-  setStatus('Speichern…','var(--warn)');
+  if(!graph){ toast('Nichts geladen.','warn'); return; }
+  btnLoading('btn-save', true, 'Speichern…');
+  setStatus('Speichern…','warn');
   try{
-    const res = await fetch(`${api()}/api/v1/streetview/graph`, {
+    const res=await fetch(`${api()}/api/v1/streetview/graph`,{
       method:'POST',
       headers:{'Content-Type':'application/json','X-API-Key':key()},
-      body: JSON.stringify({building_id: bld(), graph})
+      body:JSON.stringify({building_id:bld(),graph})
     });
-    const data = await res.json();
+    const data=await res.json();
     if(!res.ok) throw new Error(data.detail||res.statusText);
-    setStatus('Gespeichert ✓','var(--success)');
-  }catch(e){ setStatus('Fehler: '+e.message,'var(--danger)'); }
+    setStatus('Gespeichert','success');
+    toast(`Graph "${bld()}" gespeichert`, 'success');
+    btnLoading('btn-save', false, 'Gespeichert');
+    setTimeout(()=>btnLoading('btn-save', false, 'Speichern'), 2500);
+  }catch(e){
+    setStatus('Fehler: '+e.message,'error');
+    toast('Fehler: '+e.message, 'error', 6000);
+    btnLoading('btn-save', false, 'Speichern');
+  }
 }
 
+async function patchNode(){
+  const node=nodeById(selectedId);
+  if(!node){ toast('Kein Node ausgewählt.','warn'); return; }
+  btnLoading('btn-patch', true, 'Sende…');
+  setStatus(`Sende "${node.id}"…`,'warn');
+  try{
+    const res=await fetch(`${api()}/api/v1/streetview/graph/building/${bld()}/node/${encodeURIComponent(node.id)}`,{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json','X-API-Key':key()},
+      body:JSON.stringify(node)
+    });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    setStatus(`"${node.id}" gespeichert`,'success');
+    toast(`Node "${node.id}" gespeichert`, 'success');
+    btnLoading('btn-patch', false, 'Diesen Node speichern');
+  }catch(e){
+    setStatus('Fehler: '+e.message,'error');
+    toast('Fehler: '+e.message, 'error', 6000);
+    btnLoading('btn-patch', false, 'Diesen Node speichern');
+  }
+}
+
+// ── Import / Export ────────────────────────────────────────────────────────
+$('file-import').addEventListener('change',e=>{
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const parsed=JSON.parse(ev.target.result);
+      graph=parsed.graph??parsed;
+      if(parsed.building_id) $('inp-bld').value=parsed.building_id;
+      computePositions(); renderAll('');
+      setStatus(`"${file.name}" geladen — ${graph.nodes.length} Nodes.`,'success');
+    }catch(err){ setStatus('JSON-Fehler: '+err.message,'error'); }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+});
+
+function exportJSON(){
+  if(!graph){ setStatus('Nichts zu exportieren.','error'); return; }
+  const payload={building_id:bld()||null,graph};
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));
+  a.download=`graph_${bld()||'export'}.json`;
+  a.click();
+  setStatus('Graph exportiert.','success');
+}
+
+// ── Image upload ───────────────────────────────────────────────────────────
+const uploadArea=$('upload-area'), uploadLabel=$('upload-label'), uploadIcon=$('upload-icon');
+
+$('upload-file').addEventListener('change', async e=>{
+  const file=e.target.files[0]; if(!file||!selectedId) return;
+  const node=nodeById(selectedId); if(!node) return;
+  uploadArea.className='uploading'; uploadLabel.textContent='Wird hochgeladen…';
+  try{
+    const form=new FormData(); form.append('file',file);
+    const res=await fetch(`${api()}/api/v1/images/rooms/${encodeURIComponent(node.id)}/upload`,{
+      method:'POST', headers:key()?{'X-API-Key':key()}:{}, body:form
+    });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data=await res.json();
+    const url=`/api/v1/images/rooms/${node.id}/${data.filename}`;
+    node.image=url;
+    $('p-img').value=url;
+    $('prop-preview').src=`${api()}${url}`; $('prop-preview').style.display='block';
+    $('upload-url-display').textContent=url; $('upload-url-display').style.display='block';
+    uploadArea.className='done'; uploadLabel.textContent='Hochgeladen ✓';
+    setStatus(`Bild hochgeladen → ${url}`,'success');
+  }catch(err){
+    uploadArea.className='error'; uploadLabel.textContent='Fehler beim Upload';
+    setStatus('Upload-Fehler: '+err.message,'error');
+  }
+  e.target.value='';
+});
+
+uploadArea.addEventListener('dragover',e=>{ e.preventDefault(); uploadArea.classList.add('drag-over'); });
+uploadArea.addEventListener('dragleave',()=>uploadArea.classList.remove('drag-over'));
+uploadArea.addEventListener('drop',e=>{
+  e.preventDefault(); uploadArea.classList.remove('drag-over');
+  const file=e.dataTransfer.files[0]; if(file){ $('upload-file').files=e.dataTransfer.files; $('upload-file').dispatchEvent(new Event('change')); }
+});
+
+// ── Floor filter ───────────────────────────────────────────────────────────
+document.querySelectorAll('.ftab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    floorFilter=btn.dataset.floor;
+    document.querySelectorAll('.ftab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderNodes(); renderEdges();
+  });
+});
+
 // ── Zoom / Pan ─────────────────────────────────────────────────────────────
+// ── Smooth Zoom (RAF-Interpolation) ────────────────────────────────────────
+let tScale = scale, tPanX = panX, tPanY = panY, zoomRaf = null;
+
 function applyTransform(){
-  $('svg-canvas').style.transform = `translate(${panX}px,${panY}px) scale(${scale})`;
-  $('zoom-val').textContent = Math.round(scale*100)+'%';
+  $('svg-canvas').style.transform=`translate(${panX}px,${panY}px) scale(${scale})`;
+  $('zoom-val').textContent=Math.round(scale*100)+'%';
+}
+
+function animateZoom(){
+  const L = 0.18;
+  scale += (tScale-scale)*L;
+  panX  += (tPanX-panX)*L;
+  panY  += (tPanY-panY)*L;
+  applyTransform();
+  if(Math.abs(tScale-scale)>0.0005 || Math.abs(tPanX-panX)>0.2 || Math.abs(tPanY-panY)>0.2){
+    zoomRaf = requestAnimationFrame(animateZoom);
+  } else {
+    scale=tScale; panX=tPanX; panY=tPanY;
+    applyTransform(); zoomRaf=null;
+  }
+}
+
+function applyZoomAt(cx, cy, f){
+  tScale = Math.min(8, Math.max(0.08, tScale*f));
+  tPanX  = cx - f*(cx-tPanX);
+  tPanY  = cy - f*(cy-tPanY);
+  if(!zoomRaf) zoomRaf = requestAnimationFrame(animateZoom);
 }
 
 function zoom(f){
-  const wrap = $('canvas-wrap');
-  const cx = wrap.clientWidth/2, cy = wrap.clientHeight/2;
-  panX = cx - f*(cx-panX);
-  panY = cy - f*(cy-panY);
-  scale = Math.min(8, Math.max(.1, scale*f));
-  applyTransform();
+  const wrap=$('canvas-wrap');
+  applyZoomAt(wrap.clientWidth/2, wrap.clientHeight/2, f);
 }
 
 function fitView(){
-  const wrap = $('canvas-wrap');
-  const sx = wrap.clientWidth / FP_W;
-  const sy = wrap.clientHeight / (FP_H+45);
-  scale = Math.min(sx, sy) * 0.95;
-  panX = (wrap.clientWidth  - FP_W*(scale)) / 2;
-  panY = (wrap.clientHeight - (FP_H+45)*scale) / 2;
-  applyTransform();
+  const wrap=$('canvas-wrap');
+  tScale = Math.min(wrap.clientWidth/FP_W, wrap.clientHeight/(FP_H+45))*0.95;
+  tPanX  = (wrap.clientWidth-FP_W*tScale)/2;
+  tPanY  = (wrap.clientHeight-(FP_H+45)*tScale)/2;
+  if(!zoomRaf) zoomRaf = requestAnimationFrame(animateZoom);
 }
 
-// Wheel zoom
 $('canvas-wrap').addEventListener('wheel', e=>{
   e.preventDefault();
-  const f = e.deltaY < 0 ? 1.12 : 1/1.12;
-  const rect = $('canvas-wrap').getBoundingClientRect();
-  const cx = e.clientX - rect.left, cy = e.clientY - rect.top;
-  panX = cx - f*(cx-panX);
-  panY = cy - f*(cy-panY);
-  scale = Math.min(8, Math.max(.08, scale*f));
-  applyTransform();
+  // Math.pow(1.001, deltaY) normalisiert Trackpad (kleine Deltas) und Mausrad (große Deltas)
+  const f = Math.pow(1.001, -e.deltaY * (e.deltaMode===1 ? 12 : 1));
+  const rect=$('canvas-wrap').getBoundingClientRect();
+  applyZoomAt(e.clientX-rect.left, e.clientY-rect.top, f);
 },{passive:false});
 
-// Middle-click / right-drag pan
-$('canvas-wrap').addEventListener('mousedown', e=>{
+$('canvas-wrap').addEventListener('mousedown',e=>{
   if(e.button===1||e.button===2){ e.preventDefault(); isPanning=true; panStart={x:e.clientX-panX,y:e.clientY-panY}; }
 });
-window.addEventListener('mousemove', e=>{
-  if(isPanning){ panX=e.clientX-panStart.x; panY=e.clientY-panStart.y; applyTransform(); }
-});
-window.addEventListener('mouseup', ()=>{ isPanning=false; });
+window.addEventListener('mousemove',e=>{ if(isPanning) { panX=e.clientX-panStart.x; panY=e.clientY-panStart.y; applyTransform(); } });
+window.addEventListener('mouseup',()=>{ isPanning=false; });
 $('canvas-wrap').addEventListener('contextmenu',e=>e.preventDefault());
 
-// Click on empty canvas → deselect
-$('svg-canvas').addEventListener('click', e=>{
+$('svg-canvas').addEventListener('click',e=>{
   if(e.target.id==='svg-canvas'||e.target.closest('#layer-bg')){
     selectedId=null;
     document.querySelectorAll('.node-circle').forEach(g=>g.classList.remove('selected'));
@@ -642,129 +1069,107 @@ $('svg-canvas').addEventListener('click', e=>{
   }
 });
 
-
-function onNodeMouseDown(e, id) {
+// ── Node Mouse Interaction ─────────────────────────────────────────────────
+function onNodeMouseDown(e,id){
   e.stopPropagation();
-  if (e.button !== 0) return;
-  
+  if(e.button!==0) return;
   selectNode(id);
-  
-  if (toolMode === 'delete') {
-    if(confirm(`Node "${id}" und alle Verbindungen löschen?`)) {
-      selectedId = id;
-      deleteNode();
-    }
+  if(toolMode==='delete'){
+    if(confirm(`Node "${id}" und alle Verbindungen löschen?`)){ selectedId=id; deleteNode(); }
     return;
   }
-  
-  const n = nodeById(id);
-  if (!n) return;
-  
-  if (toolMode === 'move') {
-    drag = { type: 'move', id, sx: e.clientX, sy: e.clientY, ox: n.x, oy: n.y };
-  } else if (toolMode === 'connect') {
-    connectSrc = id;
-    
-    // Create temporary line
-    activeConnectionLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    // We need to figure out coordinates. Usually n.x, n.y are relative to the floor plan.
-    // The SVGs coordinates:
-    const cx = n.x, cy = n.y;
-    activeConnectionLine.setAttribute('x1', cx);
-    activeConnectionLine.setAttribute('y1', cy);
-    activeConnectionLine.setAttribute('x2', cx);
-    activeConnectionLine.setAttribute('y2', cy);
-    activeConnectionLine.setAttribute('stroke', '#7c3aed');
-    activeConnectionLine.setAttribute('stroke-width', '4');
-    activeConnectionLine.setAttribute('stroke-dasharray', '5,5');
-    $('edges').appendChild(activeConnectionLine);
-    
-    drag = { type: 'connect', id, sx: e.clientX, sy: e.clientY };
+  if(zoomRaf){ cancelAnimationFrame(zoomRaf); zoomRaf=null; scale=tScale; panX=tPanX; panY=tPanY; }
+  const p=positions[id]||{x:0,y:0};
+  if(toolMode==='move'){
+    drag={type:'move',id,sx:e.clientX,sy:e.clientY,ox:p.x,oy:p.y};
+  } else if(toolMode==='connect'){
+    activeConnectionLine=document.createElementNS('http://www.w3.org/2000/svg','line');
+    activeConnectionLine.setAttribute('x1',p.x);
+    activeConnectionLine.setAttribute('y1',p.y);
+    activeConnectionLine.setAttribute('x2',p.x);
+    activeConnectionLine.setAttribute('y2',p.y);
+    activeConnectionLine.setAttribute('stroke','#7c3aed');
+    activeConnectionLine.setAttribute('stroke-width','4');
+    activeConnectionLine.setAttribute('stroke-dasharray','5,5');
+    activeConnectionLine.setAttribute('pointer-events','none');
+    $('layer-edges').appendChild(activeConnectionLine);
+    drag={type:'connect',id,sx:e.clientX,sy:e.clientY};
   }
 }
 
-window.addEventListener('mousemove', e => {
-  if (isPanning && !drag) {
-    // Existing pan logic is handled in window mousemove for 'canvas-wrap'. Wait, I'll merge my logic.
-  }
-  
-  if (!drag) return;
-  const n = nodeById(drag.id);
-  if (!n) return;
-  
-  if (drag.type === 'move') {
-    // Current transform: scale(transform.zoom) translate(transform.x, transform.y)
-    n.x = drag.ox + (e.clientX - drag.sx) / transform.zoom;
-    n.y = drag.oy + (e.clientY - drag.sy) / transform.zoom;
-    renderNodes();
-    renderEdges();
-  } else if (drag.type === 'connect' && activeConnectionLine) {
-    const svgLayer = $('svg-layer');
-    const pt = svgLayer.createSVGPoint();
-    pt.x = e.clientX; pt.y = e.clientY;
-    const cursorPt = pt.matrixTransform(svgLayer.getScreenCTM().inverse());
-    activeConnectionLine.setAttribute('x2', cursorPt.x);
-    activeConnectionLine.setAttribute('y2', cursorPt.y);
-  }
-});
-
-window.addEventListener('mouseup', e => {
-  if (drag) {
-    if (drag.type === 'connect' && activeConnectionLine) {
-      activeConnectionLine.remove();
-      activeConnectionLine = null;
-      
-      const targetGroup = e.target.closest('.node');
-      if (targetGroup) {
-        const targetId = targetGroup.dataset.id;
-        if (targetId && targetId !== drag.id) {
-          const dir = prompt(`Richtung von "${drag.id}" nach "${targetId}"\n(front / back / left / right / up / down):`, 'front');
-          if (dir) {
-            const srcNode = nodeById(drag.id);
-            if(srcNode) {
-              if(!srcNode.exits) srcNode.exits={};
-              srcNode.exits[dir] = targetId;
-              renderEdges();
-              renderNodes();
-            }
-          }
-        }
-      }
-      endConnect();
+window.addEventListener('mousemove',e=>{
+  if(!drag) return;
+  if(drag.type==='move'){
+    const rawX=drag.ox+(e.clientX-drag.sx)/scale;
+    const rawY=drag.oy+(e.clientY-drag.sy)/scale;
+    if(snapEnabled){
+      const s=applySnap(rawX,rawY,drag.id,e.shiftKey);
+      positions[drag.id]={x:s.x,y:s.y};
+      renderSnapGuides(e.shiftKey?null:s.snapX??null, e.shiftKey?null:s.snapY??null);
+    } else {
+      positions[drag.id]={x:rawX,y:rawY};
+      clearSnapGuides();
     }
-    drag = null;
+    renderNodes(); renderEdges();
+  } else if(drag.type==='connect'&&activeConnectionLine){
+    const svg=$('svg-canvas');
+    const pt=svg.createSVGPoint();
+    pt.x=e.clientX; pt.y=e.clientY;
+    const sp=pt.matrixTransform(svg.getScreenCTM().inverse());
+    activeConnectionLine.setAttribute('x2',sp.x);
+    activeConnectionLine.setAttribute('y2',sp.y);
   }
 });
 
-// Keyboard
-window.addEventListener('keydown', e=>{
-  if(e.key==='c'&&e.shiftKey) setTool('connect');
-  if(e.key==='Escape') endConnect();
+window.addEventListener('mouseup',e=>{
+  if(!drag) return;
+  if(drag.type==='move'){
+    clearSnapGuides();
+    const node=nodeById(drag.id);
+    if(node&&positions[drag.id]) node.pos_override={...positions[drag.id]};
+  }
+  if(drag.type==='connect'&&activeConnectionLine){
+    activeConnectionLine.remove(); activeConnectionLine=null;
+    const tg=e.target.closest('.node-circle');
+    const targetId=tg?.dataset?.id;
+    if(targetId&&targetId!==drag.id){
+      const [idA,idB]=[drag.id,targetId].sort();
+      showConnPanel(idA, idB, e.clientX, e.clientY);
+    }
+  }
+  drag=null;
+});
+
+// ── Keyboard ───────────────────────────────────────────────────────────────
+window.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){ cancelConn(); drag=null; if(activeConnectionLine){ activeConnectionLine.remove(); activeConnectionLine=null; } setTool('move'); }
   if(e.key==='+'||e.key==='=') zoom(1.2);
   if(e.key==='-') zoom(1/1.2);
   if(e.key==='0') fitView();
+  if(e.key==='Delete'&&selectedId) deleteNode();
 });
 
 // ── Tooltip ────────────────────────────────────────────────────────────────
-function showTip(e, txt){
+function showTip(e,txt){
   const t=$('tooltip');
   t.textContent=txt.replace(/\\n/g,'\n');
-  t.style.whiteSpace='pre';
   t.style.display='block';
   moveTip(e);
 }
 function hideTip(){ $('tooltip').style.display='none'; }
-document.addEventListener('mousemove', moveTip);
+document.addEventListener('mousemove',moveTip);
 function moveTip(e){
   const t=$('tooltip'); if(t.style.display==='none') return;
-  t.style.left=(e.clientX+14)+'px'; t.style.top=(e.clientY+10)+'px';
+  const tw=t.offsetWidth||200, th=t.offsetHeight||60;
+  const x=e.clientX+14, y=e.clientY+14;
+  t.style.left=Math.min(x, window.innerWidth-tw-10)+'px';
+  t.style.top =(y+th>window.innerHeight ? e.clientY-th-6 : y)+'px';
 }
 
-// ── Utils ─────────────────────────────────────────────────────────────────
-function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+// ── Utils ──────────────────────────────────────────────────────────────────
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/\n/g,'\\n').replace(/\r/g,''); }
 
-// Auto-load
-window.addEventListener('load', ()=>{ fitView(); });
+window.addEventListener('load',()=>{ fitView(); });
 </script>
 </body>
 </html>

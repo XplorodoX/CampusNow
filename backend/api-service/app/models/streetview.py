@@ -40,6 +40,10 @@ class StreetViewNode(BaseModel):
         default_factory=list,
         description="Interaktive Punkte im Panorama",
     )
+    pos_override: dict | None = Field(
+        None,
+        description="Manuelle Floorplan-Position {x, y} – gesetzt vom Editor per Drag & Drop",
+    )
 
 
 class StreetViewNodeUpdate(BaseModel):
@@ -52,6 +56,7 @@ class StreetViewNodeUpdate(BaseModel):
     exits: dict[str, str] | None = None
     nearby_rooms: list[RoomAccess] | None = None
     spots: list[StreetViewSpot] | None = None
+    pos_override: dict | None = None
 
 
 class StreetViewGraph(BaseModel):
