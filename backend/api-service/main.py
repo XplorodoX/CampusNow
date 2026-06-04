@@ -46,15 +46,21 @@ REST-API für die **Hochschule Aalen** – Stundenplan, Campus-Navigation und Ev
 
 | Endpunkt | Beschreibung |
 |---|---|
+| `POST /api/v1/users` | User registrieren (einmalig nach Firebase-Login) |
 | `GET /api/v1/settings` | App-Init: Nutzereinstellungen + Metadaten (Studiengänge, Semester, Event-Gruppen) |
 | `GET /api/v1/timetable` | Stundenplan: gefilterte Vorlesungen und Events |
 | `GET /api/v1/streetview/graph` | 360°-Navigationsgraph mit Knoten und Verbindungen |
 
-> **Empfohlene Reihenfolge:** `GET /settings` einmalig beim App-Start, dann `GET /timetable` pro Ansicht.
+> **Empfohlene Reihenfolge:** `POST /users` einmalig nach Login → `GET /settings` einmalig pro Session → `GET /timetable` pro Ansicht.
 
 ### Authentifizierung
 
-Write-Endpunkte (`POST`, `PUT`, `DELETE`) erfordern einen API-Key im Header:
+**User-Endpoints** (`/users`, `/settings`) identifizieren den Nutzer über seine Firebase UID:
+```
+X-User-ID: <firebase-uid>
+```
+
+**Admin-Endpoints** (alle anderen `POST`, `PUT`, `PATCH`, `DELETE`) erfordern einen API-Key:
 ```
 X-API-Key: <key>
 ```
@@ -93,9 +99,19 @@ Manuell anstoßen über `POST /api/v1/scheduler/trigger`.
             ),
         },
         {
+            "name": "users",
+            "description": (
+                "**User-Registrierung.** `POST` legt einen neuen User anhand seiner Firebase UID an — "
+                "öffentlich, kein API-Key nötig. Einmalig nach dem ersten Firebase-Login aufrufen. "
+                "Ohne Registrierung liefern alle Settings-Endpoints `401 Unauthorized`."
+            ),
+        },
+        {
             "name": "settings",
             "description": (
-                "**App-Init-Endpunkt.** `GET` liefert Nutzereinstellungen **und** einmalig benötigte Metadaten "
+                "**App-Init-Endpunkt.** Alle Endpoints erfordern `X-User-ID` (Firebase UID) — "
+                "User muss zuvor über `POST /api/v1/users` registriert sein. "
+                "`GET` liefert Nutzereinstellungen **und** einmalig benötigte Metadaten "
                 "(Studiengänge mit Farben, Semester-Liste, Event-Gruppen). Einmalig pro Session aufrufen. "
                 "`PUT` überschreibt alle Einstellungen vollständig, `PATCH` aktualisiert einzelne Felder."
             ),
