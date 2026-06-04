@@ -21,6 +21,7 @@ from app.routers import (
     settings,
     streetview,
     timetable,
+    users,
 )
 
 # Load environment variables
@@ -164,6 +165,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
     return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
 
 # Include routers
+app.include_router(users.router)
 app.include_router(buildings.router)
 app.include_router(events.router)
 app.include_router(rooms.router)

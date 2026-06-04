@@ -12,16 +12,17 @@
 3. [Responses empfangen](#3-responses-empfangen)
 4. [Authentifizierung](#4-authentifizierung)
 5. [Fehlerbehandlung](#5-fehlerbehandlung)
-6. [Settings](#6-settings)
-7. [Timetable](#7-timetable)
-8. [StreetView & Navigation](#8-streetview--navigation)
-9. [Buildings](#9-buildings)
-10. [Rooms](#10-rooms)
-11. [Events](#11-events)
-12. [Images](#12-images)
-13. [Scheduler](#13-scheduler)
-14. [Datenmodelle](#14-datenmodelle)
-15. [Schnellreferenz](#15-schnellreferenz-aller-endpoints)
+6. [Users](#6-users)
+7. [Settings](#7-settings)
+8. [Timetable](#8-timetable)
+9. [StreetView & Navigation](#9-streetview--navigation)
+10. [Buildings](#10-buildings)
+11. [Rooms](#11-rooms)
+12. [Events](#12-events)
+13. [Images](#13-images)
+14. [Scheduler](#14-scheduler)
+15. [Datenmodelle](#15-datenmodelle)
+16. [Schnellreferenz](#16-schnellreferenz-aller-endpoints)
 
 ---
 
@@ -307,7 +308,7 @@ Alle Fehler-Responses:
 |--------|-----------|----------------|
 | `200` | Erfolg | — |
 | `400` | Ungültige Parameter | `X-User-ID` fehlt, Crop-Format falsch, Wert außerhalb Range |
-| `401` | Nicht autorisiert | API-Key fehlt oder falsch |
+| `401` | Nicht autorisiert | API-Key fehlt oder falsch · User nicht registriert |
 | `404` | Nicht gefunden | Gebäude/Raum/Node/Bild existiert nicht |
 | `413` | Datei zu groß | Upload > 20 MB |
 | `415` | Falsches Format | Kein JPEG/PNG/WEBP |
@@ -340,7 +341,70 @@ class ApiException implements Exception {
 
 ---
 
-## 6. Settings
+## 6. Users
+
+### `POST /users`
+
+Registriert einen neuen User anhand seiner Firebase UID. **Öffentlicher Endpoint — kein API-Key nötig.**
+
+Einmalig nach dem ersten Firebase-Login aufrufen. Ist die UID bereits registriert, wird der vorhandene User zurückgegeben (idempotent).
+
+> Ohne vorherige Registrierung liefern alle `GET /settings`, `PUT /settings` und `PATCH /settings` einen `401 Unauthorized`.
+
+**Request:**
+```
+POST /api/v1/users
+X-User-ID: <firebase-uid>
+```
+
+**Response (201 Created – neuer User):**
+```json
+{ "created_at": "2026-06-04T12:00:00+00:00" }
+```
+
+**Response (200 OK – bereits registriert):**
+```json
+{ "created_at": "2026-06-01T09:30:00+00:00" }
+```
+
+**cURL:**
+```bash
+curl -X POST "https://streetview.8xc.de/api/v1/users" \
+  -H "X-User-ID: <firebase-uid>"
+```
+
+**Flutter:**
+```dart
+final uid = FirebaseAuth.instance.currentUser!.uid;
+final response = await http.post(
+  Uri.parse('$baseUrl/api/v1/users'),
+  headers: {'X-User-ID': uid},
+);
+// 201 = neu angelegt, 200 = bereits registriert — beides ist OK
+```
+
+**Empfohlener App-Flow:**
+```dart
+// 1. Firebase Login
+final userCredential = await FirebaseAuth.instance.signInWithXxx(...);
+final uid = userCredential.user!.uid;
+
+// 2. User registrieren (einmalig, idempotent)
+await http.post(
+  Uri.parse('$baseUrl/api/v1/users'),
+  headers: {'X-User-ID': uid},
+);
+
+// 3. Settings laden
+final settingsRes = await http.get(
+  Uri.parse('$baseUrl/api/v1/settings'),
+  headers: {'X-User-ID': uid},
+);
+```
+
+---
+
+## 7. Settings
 
 ### `GET /settings`
 
@@ -516,7 +580,7 @@ final response = await http.patch(
 
 ---
 
-## 7. Timetable
+## 8. Timetable
 
 ### `GET /timetable`
 
@@ -612,7 +676,7 @@ final events   = (data['events']   as List).cast<Map<String, dynamic>>();
 
 ---
 
-## 8. StreetView & Navigation
+## 9. StreetView & Navigation
 
 ### Konzept
 
@@ -936,7 +1000,7 @@ G2 2.38  G2 2.39  G2 2.40  G2 2.41
 
 ---
 
-## 9. Buildings
+## 10. Buildings
 
 ### `GET /buildings`
 
@@ -989,7 +1053,7 @@ final buildings = (jsonDecode(response.body) as List).cast<Map<String, dynamic>>
 
 ---
 
-## 10. Rooms
+## 11. Rooms
 
 ### `GET /rooms`
 
@@ -1048,7 +1112,7 @@ final rooms = (jsonDecode(response.body) as List).cast<Map<String, dynamic>>();
 
 ---
 
-## 11. Events
+## 12. Events
 
 ### `GET /events`
 
@@ -1166,7 +1230,7 @@ X-API-Key: <api-key>
 
 ---
 
-## 12. Images
+## 13. Images
 
 ### `GET /images/rooms/{room_id}`
 
@@ -1364,7 +1428,7 @@ X-API-Key: <api-key>
 
 ---
 
-## 13. Scheduler
+## 14. Scheduler
 
 ### `GET /scheduler/status`
 
@@ -1459,7 +1523,7 @@ X-API-Key: <api-key>
 
 ---
 
-## 14. Datenmodelle
+## 15. Datenmodelle
 
 ### `StreetViewGraph`
 
@@ -1617,13 +1681,14 @@ Alle Felder optional:
 
 ---
 
-## 15. Schnellreferenz aller Endpoints
+## 16. Schnellreferenz aller Endpoints
 
 | Method | Endpoint | Auth | Request `Content-Type` | Response `Content-Type` |
 |--------|----------|:----:|------------------------|------------------------|
-| `GET` | `/settings` | `X-User-ID` | — | `application/json` |
-| `PUT` | `/settings` | `X-User-ID` | `application/json` | `application/json` |
-| `PATCH` | `/settings` | `X-User-ID` | `application/json` | `application/json` |
+| `POST` | `/users` | `X-User-ID` | — | `application/json` |
+| `GET` | `/settings` | `X-User-ID` ¹ | — | `application/json` |
+| `PUT` | `/settings` | `X-User-ID` ¹ | `application/json` | `application/json` |
+| `PATCH` | `/settings` | `X-User-ID` ¹ | `application/json` | `application/json` |
 | `GET` | `/timetable` | — | — | `application/json` |
 | `GET` | `/streetview/graph` | — | — | `application/json` |
 | `GET` | `/streetview/graph/building/{id}` | — | — | `application/json` |
@@ -1649,3 +1714,5 @@ Alle Felder optional:
 | `GET` | `/scheduler/status` | — | — | `application/json` |
 | `GET` | `/scheduler/logs` | — | — | `application/json` |
 | `POST` | `/scheduler/trigger` | `X-API-Key` | — | `application/json` |
+
+> ¹ `X-User-ID` muss zuerst über `POST /users` registriert worden sein — sonst `401`.

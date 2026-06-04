@@ -33,3 +33,15 @@ async def get_user_id(x_user_id: str | None = Header(default=None)) -> str:
             detail="X-User-ID Header fehlt.",
         )
     return x_user_id.strip()
+
+
+def get_registered_user_id(uid: str = Depends(get_user_id)) -> str:
+    """FastAPI-Dependency: prüft ob die UID in der users-Collection registriert ist."""
+    from app.db.mongo_client import mongo_client
+    db = mongo_client.get_db()
+    if not db.users.find_one({"_id": uid}):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User nicht registriert.",
+        )
+    return uid

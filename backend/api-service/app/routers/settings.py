@@ -5,7 +5,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.auth import get_user_id
+from app.auth import get_registered_user_id
 from app.db.mongo_client import mongo_client
 from app.models.settings import AppConfig, UserSettings, UserSettingsPatch
 from app.routers.timetable import _EVENT_GROUPS, _SEMESTERS
@@ -35,7 +35,7 @@ def _load_user_settings(db: Any, uid: str) -> dict:
         "Einmalig beim App-Start aufrufen; bei neuer Session wiederholen."
     ),
 )
-async def get_settings(uid: str = Depends(get_user_id)) -> AppConfig:
+async def get_settings(uid: str = Depends(get_registered_user_id)) -> AppConfig:
     """Gibt User-Einstellungen und einmalig benötigte Metadaten zurück.
 
     Der Frontend-Client ruft diesen Endpunkt **einmalig pro Session** auf (App-Start
@@ -74,7 +74,7 @@ async def get_settings(uid: str = Depends(get_user_id)) -> AppConfig:
     summary="Einstellungen speichern (vollständig)",
     response_description="Die gespeicherten Einstellungen",
 )
-async def save_settings(settings: UserSettings, uid: str = Depends(get_user_id)) -> UserSettings:
+async def save_settings(settings: UserSettings, uid: str = Depends(get_registered_user_id)) -> UserSettings:
     """Überschreibt alle User-Einstellungen komplett. Metadaten werden nicht gespeichert."""
     try:
         db = mongo_client.get_db()
@@ -92,7 +92,7 @@ async def save_settings(settings: UserSettings, uid: str = Depends(get_user_id))
     summary="Einstellungen aktualisieren (partiell)",
     response_description="Die vollständigen Einstellungen nach dem Update",
 )
-async def patch_settings(patch: UserSettingsPatch, uid: str = Depends(get_user_id)) -> UserSettings:
+async def patch_settings(patch: UserSettingsPatch, uid: str = Depends(get_registered_user_id)) -> UserSettings:
     """Aktualisiert nur die übergebenen Felder; alle anderen bleiben unverändert."""
     try:
         db = mongo_client.get_db()
