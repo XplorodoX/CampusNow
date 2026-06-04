@@ -345,13 +345,6 @@ def _render_graph_svg(graph: dict, svg_path: Path) -> str:
         f'x="0" y="0" width="{vb_w}" height="{vb_h}" filter="url(#dark-fp)"/>'
     )
 
-    # Korridor-Hilfslinien (wie im Editor)
-    for cy_ref, label_ref in ((NORTH_Y, "Nordkorridor"), (SOUTH_Y, "Südkorridor")):
-        p.append(
-            f'  <line x1="40" y1="{cy_ref}" x2="660" y2="{cy_ref}" '
-            f'stroke="#5b9bd5" stroke-width="0.5" stroke-dasharray="4 4" opacity="0.3"/>'
-            f'  <text x="4" y="{cy_ref - 4}" font-size="8" fill="#5b9bd5" opacity="0.5">{label_ref}</text>'
-        )
 
     # Kanten – eine Linie pro Paar, bidirektionale Pfeile
     drawn: set[tuple[str, str]] = set()
@@ -468,6 +461,242 @@ def _render_graph_svg(graph: dict, svg_path: Path) -> str:
     return "\n".join(p)
 
 
+def _room_to_node(graph: dict, room_id: str) -> str | None:
+    """Findet den Node der den gegebenen Raum in nearby_rooms hat."""
+    for node in graph.get("nodes", []):
+        for r in node.get("nearby_rooms", []):
+            if r.get("room_id") == room_id:
+                return node["id"]
+    return None
+
+
+def _render_route_svg(graph: dict, steps: list[dict], svg_path: Path, to_room: str) -> str:
+    """SVG: Floorplan + alle Nodes gedimmt + Pfad hervorgehoben mit Schrittnummern."""
+    room_coords = _parse_room_coords(svg_path)
+
+    fp_bytes = svg_path.read_bytes()
+    fp_b64   = base64.b64encode(fp_bytes).decode()
+    fp_text  = fp_bytes.decode("utf-8", errors="replace")
+    vb_m     = re.search(r'viewBox="([^"]+)"', fp_text)
+    vb       = vb_m.group(1) if vb_m else "0 0 723 682"
+    vb_w, vb_h = (float(v) for v in vb.split()[2:4])
+    legend_h = 36.0
+    total_h  = vb_h + legend_h
+
+    nodes      = graph.get("nodes", [])
+    path_ids   = [s["node_id"] for s in steps]
+    path_set   = set(path_ids)
+
+    positions: dict[str, tuple[float, float]] = {}
+    for node in nodes:
+        pos = _node_xy(node, room_coords)
+        if pos:
+            positions[node["id"]] = pos
+
+    p: list[str] = []
+    p.append(
+        f'<svg xmlns="http://www.w3.org/2000/svg" '
+        f'viewBox="0 0 {vb_w} {total_h}" width="{vb_w}" height="{total_h}" '
+        f'style="background:#111927;font-family:system-ui,sans-serif">'
+    )
+    p.append(
+        '  <defs>'
+        '<marker id="arr" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto-start-reverse">'
+        '<polygon points="0,0 5,2.5 0,5" fill="#5b7fa8" opacity="0.5"/>'
+        '</marker>'
+        '<marker id="arr-path" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">'
+        '<polygon points="0,0 6,3 0,6" fill="#f0b429"/>'
+        '</marker>'
+        '<filter id="dark-fp" color-interpolation-filters="sRGB">'
+        '<feColorMatrix type="matrix" '
+        'values="-0.72 0 0 0 0.85  0 -0.72 0 0 0.88  0 0 -0.72 0 0.97  0 0 0 1 0"/>'
+        '</filter>'
+        '<filter id="glow-path">'
+        '<feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#f0b429" flood-opacity="0.8"/>'
+        '</filter>'
+        '</defs>'
+    )
+
+    # Grundriss
+    p.append(
+        f'  <image href="data:image/svg+xml;base64,{fp_b64}" '
+        f'x="0" y="0" width="{vb_w}" height="{vb_h}" filter="url(#dark-fp)"/>'
+    )
+
+    R_edge = 7  # Offset: Linie beginnt/endet am Kreisrand
+
+    def edge_pts(ax: float, ay: float, bx: float, by: float) -> tuple:
+        """Verschiebt Start-/Endpunkt an den Kreisrand."""
+        import math
+        dx, dy = bx - ax, by - ay
+        dist = math.sqrt(dx * dx + dy * dy) or 1
+        ux, uy = dx / dist, dy / dist
+        return ax + ux * R_edge, ay + uy * R_edge, bx - ux * R_edge, by - uy * R_edge
+
+    # Alle normalen Kanten – gedimmt
+    drawn: set[tuple[str, str]] = set()
+    for node in nodes:
+        src = node["id"]
+        if src not in positions:
+            continue
+        for dst in node.get("exits", {}).values():
+            if dst not in positions:
+                continue
+            key = (min(src, dst), max(src, dst))
+            if key in drawn:
+                continue
+            drawn.add(key)
+            if src in path_set and dst in path_set:
+                continue  # Pfad-Kanten separat
+            ax, ay = positions[src]
+            bx, by = positions[dst]
+            x1, y1, x2, y2 = edge_pts(ax, ay, bx, by)
+            p.append(
+                f'  <line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" '
+                f'stroke="#3a6090" stroke-width="1.2" opacity="0.3"/>'
+            )
+
+    # Pfad-Linien: erst breiter Halo, dann helle Linie
+    for i in range(len(path_ids) - 1):
+        a, b = path_ids[i], path_ids[i + 1]
+        if a not in positions or b not in positions:
+            continue
+        ax, ay = positions[a]
+        bx, by = positions[b]
+        x1, y1, x2, y2 = edge_pts(ax, ay, bx, by)
+        step = steps[i]
+        # Halo (breit, transparent)
+        p.append(
+            f'  <line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" '
+            f'stroke="#f0b429" stroke-width="8" opacity="0.25" stroke-linecap="round"/>'
+        )
+        # Sichtbare Linie mit Pfeil
+        p.append(
+            f'  <line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" '
+            f'stroke="#f0b429" stroke-width="2.5" opacity="1" stroke-linecap="round" '
+            f'marker-end="url(#arr-path)"/>'
+        )
+        # Richtungs-Label
+        if step.get("direction"):
+            mx, my = (ax + bx) / 2, (ay + by) / 2
+            lbl = html.escape(step["direction"])
+            w   = len(lbl) * 4 + 6
+            p.append(
+                f'  <rect x="{mx - w/2:.1f}" y="{my - 6:.1f}" width="{w}" height="11" rx="2" fill="rgba(20,18,10,.92)"/>'
+                f'  <text x="{mx:.1f}" y="{my + 3:.1f}" text-anchor="middle" '
+                f'font-size="7" fill="#f0b429" font-family="monospace" font-weight="bold">{lbl}</text>'
+            )
+
+    # Alle Nodes – gedimmt, ausser Pfad-Nodes
+    R = 6
+    for node in nodes:
+        nid = node["id"]
+        if nid not in positions:
+            continue
+        cx, cy = positions[nid]
+        ntype  = node.get("node_type", "corridor")
+        fill   = _SVG_FILL.get(ntype, _SVG_DEFAULT_FILL)
+        stroke = _SVG_STROKE.get(ntype, _SVG_DEFAULT_STROKE)
+        on_path = nid in path_set
+        opacity = "0.93" if on_path else "0.2"
+
+        p.append(
+            f'  <circle cx="{cx:.1f}" cy="{cy:.1f}" r="{R}" '
+            f'fill="{fill}" stroke="{stroke}" stroke-width="1.5" opacity="{opacity}"/>'
+        )
+
+    # Pfad-Nodes mit Schrittnummer
+    for i, step in enumerate(steps):
+        nid = step["node_id"]
+        if nid not in positions:
+            continue
+        cx, cy   = positions[nid]
+        is_start = i == 0
+        is_end   = i == len(steps) - 1
+        num      = str(i + 1)
+
+        if is_start:
+            ring_color, ring_label = "#4f8ef7", "START"
+        elif is_end:
+            ring_color, ring_label = "#3fb950", "ZIEL"
+        else:
+            ring_color, ring_label = "#f0b429", ""
+
+        # Halo
+        p.append(
+            f'  <circle cx="{cx:.1f}" cy="{cy:.1f}" r="{R + 5}" '
+            f'fill="none" stroke="{ring_color}" stroke-width="1.5" opacity="0.7"/>'
+        )
+        # Schritt-Badge
+        p.append(
+            f'  <circle cx="{cx:.1f}" cy="{cy - R - 1:.1f}" r="5" fill="{ring_color}"/>'
+            f'  <text x="{cx:.1f}" y="{cy - R + 3:.1f}" text-anchor="middle" '
+            f'font-size="6" fill="white" font-weight="bold">{num}</text>'
+        )
+        # START / ZIEL Label
+        if ring_label:
+            lw = len(ring_label) * 5 + 6
+            p.append(
+                f'  <rect x="{cx - lw/2:.1f}" y="{cy + R + 2:.1f}" width="{lw}" height="11" rx="3" fill="{ring_color}"/>'
+                f'  <text x="{cx:.1f}" y="{cy + R + 11:.1f}" text-anchor="middle" '
+                f'font-size="7" fill="white" font-weight="bold">{ring_label}</text>'
+            )
+
+    # Zielraum-Info + Legende
+    ly = vb_h + 4
+    p.append(
+        f'  <text x="8" y="{ly + 11}" font-size="10" font-weight="600" fill="#e6edf3">'
+        f'Route zu: {html.escape(to_room)}'
+        f'</text>'
+        f'  <text x="8" y="{ly + 24}" font-size="9" fill="#7d8590">'
+        f'{len(steps)} Schritte'
+        f'</text>'
+    )
+    # Legende
+    for lbl, color in (("START", "#4f8ef7"), ("Pfad", "#f0b429"), ("ZIEL", "#3fb950")):
+        lx = vb_w - 200 + ["START", "Pfad", "ZIEL"].index(lbl) * 65
+        p.append(
+            f'  <circle cx="{lx + 5}" cy="{ly + 8}" r="5" fill="{color}" opacity="0.9"/>'
+            f'  <text x="{lx + 14}" y="{ly + 12}" font-size="9" fill="#7d8590">{lbl}</text>'
+        )
+
+    p.append("</svg>")
+    return "\n".join(p)
+
+
+@router.get(
+    "/route/building/{building_id}/map",
+    summary="Dijkstra-Route auf Floorplan visualisieren",
+    response_description="SVG mit hervorgehobenem Navigationspfad",
+    responses={
+        200: {"content": {"image/svg+xml": {}}},
+        404: {"description": "Kein Graph, Floorplan oder Raum nicht gefunden"},
+    },
+)
+async def get_route_map(
+    building_id: str,
+    to_room: str = Query(..., description="Ziel-Raum-ID, z.B. 'G2 2.34'"),
+    from_room: str | None = Query(None, description="Start-Raum-ID, z.B. 'G2 2.01' (Standard: startNode des Graphen)"),
+) -> StreamingResponse:
+    """SVG: Route von from_room zum Zielraum — Pfad gold hervorgehoben, alle anderen Nodes gedimmt."""
+    db    = mongo_client.get_db()
+    doc   = db.streetview_graphs.find_one({"building_id": building_id})
+    if not doc:
+        raise HTTPException(404, f"Kein Graph für Gebäude '{building_id}'")
+    graph = _unwrap(doc)
+    start_node = _room_to_node(graph, from_room) if from_room else None
+    if from_room and start_node is None:
+        raise HTTPException(404, f"Kein Node für Startraum '{from_room}' gefunden")
+    steps = find_route(graph, target_room=to_room, start_node_id=start_node)
+    if steps is None:
+        raise HTTPException(404, f"Kein Pfad zu '{to_room}' gefunden")
+    svg_path = _FLOORPLAN_DIR / f"{building_id}.svg"
+    if not svg_path.exists():
+        raise HTTPException(404, f"Kein Floorplan-SVG für '{building_id}'")
+    svg = _render_route_svg(graph, steps, svg_path, to_room)
+    return StreamingResponse(io.BytesIO(svg.encode()), media_type="image/svg+xml")
+
+
 @router.get(
     "/graph/building/{building_id}/map",
     summary="Navigationsgraph auf Floorplan visualisieren",
@@ -561,8 +790,8 @@ async def get_floorplan_rooms(building_id: str) -> dict:
 async def get_route(
     building_id: str,
     to_room: str = Query(..., description="Ziel-Raum-ID, z. B. `G2 0.01`"),
-    from_node: str | None = Query(
-        None, description="Optionaler Start-Node (Standard: startNode des Graphen)"
+    from_room: str | None = Query(
+        None, description="Start-Raum-ID, z.B. 'G2 2.01' (Standard: startNode des Graphen)"
     ),
 ) -> dict[str, Any]:
     """Berechnet den kürzesten Weg (Anzahl Knoten) zum Node, der Zugang
@@ -577,7 +806,13 @@ async def get_route(
             )
 
         graph = _unwrap(doc)
-        steps = find_route(graph, target_room=to_room, start_node_id=from_node)
+        start_node = _room_to_node(graph, from_room) if from_room else None
+        if from_room and start_node is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No node found for start room '{from_room}'",
+            )
+        steps = find_route(graph, target_room=to_room, start_node_id=start_node)
         if steps is None:
             raise HTTPException(
                 status_code=404,

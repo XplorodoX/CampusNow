@@ -376,8 +376,8 @@ let scale = 1, panX = 0, panY = 0;
 let isPanning = false, panStart = null;
 let drag = null, activeConnectionLine = null;
 let snapEnabled = true;
-const SNAP_THRESHOLD = 14;
-const GRID_SIZE = 10;
+const SNAP_SCREEN_PX = 10; // immer 10 Bildschirm-Pixel, egal wie weit rein gezoomt
+const GRID_SIZE = 5;       // feines 5px-Raster bei Shift
 
 function toggleSnap(){
   snapEnabled = !snapEnabled;
@@ -385,10 +385,11 @@ function toggleSnap(){
 }
 
 function applySnap(x, y, excludeId, useGrid){
+  const threshold = SNAP_SCREEN_PX / scale; // SVG-px äquivalent zu 10 Screen-px
   if(useGrid){
-    return { x: Math.round(x/GRID_SIZE)*GRID_SIZE, y: Math.round(y/GRID_SIZE)*GRID_SIZE, gx: x, gy: y };
+    return { x: Math.round(x/GRID_SIZE)*GRID_SIZE, y: Math.round(y/GRID_SIZE)*GRID_SIZE, snapX: null, snapY: null };
   }
-  let snapX=null, snapY=null, minDX=SNAP_THRESHOLD, minDY=SNAP_THRESHOLD;
+  let snapX=null, snapY=null, minDX=threshold, minDY=threshold;
   for(const [id,pos] of Object.entries(positions)){
     if(id===excludeId||!pos) continue;
     const dx=Math.abs(pos.x-x), dy=Math.abs(pos.y-y);
@@ -514,11 +515,7 @@ function renderAll(b64){
   svg.setAttribute('height',FP_H+45);
   svg.setAttribute('viewBox',`0 0 ${FP_W} ${FP_H+45}`);
   $('layer-bg').innerHTML=
-    `<image href="data:image/svg+xml;base64,${b64}" x="0" y="0" width="${FP_W}" height="${FP_H}" filter="url(#dark-fp)"/>` +
-    `<line x1="40" y1="${NORTH_Y}" x2="660" y2="${NORTH_Y}" stroke="#5b9bd5" stroke-width=".5" stroke-dasharray="4 4" opacity=".3"/>` +
-    `<line x1="40" y1="${SOUTH_Y}" x2="660" y2="${SOUTH_Y}" stroke="#5b9bd5" stroke-width=".5" stroke-dasharray="4 4" opacity=".3"/>` +
-    `<text x="4" y="${NORTH_Y-4}" font-size="8" fill="#5b9bd5" opacity=".5">Nordkorridor</text>` +
-    `<text x="4" y="${SOUTH_Y-4}" font-size="8" fill="#5b9bd5" opacity=".5">Südkorridor</text>`;
+    `<image href="data:image/svg+xml;base64,${b64}" x="0" y="0" width="${FP_W}" height="${FP_H}" filter="url(#dark-fp)"/>`;
   renderEdges(); renderNodes();
 }
 
@@ -1147,6 +1144,21 @@ window.addEventListener('keydown',e=>{
   if(e.key==='-') zoom(1/1.2);
   if(e.key==='0') fitView();
   if(e.key==='Delete'&&selectedId) deleteNode();
+
+  // Pfeiltasten: selektierten Node verschieben
+  if(selectedId && ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
+    e.preventDefault();
+    const step = e.shiftKey ? 10 : 1;
+    const p = positions[selectedId];
+    if(!p) return;
+    if(e.key==='ArrowLeft')  p.x -= step;
+    if(e.key==='ArrowRight') p.x += step;
+    if(e.key==='ArrowUp')    p.y -= step;
+    if(e.key==='ArrowDown')  p.y += step;
+    const node = nodeById(selectedId);
+    if(node) node.pos_override = {...p};
+    renderNodes(); renderEdges();
+  }
 });
 
 // ── Tooltip ────────────────────────────────────────────────────────────────
@@ -1169,7 +1181,28 @@ function moveTip(e){
 // ── Utils ──────────────────────────────────────────────────────────────────
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/\n/g,'\\n').replace(/\r/g,''); }
 
-window.addEventListener('load',()=>{ fitView(); });
+window.addEventListener('load',()=>{
+  // Eingaben aus localStorage wiederherstellen
+  const saved = JSON.parse(localStorage.getItem('fp-editor')||'{}');
+  if(saved.api) $('inp-api').value = saved.api;
+  if(saved.key) $('inp-key').value = saved.key;
+  if(saved.bld) $('inp-bld').value = saved.bld;
+
+  // Eingaben bei Änderung speichern
+  ['inp-api','inp-key','inp-bld'].forEach(id=>{
+    $(id).addEventListener('input',()=>{
+      localStorage.setItem('fp-editor', JSON.stringify({
+        api: $('inp-api').value,
+        key: $('inp-key').value,
+        bld: $('inp-bld').value,
+      }));
+    });
+  });
+
+  fitView();
+  // Auto-load wenn Gebäude bekannt
+  if(saved.bld) loadAll();
+});
 </script>
 </body>
 </html>
